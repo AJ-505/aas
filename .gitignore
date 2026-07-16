@@ -1,0 +1,20 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+
+# Convex
+convex/_generated*
+.convex/
+
+# Playwright
+test-results
+playwright-report
+playwright/.cache
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
