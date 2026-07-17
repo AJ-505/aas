@@ -1,7 +1,7 @@
 import { mutation, query } from './_generated/server'
-import type { MutationCtx } from './_generated/server'
 import { v, ConvexError } from 'convex/values'
 import { requireRole, requireUser, getCurrentUser, isValidRole } from './lib/auth'
+import { audit } from './lib/audit'
 import { ROLES, type Role } from '../src/lib/enums'
 
 export const me = query({
@@ -45,6 +45,23 @@ export const list = query({
       role: u.role ?? null,
       active: u.active ?? true,
     }))
+  },
+})
+
+export const listTechnicians = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireRole(ctx, ['csr', 'manager', 'admin'])
+    const users = await ctx.db
+      .query('users')
+      .filter((q) => q.eq(q.field('role'), 'technician'))
+      .collect()
+    return users
+      .filter((u) => u.active !== false)
+      .map((u) => ({
+        _id: u._id,
+        name: u.name ?? null,
+      }))
   },
 })
 
@@ -94,20 +111,3 @@ export const bootstrapFirstAdmin = mutation({
     return { role: 'admin' as const }
   },
 })
-
-async function audit(
-  ctx: MutationCtx,
-  action: string,
-  entity: string,
-  entityId: string,
-) {
-  const actor = await getCurrentUser(ctx)
-  if (!actor) return
-  await ctx.db.insert('auditLogs', {
-    userId: actor._id,
-    action,
-    entity,
-    entityId,
-    ts: Date.now(),
-  })
-}

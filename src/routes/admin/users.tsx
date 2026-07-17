@@ -18,6 +18,7 @@ import {
   useSetRoleMutation,
   useSetActiveMutation,
 } from '~/lib/queries'
+import type { Id } from 'convex/_generated/dataModel'
 import { ROLES, ROLE_LABELS, type Role } from '~/lib/enums'
 
 export const Route = createFileRoute('/admin/users')({
@@ -98,7 +99,7 @@ function UserRow({
           onChange={(e) => {
             const role = e.target.value as Role
             setRole.mutate(
-              { userId: user._id, role },
+              { userId: user._id as Id<'users'>, role },
               {
                 onSuccess: () => {
                   toast.success('Role updated.')
@@ -129,7 +130,7 @@ function UserRow({
           size="sm"
           onClick={() =>
             setActive.mutate(
-              { userId: user._id, active: !user.active },
+              { userId: user._id as Id<'users'>, active: !user.active },
               {
                 onSuccess: () => {
                   toast.success(user.active ? 'User deactivated.' : 'User activated.')

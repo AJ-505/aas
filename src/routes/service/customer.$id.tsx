@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
@@ -17,30 +17,49 @@ import { Badge } from '~/components/ui/badge'
 import { Loader } from '~/components/Loader'
 import { customerQueries, useCreateVehicleMutation } from '~/lib/queries'
 import { VEHICLE_STATUS_LABELS } from '~/lib/enums'
+import type { Id } from 'convex/_generated/dataModel'
 
-export const Route = createFileRoute('/service/customers/$customerId')({
+export const Route = createFileRoute('/service/customer/$id')({
   component: CustomerDetailPage,
 })
 
 function CustomerDetailPage() {
-  const { customerId } = Route.useParams()
-  const { data, isLoading } = useQuery(customerQueries.detail(customerId))
+  const { id: customerId } = Route.useParams()
+  const { data, isLoading, isError, error } = useQuery(customerQueries.detail(customerId))
 
   if (isLoading) {
     return <Loader />
   }
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <p className="text-red-500">Error loading customer: {error?.message ?? 'Unknown error'}</p>
+        <Link to="/service/customers" className="text-sm underline">Back to customers</Link>
+      </div>
+    )
+  }
   if (!data) {
-    return <p className="text-slate-500">Customer not found.</p>
+    return (
+      <div className="space-y-4">
+        <p className="text-slate-500">Customer not found.</p>
+        <Link to="/service/customers" className="text-sm underline">Back to customers</Link>
+      </div>
+    )
   }
   const { customer, vehicles } = data
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{customer.name}</h1>
-        <p className="text-sm text-slate-500">{customer.phone}</p>
-        {customer.email && <p className="text-sm text-slate-500">{customer.email}</p>}
-        {customer.address && <p className="text-sm text-slate-500">{customer.address}</p>}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{customer.name}</h1>
+          <p className="text-sm text-slate-500">{customer.phone}</p>
+          {customer.email && <p className="text-sm text-slate-500">{customer.email}</p>}
+          {customer.address && <p className="text-sm text-slate-500">{customer.address}</p>}
+        </div>
+        <Link to="/service/customers" className="text-sm font-medium text-slate-900 underline">
+          Back to customers
+        </Link>
       </div>
 
       <div className="space-y-3">
@@ -109,7 +128,7 @@ function AddVehicleForm({ customerId }: { customerId: string }) {
     }
     await create.mutateAsync(
       {
-        ownerId: customerId,
+        ownerId: customerId as Id<'customers'>,
         make,
         model,
         year,

@@ -80,3 +80,15 @@ export const VEHICLE_STATUS_LABELS: Record<VehicleStatus, string> = {
   sold: 'Sold',
   customerOwned: 'Customer Owned',
 }
+
+export const PARTS_REQUEST_STATUS_LABELS: Record<PartsRequestStatus, string> = {
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  dispatched: 'Dispatched',
+}
+
+export const JOB_ITEM_TYPE_LABELS: Record<JobItemType, string> = {
+  part: 'Part',
+  labour: 'Labour',
+}

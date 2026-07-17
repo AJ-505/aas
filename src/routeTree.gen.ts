@@ -10,19 +10,38 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
+import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
 import { Route as ServiceCustomersRouteImport } from './routes/service/customers'
+import { Route as ServiceCheckinRouteImport } from './routes/service/checkin'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
-import { Route as ServiceCustomersCustomerIdRouteImport } from './routes/service/customers.$customerId'
+import { Route as ServiceJobIdRouteImport } from './routes/service/job.$id'
+import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServiceJobsRoute = ServiceJobsRouteImport.update({
+  id: '/service/jobs',
+  path: '/service/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceFinanceRoute = ServiceFinanceRouteImport.update({
+  id: '/service/finance',
+  path: '/service/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServiceCustomersRoute = ServiceCustomersRouteImport.update({
   id: '/service/customers',
   path: '/service/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceCheckinRoute = ServiceCheckinRouteImport.update({
+  id: '/service/checkin',
+  path: '/service/checkin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -35,34 +54,50 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServiceCustomersCustomerIdRoute =
-  ServiceCustomersCustomerIdRouteImport.update({
-    id: '/$customerId',
-    path: '/$customerId',
-    getParentRoute: () => ServiceCustomersRoute,
-  } as any)
+const ServiceJobIdRoute = ServiceJobIdRouteImport.update({
+  id: '/service/job/$id',
+  path: '/service/job/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceCustomerIdRoute = ServiceCustomerIdRouteImport.update({
+  id: '/service/customer/$id',
+  path: '/service/customer/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
-  '/service/customers': typeof ServiceCustomersRouteWithChildren
-  '/service/customers/$customerId': typeof ServiceCustomersCustomerIdRoute
+  '/service/checkin': typeof ServiceCheckinRoute
+  '/service/customers': typeof ServiceCustomersRoute
+  '/service/finance': typeof ServiceFinanceRoute
+  '/service/jobs': typeof ServiceJobsRoute
+  '/service/customer/$id': typeof ServiceCustomerIdRoute
+  '/service/job/$id': typeof ServiceJobIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
-  '/service/customers': typeof ServiceCustomersRouteWithChildren
-  '/service/customers/$customerId': typeof ServiceCustomersCustomerIdRoute
+  '/service/checkin': typeof ServiceCheckinRoute
+  '/service/customers': typeof ServiceCustomersRoute
+  '/service/finance': typeof ServiceFinanceRoute
+  '/service/jobs': typeof ServiceJobsRoute
+  '/service/customer/$id': typeof ServiceCustomerIdRoute
+  '/service/job/$id': typeof ServiceJobIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
-  '/service/customers': typeof ServiceCustomersRouteWithChildren
-  '/service/customers/$customerId': typeof ServiceCustomersCustomerIdRoute
+  '/service/checkin': typeof ServiceCheckinRoute
+  '/service/customers': typeof ServiceCustomersRoute
+  '/service/finance': typeof ServiceFinanceRoute
+  '/service/jobs': typeof ServiceJobsRoute
+  '/service/customer/$id': typeof ServiceCustomerIdRoute
+  '/service/job/$id': typeof ServiceJobIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -70,29 +105,46 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/service/checkin'
     | '/service/customers'
-    | '/service/customers/$customerId'
+    | '/service/finance'
+    | '/service/jobs'
+    | '/service/customer/$id'
+    | '/service/job/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/service/checkin'
     | '/service/customers'
-    | '/service/customers/$customerId'
+    | '/service/finance'
+    | '/service/jobs'
+    | '/service/customer/$id'
+    | '/service/job/$id'
   id:
     | '__root__'
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/service/checkin'
     | '/service/customers'
-    | '/service/customers/$customerId'
+    | '/service/finance'
+    | '/service/jobs'
+    | '/service/customer/$id'
+    | '/service/job/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AuthLoginRoute: typeof AuthLoginRoute
-  ServiceCustomersRoute: typeof ServiceCustomersRouteWithChildren
+  ServiceCheckinRoute: typeof ServiceCheckinRoute
+  ServiceCustomersRoute: typeof ServiceCustomersRoute
+  ServiceFinanceRoute: typeof ServiceFinanceRoute
+  ServiceJobsRoute: typeof ServiceJobsRoute
+  ServiceCustomerIdRoute: typeof ServiceCustomerIdRoute
+  ServiceJobIdRoute: typeof ServiceJobIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -104,11 +156,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/service/jobs': {
+      id: '/service/jobs'
+      path: '/service/jobs'
+      fullPath: '/service/jobs'
+      preLoaderRoute: typeof ServiceJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/finance': {
+      id: '/service/finance'
+      path: '/service/finance'
+      fullPath: '/service/finance'
+      preLoaderRoute: typeof ServiceFinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/service/customers': {
       id: '/service/customers'
       path: '/service/customers'
       fullPath: '/service/customers'
       preLoaderRoute: typeof ServiceCustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/checkin': {
+      id: '/service/checkin'
+      path: '/service/checkin'
+      fullPath: '/service/checkin'
+      preLoaderRoute: typeof ServiceCheckinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login': {
@@ -125,32 +198,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/service/customers/$customerId': {
-      id: '/service/customers/$customerId'
-      path: '/$customerId'
-      fullPath: '/service/customers/$customerId'
-      preLoaderRoute: typeof ServiceCustomersCustomerIdRouteImport
-      parentRoute: typeof ServiceCustomersRoute
+    '/service/job/$id': {
+      id: '/service/job/$id'
+      path: '/service/job/$id'
+      fullPath: '/service/job/$id'
+      preLoaderRoute: typeof ServiceJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/customer/$id': {
+      id: '/service/customer/$id'
+      path: '/service/customer/$id'
+      fullPath: '/service/customer/$id'
+      preLoaderRoute: typeof ServiceCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface ServiceCustomersRouteChildren {
-  ServiceCustomersCustomerIdRoute: typeof ServiceCustomersCustomerIdRoute
-}
-
-const ServiceCustomersRouteChildren: ServiceCustomersRouteChildren = {
-  ServiceCustomersCustomerIdRoute: ServiceCustomersCustomerIdRoute,
-}
-
-const ServiceCustomersRouteWithChildren =
-  ServiceCustomersRoute._addFileChildren(ServiceCustomersRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminUsersRoute: AdminUsersRoute,
   AuthLoginRoute: AuthLoginRoute,
-  ServiceCustomersRoute: ServiceCustomersRouteWithChildren,
+  ServiceCheckinRoute: ServiceCheckinRoute,
+  ServiceCustomersRoute: ServiceCustomersRoute,
+  ServiceFinanceRoute: ServiceFinanceRoute,
+  ServiceJobsRoute: ServiceJobsRoute,
+  ServiceCustomerIdRoute: ServiceCustomerIdRoute,
+  ServiceJobIdRoute: ServiceJobIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

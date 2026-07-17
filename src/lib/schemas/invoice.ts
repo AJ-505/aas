@@ -26,6 +26,7 @@ export const invoiceLineItemSchema = z.object({
   description: z.string(),
   qty: z.number().int().min(1),
   unitPrice: moneyKobo,
+  lineTotal: moneyKobo,
 })
 
 export type InvoiceLineItem = z.infer<typeof invoiceLineItemSchema>

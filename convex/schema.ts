@@ -77,6 +77,7 @@ export default defineSchema({
     technicianId: v.optional(v.id('users')),
     status: jobStatusValidator,
     complaint: v.string(),
+    diagnosis: v.optional(v.string()),
     checkInTs: v.number(),
     assignedTs: v.optional(v.number()),
     diagnosedTs: v.optional(v.number()),
@@ -223,4 +224,8 @@ export default defineSchema({
     entityId: v.string(),
     ts: v.number(),
   }).index('entityId', ['entityId']),
+
+  settings: defineTable({
+    vatRate: v.number(),
+  }),
 })

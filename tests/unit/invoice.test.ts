@@ -4,8 +4,8 @@ import { computeInvoiceTotals, type InvoiceLineItem } from '~/lib/schemas/invoic
 describe('computeInvoiceTotals', () => {
   it('sums parts and labour separately', () => {
     const items: InvoiceLineItem[] = [
-      { type: 'part', description: 'Brake pad', qty: 2, unitPrice: 500000 },
-      { type: 'labour', description: 'Brake replacement', qty: 1, unitPrice: 1200000 },
+      { type: 'part', description: 'Brake pad', qty: 2, unitPrice: 500000, lineTotal: 1000000 },
+      { type: 'labour', description: 'Brake replacement', qty: 1, unitPrice: 1200000, lineTotal: 1200000 },
     ]
     const totals = computeInvoiceTotals(items, 7.5)
     expect(totals.partsTotal).toBe(1_000_000)
@@ -24,7 +24,7 @@ describe('computeInvoiceTotals', () => {
 
   it('rounds VAT to the nearest kobo', () => {
     const items: InvoiceLineItem[] = [
-      { type: 'labour', description: 'Oil change', qty: 1, unitPrice: 333 },
+      { type: 'labour', description: 'Oil change', qty: 1, unitPrice: 333, lineTotal: 333 },
     ]
     const totals = computeInvoiceTotals(items, 7.5)
     // 7.5% of 333 = 24.975 -> 25
