@@ -11,6 +11,9 @@ test('unauthenticated visit redirects to login', async ({ page }) => {
 
 test('login form can toggle to sign up', async ({ page }) => {
   await page.goto('/auth/login')
+  // The page is server-rendered; wait for hydration before interacting or the
+  // click is lost.
+  await page.waitForLoadState('networkidle')
   await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible()
   await page.getByRole('button', { name: /create an account instead/i }).click()
   // Name field only appears in sign-up mode

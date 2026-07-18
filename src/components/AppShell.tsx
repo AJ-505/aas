@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useRouter, useRouterState } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { useAuthActions } from '@convex-dev/auth/react'
+import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
@@ -72,13 +72,18 @@ function breadcrumb(pathname: string): string[] {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { data: user, isLoading } = useCurrentUser()
+  // Auth gating uses the lightweight auth-provider state (single roundtrip) so
+  // redirects for guests happen fast; the full user record loads in parallel.
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth()
+  const { data: user, isLoading: userLoading } = useCurrentUser()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const router = useRouter()
   const queryClient = useQueryClient()
   const { signOut } = useAuthActions()
   const searchRef = useRef<HTMLInputElement>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 768,
+  )
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window === 'undefined') return 'light'
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
@@ -111,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (isLogin) {
-    if (user) {
+    if (isAuthenticated) {
       return <Navigate to="/" />
     }
     return (
@@ -133,7 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     )
   }
 
-  if (isLoading) {
+  if (authLoading || (isAuthenticated && userLoading)) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader />
@@ -141,11 +146,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     )
   }
 
-  if (!user && !isLogin) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/auth/login" />
   }
 
-  if (!user!.role) {
+  if (!user.role) {
     return <PendingRoleAssignment userId={user!._id} userName={user!.name} />
   }
 
@@ -158,7 +163,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside
         className={cn(
           'sticky top-0 h-screen w-[250px] shrink-0 flex-col border-r border-line bg-surface',
-          sidebarOpen ? 'fixed inset-y-0 left-0 z-30 flex md:sticky' : 'hidden md:flex',
+          sidebarOpen ? 'fixed inset-y-0 left-0 z-30 flex md:sticky' : 'hidden',
         )}
       >
         <div className="flex items-center gap-2.5 px-[18px] pb-4 pt-[18px]">

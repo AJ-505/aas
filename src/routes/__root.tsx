@@ -1,16 +1,23 @@
 /// <reference types="vite/client" />
-import type { ReactNode } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import {
   Outlet,
   createRootRouteWithContext,
   HeadContent,
   Scripts,
 } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { Toaster } from 'react-hot-toast'
 import type { QueryClient } from '@tanstack/react-query'
 import { AppShell } from '~/components/AppShell'
 import appCss from '~/styles/app.css?url'
+
+// Devtools are excluded from the production bundle and lazy-loaded in dev so
+// they never block first paint.
+const TanStackRouterDevtools = import.meta.env.PROD
+  ? () => null
+  : lazy(async () => ({
+      default: (await import('@tanstack/react-router-devtools')).TanStackRouterDevtools,
+    }))
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -51,7 +58,9 @@ function RootDocument({ children }: { children: ReactNode }) {
       <body>
         <div className="flex h-screen flex-col">{children}</div>
         <Toaster position="top-right" />
-        <TanStackRouterDevtools position="bottom-right" />
+        <Suspense fallback={null}>
+          <TanStackRouterDevtools position="bottom-right" />
+        </Suspense>
         <Scripts />
       </body>
     </html>
