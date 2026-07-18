@@ -1,0 +1,2 @@
+- NEVER edit routetree.gen.ts manually - instead (re-)start the dev server and it will auto-generate correctly on its own. If you are having any issues with the route tree, it's probably because you are breaking some rules of tanstack router's routing.
+Links: [File based routing](https://tanstack.com/router/v1/docs/routing/file-based-routing), [Debugging common tanstack router issues](https://tanstack.com/router/latest/docs/how-to/debug-router-issues)
