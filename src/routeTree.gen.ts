@@ -19,6 +19,12 @@ import { Route as ServiceAppointmentsRouteImport } from './routes/service/appoin
 import { Route as SalesOrdersRouteImport } from './routes/sales/orders'
 import { Route as SalesLeadsRouteImport } from './routes/sales/leads'
 import { Route as SalesInventoryRouteImport } from './routes/sales/inventory'
+import { Route as Landing5RouteImport } from './routes/landing/5'
+import { Route as Landing4RouteImport } from './routes/landing/4'
+import { Route as Landing3RouteImport } from './routes/landing/3'
+import { Route as Landing2RouteImport } from './routes/landing/2'
+import { Route as Landing1RouteImport } from './routes/landing/1'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as ServiceJobIdRouteImport } from './routes/service/job.$id'
@@ -76,6 +82,36 @@ const SalesInventoryRoute = SalesInventoryRouteImport.update({
   path: '/sales/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Landing5Route = Landing5RouteImport.update({
+  id: '/landing/5',
+  path: '/landing/5',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing4Route = Landing4RouteImport.update({
+  id: '/landing/4',
+  path: '/landing/4',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing3Route = Landing3RouteImport.update({
+  id: '/landing/3',
+  path: '/landing/3',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing2Route = Landing2RouteImport.update({
+  id: '/landing/2',
+  path: '/landing/2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing1Route = Landing1RouteImport.update({
+  id: '/landing/1',
+  path: '/landing/1',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
@@ -111,6 +147,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/landing/1': typeof Landing1Route
+  '/landing/2': typeof Landing2Route
+  '/landing/3': typeof Landing3Route
+  '/landing/4': typeof Landing4Route
+  '/landing/5': typeof Landing5Route
   '/sales/inventory': typeof SalesInventoryRoute
   '/sales/leads': typeof SalesLeadsRoute
   '/sales/orders': typeof SalesOrdersRoute
@@ -129,6 +171,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/landing/1': typeof Landing1Route
+  '/landing/2': typeof Landing2Route
+  '/landing/3': typeof Landing3Route
+  '/landing/4': typeof Landing4Route
+  '/landing/5': typeof Landing5Route
   '/sales/inventory': typeof SalesInventoryRoute
   '/sales/leads': typeof SalesLeadsRoute
   '/sales/orders': typeof SalesOrdersRoute
@@ -148,6 +196,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/landing/1': typeof Landing1Route
+  '/landing/2': typeof Landing2Route
+  '/landing/3': typeof Landing3Route
+  '/landing/4': typeof Landing4Route
+  '/landing/5': typeof Landing5Route
   '/sales/inventory': typeof SalesInventoryRoute
   '/sales/leads': typeof SalesLeadsRoute
   '/sales/orders': typeof SalesOrdersRoute
@@ -168,6 +222,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/auth/reset-password'
+    | '/landing/1'
+    | '/landing/2'
+    | '/landing/3'
+    | '/landing/4'
+    | '/landing/5'
     | '/sales/inventory'
     | '/sales/leads'
     | '/sales/orders'
@@ -186,6 +246,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/auth/reset-password'
+    | '/landing/1'
+    | '/landing/2'
+    | '/landing/3'
+    | '/landing/4'
+    | '/landing/5'
     | '/sales/inventory'
     | '/sales/leads'
     | '/sales/orders'
@@ -204,6 +270,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/auth/reset-password'
+    | '/landing/1'
+    | '/landing/2'
+    | '/landing/3'
+    | '/landing/4'
+    | '/landing/5'
     | '/sales/inventory'
     | '/sales/leads'
     | '/sales/orders'
@@ -223,6 +295,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AuthLoginRoute: typeof AuthLoginRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  Landing1Route: typeof Landing1Route
+  Landing2Route: typeof Landing2Route
+  Landing3Route: typeof Landing3Route
+  Landing4Route: typeof Landing4Route
+  Landing5Route: typeof Landing5Route
   SalesInventoryRoute: typeof SalesInventoryRoute
   SalesLeadsRoute: typeof SalesLeadsRoute
   SalesOrdersRoute: typeof SalesOrdersRoute
@@ -310,6 +388,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesInventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/landing/5': {
+      id: '/landing/5'
+      path: '/landing/5'
+      fullPath: '/landing/5'
+      preLoaderRoute: typeof Landing5RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing/4': {
+      id: '/landing/4'
+      path: '/landing/4'
+      fullPath: '/landing/4'
+      preLoaderRoute: typeof Landing4RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing/3': {
+      id: '/landing/3'
+      path: '/landing/3'
+      fullPath: '/landing/3'
+      preLoaderRoute: typeof Landing3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing/2': {
+      id: '/landing/2'
+      path: '/landing/2'
+      fullPath: '/landing/2'
+      preLoaderRoute: typeof Landing2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing/1': {
+      id: '/landing/1'
+      path: '/landing/1'
+      fullPath: '/landing/1'
+      preLoaderRoute: typeof Landing1RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -359,6 +479,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminUsersRoute: AdminUsersRoute,
   AuthLoginRoute: AuthLoginRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+  Landing1Route: Landing1Route,
+  Landing2Route: Landing2Route,
+  Landing3Route: Landing3Route,
+  Landing4Route: Landing4Route,
+  Landing5Route: Landing5Route,
   SalesInventoryRoute: SalesInventoryRoute,
   SalesLeadsRoute: SalesLeadsRoute,
   SalesOrdersRoute: SalesOrdersRoute,
