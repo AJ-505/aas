@@ -25,7 +25,7 @@
 | 2.1 | One-stop create (customer + vehicle + job) | [x] | customers route inline form |
 | 2.1 | Full repair history per customer | [x] | jobs.byCustomer query + customer detail UI |
 | 2.2 | Walk-in check-in flow | [x] | 3-step checkin route |
-| 2.2 | Appointment booking | [ ] | New schema table + backend + UI |
+| 2.2 | Appointment booking | [x] | Schema + backend + /service/appointments route with day nav + check-in |
 | 2.3 | Technician job intake (diagnosis, parts requests) | [x] | Job detail stepper, assign/diagnose/workflow |
 | 2.4 | Parts catalogue (CRUD) | [x] | convex/parts.ts + /service/parts route |
 | 2.4 | Excel import for parts | [x] | CSV import in parts route |
@@ -48,18 +48,18 @@
 |---|---------|--------|-------|
 | 3.1 | Vehicle inventory (CRUD) | [x] | convex/vehicles.ts + vehicleQueries |
 | 3.1 | Vehicle status tracking | [x] | inStock/reserved/sold/customerOwned |
-| 3.1 | Sales inventory UI | [ ] | Need /sales/inventory route |
+| 3.1 | Sales inventory UI | [x] | /sales/inventory route with status badges |
 | 3.2 | Customer leads (CRUD) | [x] | convex/leads.ts |
-| 3.2 | Lead stages (New→Contacted→Qualified→Won/Lost) | [x] | updateStage mutation |
-| 3.2 | Follow-up notes & reminders | [x] | logFollowUp mutation + notes array |
-| 3.2 | Leads UI (list + create) | [ ] | Need /sales/leads route |
-| 3.2 | Lead detail UI (stage + follow-ups) | [ ] | Need /sales/lead/$id route |
+| 3.2 | Lead stages (New→Contacted→Qualified→Won/Lost) | [x] | updateStage mutation + UI stage buttons |
+| 3.2 | Follow-up notes & reminders | [x] | logFollowUp mutation + notes timeline |
+| 3.2 | Leads UI (list + create) | [x] | /sales/leads route with search + create |
+| 3.2 | Lead detail UI (stage + follow-ups) | [x] | /sales/lead/$id with stage change + notes |
 | 3.3 | Sales orders (create, complete, cancel) | [x] | convex/salesOrders.ts |
 | 3.3 | Auto-reserve vehicle | [x] | salesOrders.create sets vehicle→reserved |
 | 3.3 | Balance tracking | [x] | Schema has balance field |
-| 3.3 | Sales orders UI | [ ] | Need /sales/orders + /sales/order/$id |
+| 3.3 | Sales orders UI | [x] | /sales/orders + /sales/order/$id |
 | 3.4 | Delivery handover checklist | [x] | convex/deliveries.ts |
-| 3.4 | Delivery UI | [ ] | Need delivery form in order detail |
+| 3.4 | Delivery UI | [x] | Delivery form in order detail + checklist |
 | 3.5 | Trade-in management | [-] | Post-MVP |
 | 3.6 | Commission tracking | [-] | Post-MVP |
 
@@ -89,6 +89,7 @@
 |------|--------|-------|
 | Vite warmup config | [x] | Pre-transforms modules at server start |
 | Auth gating via useConvexAuth | [x] | Single roundtrip for guest redirects |
+| Dashboard query guards (enabled: !!user) | [x] | Prevents data queries before auth resolves |
 | Lazy router devtools | [x] | Removed from production bundle |
 | Playwright workers=2 | [x] | Reduces memory pressure |
 | E2E hydration-robust tests | [x] | waitForLoadState(networkidle) added |
@@ -118,7 +119,7 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | CSS variable tokens (ink, body, mute, accent, bg, surface, line) | [x] | app.css with light + dark variants |
-| No hardcoded colors in components | [~] | Most components use CSS vars; gradients need review |
+| No hardcoded colors in components | [x] | All hardcoded hex colors replaced with CSS variable tokens |
 
 ---
 
@@ -126,7 +127,7 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Increase UI padding | [ ] | Current: px-7 pb-16 pt-6 main content |
+| Increase UI padding | [x] | Main content: px-10 pb-20 pt-8, max-w 1360px. More breathing room. |
 
 ---
 
@@ -135,7 +136,7 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | Dark mode base (no blue-purple gradients) | [x] | app.css .dark overrides |
-| Review and redesign dark gradients | [ ] | The blue-purple gradient in login/sidebar needs to go |
+| Review and redesign dark gradients | [x] | Removed all gradients from dark mode. Flat deep charcoal palette (GitHub/Linux-style) |
 
 ---
 
@@ -143,11 +144,11 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Auth/nav flows | [x] | 6/6 tests passing |
-| Jobs CRUD flow | [ ] | Need tests |
+| Auth/nav flows | [x] | 6/6 tests passing (all green) |
+| Jobs CRUD flow | [~] | Basic tests exist; needs expansion |
 | Parts catalogue flow | [ ] | Need tests |
 | Sales module flow | [ ] | Need tests |
-| Full end-to-end smoke tests | [ ] | All features |
+| Full end-to-end smoke tests | [~] | In progress via subagents |
 
 ---
 
@@ -157,9 +158,9 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| TypeScript v7 upgrade | [ ] | Full rewrite, 10x faster typechecking. Research breaking changes first |
-| Vite+ (blazingly fast tooling suite) | [ ] | Includes formatter, linter, etc. Research before migrating |
-| ClaudeCliProxy | [ ] | Investigate proxying opencode through Claude Code's harness for workflow features |
+| TypeScript v7 upgrade | [~] | In research (subagent tasked) |
+| Vite+ (blazingly fast tooling suite) | [~] | In research (subagent tasked) |
+| ClaudeCliProxy | [~] | In research (subagent tasked) |
 
 ## Future (Post-MVP)
 

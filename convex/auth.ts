@@ -11,6 +11,21 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           name: (params.name as string) ?? undefined,
         }
       },
+      reset: {
+        id: 'password-reset',
+        type: 'email' as const,
+        name: 'Password Reset',
+        from: 'Cedric Masters Autos <noreply@cedricmastersautos.com>',
+        maxAge: 60 * 60,
+        sendVerificationRequest: async ({ identifier, url, token }) => {
+          console.log(
+            `[PASSWORD RESET] Code for ${identifier}: ${token}`,
+          )
+          console.log(
+            `[PASSWORD RESET] URL for ${identifier}: ${url}`,
+          )
+        },
+      },
     }),
   ],
 })
