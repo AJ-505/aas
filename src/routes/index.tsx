@@ -159,7 +159,7 @@ function Dashboard() {
             <div className="overflow-auto">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-line-soft bg-[#fbfbfc] text-left">
+                  <tr className="border-b border-line-soft bg-bg text-left">
                     <th className="h-9 px-[18px] text-[11px] font-bold uppercase tracking-[0.07em] text-mute">Status</th>
                     <th className="h-9 px-[18px] text-[11px] font-bold uppercase tracking-[0.07em] text-mute">Vehicle</th>
                     <th className="h-9 px-[18px] text-[11px] font-bold uppercase tracking-[0.07em] text-mute">Customer</th>
@@ -172,7 +172,7 @@ function Dashboard() {
                   {recent.slice(0, 8).map((job) => (
                     <tr
                       key={job._id}
-                      className="cursor-pointer border-b border-line-soft transition-colors last:border-0 hover:bg-[#f8f9fc]"
+                      className="cursor-pointer border-b border-line-soft transition-colors last:border-0 hover:bg-bg"
                       onClick={() => navigate({ to: '/service/job/$id', params: { id: job._id } })}
                     >
                       <td className="whitespace-nowrap px-[18px] py-3">
@@ -309,7 +309,7 @@ function QuickLink({ to, label, note }: { to: string; label: string; note: strin
       to={to}
       className={cn(
         'flex items-center justify-between rounded-lg px-2.5 py-2 text-[13px] font-medium text-body',
-        'transition-colors hover:bg-[#f3f4f8] hover:text-ink',
+        'transition-colors hover:bg-bg hover:text-ink',
       )}
     >
       <span>

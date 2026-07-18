@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isLogin = pathname === '/auth/login'
   const { data: openJobsCount } = useQuery({
     ...jobQueries.openCount(),
-    enabled: !!user && !isLogin,
+    enabled: !!user?.role && !isLogin,
   })
 
   useEffect(() => {
@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside
         className={cn(
           'sticky top-0 h-screen w-[250px] shrink-0 flex-col border-r border-line bg-surface',
-          sidebarOpen ? 'hidden md:flex' : 'hidden',
+          sidebarOpen ? 'fixed inset-y-0 left-0 z-30 flex md:sticky' : 'hidden md:flex',
         )}
       >
         <div className="flex items-center gap-2.5 px-[18px] pb-4 pt-[18px]">
@@ -210,6 +210,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         </div>
       </aside>
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-20 bg-black/20 md:hidden"
+          aria-label="Close sidebar overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* ── main column ─────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
