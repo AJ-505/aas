@@ -140,10 +140,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     return (
       <div className="relative flex h-full items-center justify-center overflow-auto bg-bg p-8">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(600px_260px_at_50%_0%,rgba(79,70,229,0.10),transparent)]" />
         <div className="relative flex w-full max-w-sm flex-col items-center">
           <div className="mb-5 flex flex-col items-center gap-3">
-            <span className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 via-accent to-violet-600 text-sm font-extrabold text-white shadow-[0_6px_18px_rgba(79,70,229,0.4)]">
+            <span className="grid size-11 place-items-center rounded-xl bg-accent text-sm font-extrabold text-white">
               CM
             </span>
             <div className="text-center">
@@ -186,7 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       >
         <div className="flex items-center gap-2.5 px-[18px] pb-4 pt-[18px]">
-          <span className="grid size-[34px] place-items-center rounded-[10px] bg-gradient-to-br from-indigo-500 via-accent to-violet-600 text-xs font-extrabold text-white shadow-[0_4px_12px_rgba(79,70,229,0.35)]">
+          <span className="grid size-[34px] place-items-center rounded-[10px] bg-accent text-xs font-extrabold text-white">
             CM
           </span>
           <span>

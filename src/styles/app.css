@@ -17,16 +17,16 @@
 }
 
 .dark {
-  --color-bg: #090c14;
-  --color-surface: #131828;
-  --color-line: #232b40;
-  --color-line-soft: #1b2234;
-  --color-ink: #f2f5ff;
-  --color-body: #cad3e9;
-  --color-mute: #90a0c2;
-  --color-accent: #7f8cff;
+  --color-bg: #0d1117;
+  --color-surface: #161b22;
+  --color-line: #21262d;
+  --color-line-soft: #1c2128;
+  --color-ink: #f0f6fc;
+  --color-body: #c9d1d9;
+  --color-mute: #8b949e;
+  --color-accent: #7c8cff;
   --color-accent-deep: #a6b1ff;
-  --color-accent-soft: #202a4c;
+  --color-accent-soft: #1f2747;
 }
 
 @layer base {
