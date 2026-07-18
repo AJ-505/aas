@@ -410,7 +410,7 @@ function AddJobItemForm({ jobId }: { jobId: string }) {
       <CardHeader><CardTitle>Add parts / labour</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="flex w-fit rounded-[9px] bg-[#f2f3f7] p-0.5">
+          <div className="flex w-fit rounded-[9px] bg-line-soft p-0.5">
             {(['part', 'labour'] as const).map((t) => (
               <button
                 key={t}
@@ -560,7 +560,7 @@ function CreatePartsRequestForm({ jobId }: { jobId: string }) {
               {items.map((item, idx) => {
                 const part = parts?.find((p: any) => p._id === item.partId)
                 return (
-                  <div key={idx} className="flex items-center justify-between rounded-[9px] bg-[#f6f7f9] px-3 py-2 text-[13px]">
+                  <div key={idx} className="flex items-center justify-between rounded-[9px] bg-line-soft px-3 py-2 text-[13px]">
                     <span className="text-body">{part?.code ?? 'Unknown'} - {part?.description ?? ''} ×{item.qty}</span>
                     <Button type="button" variant="ghost" size="sm" className="text-rose-600 hover:bg-rose-50" onClick={() => removeItem(idx)}>Remove</Button>
                   </div>

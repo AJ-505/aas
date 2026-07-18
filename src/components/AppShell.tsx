@@ -303,7 +303,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="min-h-0 flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-[1280px] px-7 pb-16 pt-6">{children}</div>
+          <div className="mx-auto w-full max-w-[1360px] px-10 pb-20 pt-8">{children}</div>
         </main>
       </div>
     </div>

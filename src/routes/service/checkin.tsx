@@ -110,12 +110,12 @@ function CheckInPage() {
               />
             </div>
             {customers && customers.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-[10px] border border-line bg-white shadow-[0_12px_32px_rgba(15,18,34,0.12)]">
+              <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-[10px] border border-line bg-surface shadow-[0_12px_32px_rgba(15,18,34,0.12)]">
                 {customers.map((c) => (
                   <button
                     key={c._id}
                     type="button"
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[#f6f7f9]"
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-bg"
                     onClick={() => handleSelectCustomer(c._id)}
                   >
                     <Avatar name={c.name} size={26} />
@@ -152,7 +152,7 @@ function CheckInPage() {
                     'flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left transition-colors',
                     selectedVehicleId === v._id
                       ? 'border-accent bg-accent-soft'
-                      : 'border-line hover:bg-[#f8f9fc]',
+                      : 'border-line hover:bg-bg',
                   )}
                   onClick={() => setSelectedVehicleId(v._id)}
                 >

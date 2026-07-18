@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test'
 
 test('unauthenticated visit redirects to login', async ({ page }) => {
   await page.goto('/')
+  await page.waitForLoadState('networkidle')
   await expect(page).toHaveURL(/\/auth\/login$/)
   await expect(page.getByLabel('Email')).toBeVisible()
   await expect(page.getByLabel('Password')).toBeVisible()

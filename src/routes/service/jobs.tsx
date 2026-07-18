@@ -162,7 +162,7 @@ function FilterChip({
         'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
         active
           ? 'border-accent/50 bg-accent-soft text-accent-deep'
-          : 'border-line bg-white text-mute hover:border-[#dcdfe8] hover:text-body',
+          : 'border-line bg-surface text-mute hover:border-ink/15 hover:text-body',
       )}
     >
       {label}

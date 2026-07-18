@@ -40,9 +40,9 @@ function greeting(): string {
 function Dashboard() {
   const { data: user } = useCurrentUser()
   const navigate = useNavigate()
-  const { data: summary, isLoading } = useQuery(jobQueries.dashboardSummary())
-  const { data: settings } = useQuery(settingsQueries.get())
-  const { data: labourTypes } = useQuery(labourTypeQueries.list())
+  const { data: summary, isLoading } = useQuery({ ...jobQueries.dashboardSummary(), enabled: !!user })
+  const { data: settings } = useQuery({ ...settingsQueries.get(), enabled: !!user })
+  const { data: labourTypes } = useQuery({ ...labourTypeQueries.list(), enabled: !!user })
 
   const recent = summary?.recent ?? []
   const canSeeFinance = user?.role === 'finance' || user?.role === 'manager' || user?.role === 'admin'
