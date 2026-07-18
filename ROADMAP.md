@@ -69,6 +69,7 @@
 |---|---------|--------|-------|
 | 4.1 | User roles (7 roles) | [x] | convex/users.ts + AppShell role gating |
 | 4.1 | User management UI | [x] | /admin/users route |
+| Forgot password flow | [ ] | Convex Auth supports it; need UI route + email config |
 | 4.2 | VAT rate setting | [x] | In finance route |
 | 4.2 | Labour type management | [x] | In finance route |
 
@@ -149,6 +150,16 @@
 | Full end-to-end smoke tests | [ ] | All features |
 
 ---
+
+---
+
+## Tooling & Infrastructure Upgrades
+
+| Task | Status | Notes |
+|------|--------|-------|
+| TypeScript v7 upgrade | [ ] | Full rewrite, 10x faster typechecking. Research breaking changes first |
+| Vite+ (blazingly fast tooling suite) | [ ] | Includes formatter, linter, etc. Research before migrating |
+| ClaudeCliProxy | [ ] | Investigate proxying opencode through Claude Code's harness for workflow features |
 
 ## Future (Post-MVP)
 

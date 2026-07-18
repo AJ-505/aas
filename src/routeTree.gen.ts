@@ -16,10 +16,15 @@ import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
 import { Route as ServiceCustomersRouteImport } from './routes/service/customers'
 import { Route as ServiceCheckinRouteImport } from './routes/service/checkin'
 import { Route as ServiceAppointmentsRouteImport } from './routes/service/appointments'
+import { Route as SalesOrdersRouteImport } from './routes/sales/orders'
+import { Route as SalesLeadsRouteImport } from './routes/sales/leads'
+import { Route as SalesInventoryRouteImport } from './routes/sales/inventory'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as ServiceJobIdRouteImport } from './routes/service/job.$id'
 import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer.$id'
+import { Route as SalesOrderIdRouteImport } from './routes/sales/order.$id'
+import { Route as SalesLeadIdRouteImport } from './routes/sales/lead.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -56,6 +61,21 @@ const ServiceAppointmentsRoute = ServiceAppointmentsRouteImport.update({
   path: '/service/appointments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesOrdersRoute = SalesOrdersRouteImport.update({
+  id: '/sales/orders',
+  path: '/sales/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesLeadsRoute = SalesLeadsRouteImport.update({
+  id: '/sales/leads',
+  path: '/sales/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesInventoryRoute = SalesInventoryRouteImport.update({
+  id: '/sales/inventory',
+  path: '/sales/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
@@ -76,17 +96,32 @@ const ServiceCustomerIdRoute = ServiceCustomerIdRouteImport.update({
   path: '/service/customer/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesOrderIdRoute = SalesOrderIdRouteImport.update({
+  id: '/sales/order/$id',
+  path: '/sales/order/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesLeadIdRoute = SalesLeadIdRouteImport.update({
+  id: '/sales/lead/$id',
+  path: '/sales/lead/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/sales/inventory': typeof SalesInventoryRoute
+  '/sales/leads': typeof SalesLeadsRoute
+  '/sales/orders': typeof SalesOrdersRoute
   '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
+  '/sales/lead/$id': typeof SalesLeadIdRoute
+  '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
 }
@@ -94,12 +129,17 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/sales/inventory': typeof SalesInventoryRoute
+  '/sales/leads': typeof SalesLeadsRoute
+  '/sales/orders': typeof SalesOrdersRoute
   '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
+  '/sales/lead/$id': typeof SalesLeadIdRoute
+  '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
 }
@@ -108,12 +148,17 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/sales/inventory': typeof SalesInventoryRoute
+  '/sales/leads': typeof SalesLeadsRoute
+  '/sales/orders': typeof SalesOrdersRoute
   '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
+  '/sales/lead/$id': typeof SalesLeadIdRoute
+  '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
 }
@@ -123,12 +168,17 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/sales/inventory'
+    | '/sales/leads'
+    | '/sales/orders'
     | '/service/appointments'
     | '/service/checkin'
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
+    | '/sales/lead/$id'
+    | '/sales/order/$id'
     | '/service/customer/$id'
     | '/service/job/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -136,12 +186,17 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/sales/inventory'
+    | '/sales/leads'
+    | '/sales/orders'
     | '/service/appointments'
     | '/service/checkin'
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
+    | '/sales/lead/$id'
+    | '/sales/order/$id'
     | '/service/customer/$id'
     | '/service/job/$id'
   id:
@@ -149,12 +204,17 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/sales/inventory'
+    | '/sales/leads'
+    | '/sales/orders'
     | '/service/appointments'
     | '/service/checkin'
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
+    | '/sales/lead/$id'
+    | '/sales/order/$id'
     | '/service/customer/$id'
     | '/service/job/$id'
   fileRoutesById: FileRoutesById
@@ -163,12 +223,17 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AuthLoginRoute: typeof AuthLoginRoute
+  SalesInventoryRoute: typeof SalesInventoryRoute
+  SalesLeadsRoute: typeof SalesLeadsRoute
+  SalesOrdersRoute: typeof SalesOrdersRoute
   ServiceAppointmentsRoute: typeof ServiceAppointmentsRoute
   ServiceCheckinRoute: typeof ServiceCheckinRoute
   ServiceCustomersRoute: typeof ServiceCustomersRoute
   ServiceFinanceRoute: typeof ServiceFinanceRoute
   ServiceJobsRoute: typeof ServiceJobsRoute
   ServicePartsRoute: typeof ServicePartsRoute
+  SalesLeadIdRoute: typeof SalesLeadIdRoute
+  SalesOrderIdRoute: typeof SalesOrderIdRoute
   ServiceCustomerIdRoute: typeof ServiceCustomerIdRoute
   ServiceJobIdRoute: typeof ServiceJobIdRoute
 }
@@ -224,6 +289,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServiceAppointmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales/orders': {
+      id: '/sales/orders'
+      path: '/sales/orders'
+      fullPath: '/sales/orders'
+      preLoaderRoute: typeof SalesOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/leads': {
+      id: '/sales/leads'
+      path: '/sales/leads'
+      fullPath: '/sales/leads'
+      preLoaderRoute: typeof SalesLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/inventory': {
+      id: '/sales/inventory'
+      path: '/sales/inventory'
+      fullPath: '/sales/inventory'
+      preLoaderRoute: typeof SalesInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -252,6 +338,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServiceCustomerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales/order/$id': {
+      id: '/sales/order/$id'
+      path: '/sales/order/$id'
+      fullPath: '/sales/order/$id'
+      preLoaderRoute: typeof SalesOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/lead/$id': {
+      id: '/sales/lead/$id'
+      path: '/sales/lead/$id'
+      fullPath: '/sales/lead/$id'
+      preLoaderRoute: typeof SalesLeadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -259,12 +359,17 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminUsersRoute: AdminUsersRoute,
   AuthLoginRoute: AuthLoginRoute,
+  SalesInventoryRoute: SalesInventoryRoute,
+  SalesLeadsRoute: SalesLeadsRoute,
+  SalesOrdersRoute: SalesOrdersRoute,
   ServiceAppointmentsRoute: ServiceAppointmentsRoute,
   ServiceCheckinRoute: ServiceCheckinRoute,
   ServiceCustomersRoute: ServiceCustomersRoute,
   ServiceFinanceRoute: ServiceFinanceRoute,
   ServiceJobsRoute: ServiceJobsRoute,
   ServicePartsRoute: ServicePartsRoute,
+  SalesLeadIdRoute: SalesLeadIdRoute,
+  SalesOrderIdRoute: SalesOrderIdRoute,
   ServiceCustomerIdRoute: ServiceCustomerIdRoute,
   ServiceJobIdRoute: ServiceJobIdRoute,
 }
