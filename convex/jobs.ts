@@ -202,6 +202,38 @@ export const dashboardSummary = query({
   },
 })
 
+export const byCustomer = query({
+  args: { customerId: v.id('customers') },
+  handler: async (ctx, args) => {
+    await requireUser(ctx)
+    const jobs = await ctx.db
+      .query('jobs')
+      .withIndex('customerId', (q) => q.eq('customerId', args.customerId))
+      .order('desc')
+      .collect()
+    return await Promise.all(
+      jobs.map(async (job) => {
+        const vehicle = await ctx.db.get(job.vehicleId)
+        return {
+          _id: job._id,
+          status: job.status,
+          complaint: job.complaint,
+          checkInTs: job.checkInTs,
+          completedTs: job.completedTs,
+          vehicle: vehicle
+            ? {
+                make: vehicle.make,
+                model: vehicle.model,
+                year: vehicle.year,
+                plate: vehicle.plate ?? null,
+              }
+            : null,
+        }
+      }),
+    )
+  },
+})
+
 export const myJobs = query({
   args: {},
   handler: async (ctx) => {

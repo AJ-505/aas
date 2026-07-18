@@ -3,6 +3,7 @@ import type { Id } from './_generated/dataModel'
 import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { audit } from './lib/audit'
 import { VEHICLE_STATUSES, type VehicleStatus } from '../src/lib/enums'
 import { createVehicleSchema, updateVehicleSchema } from '../src/lib/schemas'
 
@@ -84,7 +85,7 @@ export const create = mutation({
         .first()
       if (existing) throw new ConvexError('A vehicle with this plate already exists.')
     }
-    return await ctx.db.insert('vehicles', {
+    const id = await ctx.db.insert('vehicles', {
       ownerId: parsed.ownerId as Id<'customers'> | undefined,
       make: parsed.make,
       model: parsed.model,
@@ -96,6 +97,8 @@ export const create = mutation({
       sellingPrice: parsed.sellingPrice,
       status: parsed.status,
     })
+    await audit(ctx, 'vehicle.create', 'vehicles', id)
+    return id
   },
 })
 
@@ -132,6 +135,7 @@ export const update = mutation({
       }
     }
     await ctx.db.patch(vehicleId, clean)
+    await audit(ctx, 'vehicle.update', 'vehicles', vehicleId)
     return null
   },
 })

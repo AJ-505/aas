@@ -27,6 +27,7 @@ export const jobQueries = {
   detail: (jobId: string) => convexQuery(api.jobs.getDetail, { jobId: jobId as Id<'jobs'> }),
   openCount: () => convexQuery(api.jobs.openCount, {}),
   dashboardSummary: () => convexQuery(api.jobs.dashboardSummary, {}),
+  byCustomer: (customerId: string) => convexQuery(api.jobs.byCustomer, { customerId: customerId as Id<'customers'> }),
 }
 
 export const partQueries = {

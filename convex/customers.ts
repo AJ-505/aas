@@ -2,6 +2,7 @@ import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { audit } from './lib/audit'
 import {
   createCustomerSchema,
   updateCustomerSchema,
@@ -73,6 +74,7 @@ export const create = mutation({
       email: parsed.email && parsed.email.length > 0 ? parsed.email : undefined,
       address: parsed.address && parsed.address.length > 0 ? parsed.address : undefined,
     })
+    await audit(ctx, 'customer.create', 'customers', id)
     return id
   },
 })
@@ -94,6 +96,7 @@ export const update = mutation({
       if (v !== undefined) clean[k] = v === '' ? undefined : v
     }
     await ctx.db.patch(customerId, clean)
+    await audit(ctx, 'customer.update', 'customers', customerId)
     return null
   },
 })

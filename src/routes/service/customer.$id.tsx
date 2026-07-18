@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
@@ -17,9 +17,9 @@ import { Badge } from '~/components/ui/badge'
 import { Loader } from '~/components/Loader'
 import { Avatar } from '~/components/Avatar'
 import { IconChevronRight, IconMail, IconPhone } from '~/components/icons'
-import { customerQueries, useCreateVehicleMutation } from '~/lib/queries'
-import { VEHICLE_STATUS_LABELS, type VehicleStatus } from '~/lib/enums'
-import { VEHICLE_STATUS_VARIANTS } from '~/lib/status-ui'
+import { customerQueries, jobQueries, useCreateVehicleMutation } from '~/lib/queries'
+import { VEHICLE_STATUS_LABELS, JOB_STATUS_LABELS, type VehicleStatus, type JobStatus } from '~/lib/enums'
+import { VEHICLE_STATUS_VARIANTS, JOB_STATUS_VARIANTS } from '~/lib/status-ui'
 import type { Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/service/customer/$id')({
@@ -29,6 +29,8 @@ export const Route = createFileRoute('/service/customer/$id')({
 function CustomerDetailPage() {
   const { id: customerId } = Route.useParams()
   const { data, isLoading, isError, error } = useQuery(customerQueries.detail(customerId))
+  const navigate = useNavigate()
+  const { data: jobHistory } = useQuery(jobQueries.byCustomer(customerId))
 
   if (isLoading) {
     return <Loader />
@@ -125,6 +127,60 @@ function CustomerDetailPage() {
       </Card>
 
       <AddVehicleForm customerId={customerId} />
+
+      {/* repair history */}
+      <Card className="overflow-hidden">
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>Repair History</CardTitle>
+          <span className="rounded-full bg-line-soft px-2 py-0.5 text-[11px] font-bold text-slate-600">
+            {jobHistory?.length ?? 0} jobs
+          </span>
+        </CardHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Vehicle</TableHead>
+              <TableHead>Complaint</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {!jobHistory || jobHistory.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-10 text-center text-mute">
+                  No service history recorded yet.
+                </TableCell>
+              </TableRow>
+            ) : (
+              jobHistory.map((j) => (
+                <TableRow
+                  key={j._id}
+                  className="cursor-pointer"
+                  onClick={() => navigate({ to: '/service/job/$id', params: { id: j._id } })}
+                >
+                  <TableCell className="whitespace-nowrap text-body">
+                    {new Date(j.checkInTs).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-body">
+                    {j.vehicle ? `${j.vehicle.make} ${j.vehicle.model} (${j.vehicle.year})` : '-'}
+                  </TableCell>
+                  <TableCell className="max-w-[240px] truncate text-mute">{j.complaint}</TableCell>
+                  <TableCell>
+                    <Badge dot variant={JOB_STATUS_VARIANTS[j.status as JobStatus] ?? 'secondary'}>
+                      {JOB_STATUS_LABELS[j.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-2 text-mute">
+                    <IconChevronRight size={15} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   )
 }
