@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicePartsRouteImport } from './routes/service/parts'
 import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
 import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
 import { Route as ServiceCustomersRouteImport } from './routes/service/customers'
@@ -22,6 +23,11 @@ import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicePartsRoute = ServicePartsRouteImport.update({
+  id: '/service/parts',
+  path: '/service/parts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServiceJobsRoute = ServiceJobsRouteImport.update({
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
+  '/service/parts': typeof ServicePartsRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
+  '/service/parts': typeof ServicePartsRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
+  '/service/parts': typeof ServicePartsRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
+    | '/service/parts'
     | '/service/customer/$id'
     | '/service/job/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
+    | '/service/parts'
     | '/service/customer/$id'
     | '/service/job/$id'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
+    | '/service/parts'
     | '/service/customer/$id'
     | '/service/job/$id'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   ServiceCustomersRoute: typeof ServiceCustomersRoute
   ServiceFinanceRoute: typeof ServiceFinanceRoute
   ServiceJobsRoute: typeof ServiceJobsRoute
+  ServicePartsRoute: typeof ServicePartsRoute
   ServiceCustomerIdRoute: typeof ServiceCustomerIdRoute
   ServiceJobIdRoute: typeof ServiceJobIdRoute
 }
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/parts': {
+      id: '/service/parts'
+      path: '/service/parts'
+      fullPath: '/service/parts'
+      preLoaderRoute: typeof ServicePartsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/service/jobs': {
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServiceCustomersRoute: ServiceCustomersRoute,
   ServiceFinanceRoute: ServiceFinanceRoute,
   ServiceJobsRoute: ServiceJobsRoute,
+  ServicePartsRoute: ServicePartsRoute,
   ServiceCustomerIdRoute: ServiceCustomerIdRoute,
   ServiceJobIdRoute: ServiceJobIdRoute,
 }

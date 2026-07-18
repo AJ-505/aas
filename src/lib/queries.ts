@@ -33,6 +33,8 @@ export const jobQueries = {
 export const partQueries = {
   list: () => convexQuery(api.parts.list, {}),
   lowStock: () => convexQuery(api.parts.lowStock, {}),
+  search: (q: string) => convexQuery(api.parts.search, { q }),
+  movements: (partId: string) => convexQuery(api.parts.movements, { partId: partId as Id<'parts'> }),
 }
 
 export const labourTypeQueries = {
@@ -144,6 +146,23 @@ export function useUpdateLabourTypeMutation() {
 
 export function useRemoveLabourTypeMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.labourTypes.remove) })
+}
+
+// Parts mutations
+export function useCreatePartMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.parts.createPart) })
+}
+
+export function useUpdatePartMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.parts.updatePart) })
+}
+
+export function useAdjustStockMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.parts.adjustStock) })
+}
+
+export function useImportPartsMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.parts.importParts) })
 }
 
 // Settings mutations

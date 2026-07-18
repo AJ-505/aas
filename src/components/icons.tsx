@@ -177,6 +177,22 @@ export const IconMenu = (p: IconProps) => (
   </Svg>
 )
 
+export const IconUpload = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </Svg>
+)
+
+export const IconBox = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 8.5v7a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 15.5v-7a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4a2 2 0 0 1 1 1.73Z" />
+    <path d="M12 22v-9.5" />
+    <path d="M3.3 7.3 12 13l8.7-5.7" />
+  </Svg>
+)
+
 export const IconSun = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="4" />

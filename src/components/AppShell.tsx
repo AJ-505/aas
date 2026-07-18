@@ -11,6 +11,7 @@ import { Avatar } from '~/components/Avatar'
 import {
   IconBanknote,
   IconBell,
+  IconBox,
   IconChevronRight,
   IconGrid,
   IconLogOut,
@@ -44,6 +45,7 @@ const NAV_GENERAL: NavItem[] = [
 ]
 
 const NAV_OPS: NavItem[] = [
+  { label: 'Parts', to: '/service/parts', icon: IconBox, roles: ['inventoryManager', 'manager', 'admin'], match: ['/service/parts'] },
   { label: 'Finance', to: '/service/finance', icon: IconBanknote, roles: ['finance', 'manager', 'admin'], match: ['/service/finance'] },
   { label: 'User Management', to: '/admin/users', icon: IconSliders, roles: ['admin'], match: ['/admin/users'] },
 ]
@@ -67,6 +69,7 @@ function breadcrumb(pathname: string): string[] {
   if (pathname.startsWith('/service/job/')) return ['Workshop', 'Jobs', `#${pathname.split('/').pop()?.slice(-6)}`]
   if (pathname.startsWith('/service/checkin')) return ['Workshop', 'Jobs', 'Check in']
   if (pathname.startsWith('/service/finance')) return ['Operations', 'Finance']
+  if (pathname.startsWith('/service/parts')) return ['Operations', 'Parts Catalogue']
   if (pathname.startsWith('/admin/users')) return ['Operations', 'User Management']
   return ['Workshop']
 }
