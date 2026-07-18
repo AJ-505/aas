@@ -108,7 +108,7 @@ function JobsBoardPage() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="font-semibold text-ink">
-                      {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model} (${job.vehicle.year})` : '—'}
+                      {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model} (${job.vehicle.year})` : '-'}
                     </div>
                     {job.vehicle?.plate && (
                       <div className="text-[11px] tracking-wide text-mute">{job.vehicle.plate.toUpperCase()}</div>
@@ -123,7 +123,7 @@ function JobsBoardPage() {
                           <span className="block text-[11px] text-mute">{job.customer.phone}</span>
                         </span>
                       </span>
-                    ) : '—'}
+                    ) : '-'}
                   </TableCell>
                   <TableCell className="hidden max-w-[240px] truncate text-mute lg:table-cell">
                     {job.complaint}

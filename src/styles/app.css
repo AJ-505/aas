@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -15,10 +16,29 @@
   --color-accent-soft: #eef0fe;
 }
 
+.dark {
+  --color-bg: #090c14;
+  --color-surface: #131828;
+  --color-line: #232b40;
+  --color-line-soft: #1b2234;
+  --color-ink: #f2f5ff;
+  --color-body: #cad3e9;
+  --color-mute: #90a0c2;
+  --color-accent: #7f8cff;
+  --color-accent-deep: #a6b1ff;
+  --color-accent-soft: #202a4c;
+}
+
 @layer base {
   html,
   body {
     @apply h-full;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
   }
   body {
     @apply bg-bg font-sans text-body antialiased;

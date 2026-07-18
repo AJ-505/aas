@@ -99,7 +99,7 @@ function CustomersPage() {
                     </span>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-body">{c.phone}</TableCell>
-                  <TableCell className="hidden text-mute md:table-cell">{c.email ?? '—'}</TableCell>
+                  <TableCell className="hidden text-mute md:table-cell">{c.email ?? '-'}</TableCell>
                   <TableCell className="px-2 text-mute">
                     <IconChevronRight size={15} />
                   </TableCell>

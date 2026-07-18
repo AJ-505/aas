@@ -98,6 +98,110 @@ export const byStatus = query({
   },
 })
 
+export const openCount = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireUser(ctx)
+    const jobs = await ctx.db.query('jobs').collect()
+    let count = 0
+    for (const job of jobs) {
+      if (job.status !== 'completed' && job.status !== 'paid') count++
+    }
+    return count
+  },
+})
+
+export const dashboardSummary = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireUser(ctx)
+    const jobs = await ctx.db.query('jobs').collect()
+    const customers = await ctx.db.query('customers').collect()
+
+    const now = Date.now()
+    const dayMs = 86_400_000
+    const weekAgo = now - 7 * dayMs
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+
+    let open = 0
+    let inProgress = 0
+    let ready = 0
+    let checkedInThisWeek = 0
+    const checkinTrend = new Array<number>(7).fill(0)
+    const technicianIds = new Set<string>()
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStart = today.getTime()
+
+    for (const job of jobs) {
+      if (job.status !== 'completed' && job.status !== 'paid') open++
+      if (job.status === 'inProgress') {
+        inProgress++
+        if (job.technicianId) technicianIds.add(job.technicianId)
+      }
+      if (job.status === 'readyForPickup') ready++
+      if (job.checkInTs >= weekAgo) checkedInThisWeek++
+
+      const d = new Date(job.checkInTs)
+      d.setHours(0, 0, 0, 0)
+      const diff = Math.round((todayStart - d.getTime()) / dayMs)
+      if (diff >= 0 && diff < 7) checkinTrend[6 - diff]!++
+    }
+
+    const customerTrend = new Array<number>(7).fill(0)
+    let newThisMonth = 0
+    for (const c of customers) {
+      if (c._creationTime >= monthStart.getTime()) newThisMonth++
+      const d = new Date(c._creationTime)
+      d.setHours(0, 0, 0, 0)
+      const diff = Math.round((todayStart - d.getTime()) / dayMs)
+      if (diff >= 0 && diff < 7) customerTrend[6 - diff]!++
+    }
+
+    const recentJobs = [...jobs].sort((a, b) => b.checkInTs - a.checkInTs).slice(0, 8)
+    const recent = await Promise.all(
+      recentJobs.map(async (job) => {
+        const vehicle = await ctx.db.get(job.vehicleId)
+        const customer = await ctx.db.get(job.customerId)
+        return {
+          _id: job._id,
+          status: job.status,
+          complaint: job.complaint,
+          checkInTs: job.checkInTs,
+          vehicle: vehicle
+            ? {
+                _id: vehicle._id,
+                make: vehicle.make,
+                model: vehicle.model,
+                year: vehicle.year,
+                plate: vehicle.plate ?? null,
+              }
+            : null,
+          customer: customer
+            ? { _id: customer._id, name: customer.name, phone: customer.phone }
+            : null,
+        }
+      }),
+    )
+
+    return {
+      open,
+      inProgress,
+      ready,
+      checkedInThisWeek,
+      checkinTrend,
+      customersTotal: customers.length,
+      newThisMonth,
+      customerTrend,
+      techsOnSite: technicianIds.size,
+      recent,
+    }
+  },
+})
+
 export const myJobs = query({
   args: {},
   handler: async (ctx) => {

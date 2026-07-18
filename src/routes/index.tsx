@@ -20,7 +20,7 @@ import {
   IconWrench,
 } from '~/components/icons'
 import { useCurrentUser } from '~/lib/auth'
-import { customerQueries, jobQueries, labourTypeQueries, settingsQueries } from '~/lib/queries'
+import { jobQueries, labourTypeQueries, settingsQueries } from '~/lib/queries'
 import { JOB_STATUS_LABELS, type JobStatus } from '~/lib/enums'
 import { JOB_STATUS_VARIANTS } from '~/lib/status-ui'
 import { formatDateTime, formatNaira } from '~/lib/format'
@@ -29,22 +29,6 @@ import { cn } from '~/lib/utils'
 export const Route = createFileRoute('/')({
   component: Dashboard,
 })
-
-const DAY_MS = 86_400_000
-
-/** Bucket timestamps into the last 7 calendar days (oldest → newest). */
-function last7Days(timestamps: number[]): number[] {
-  const buckets = new Array<number>(7).fill(0)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  for (const ts of timestamps) {
-    const d = new Date(ts)
-    d.setHours(0, 0, 0, 0)
-    const diff = Math.round((today.getTime() - d.getTime()) / DAY_MS)
-    if (diff >= 0 && diff < 7) buckets[6 - diff]!++
-  }
-  return buckets
-}
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -56,29 +40,11 @@ function greeting(): string {
 function Dashboard() {
   const { data: user } = useCurrentUser()
   const navigate = useNavigate()
-  const { data: jobsData, isLoading } = useQuery(jobQueries.all())
-  const { data: customers } = useQuery(customerQueries.search(''))
+  const { data: summary, isLoading } = useQuery(jobQueries.dashboardSummary())
   const { data: settings } = useQuery(settingsQueries.get())
   const { data: labourTypes } = useQuery(labourTypeQueries.list())
 
-  const jobs = (jobsData ?? []) as any[]
-  const open = jobs.filter((j) => j.status !== 'completed' && j.status !== 'paid')
-  const inProgress = jobs.filter((j) => j.status === 'inProgress')
-  const ready = jobs.filter((j) => j.status === 'readyForPickup')
-  const techsOnSite = new Set(inProgress.map((j) => j.technicianId).filter(Boolean)).size
-
-  const weekAgo = Date.now() - 7 * DAY_MS
-  const checkedInThisWeek = jobs.filter((j) => j.checkInTs >= weekAgo).length
-  const checkinTrend = last7Days(jobs.map((j) => j.checkInTs as number))
-
-  const customerList = (customers ?? []) as any[]
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setHours(0, 0, 0, 0)
-  const newThisMonth = customerList.filter((c) => c._creationTime >= monthStart.getTime()).length
-  const customerTrend = last7Days(customerList.map((c) => c._creationTime as number))
-
-  const recent = [...jobs].sort((a, b) => b.checkInTs - a.checkInTs)
+  const recent = summary?.recent ?? []
   const canSeeFinance = user?.role === 'finance' || user?.role === 'manager' || user?.role === 'admin'
 
   if (isLoading) return <Loader />
@@ -86,29 +52,38 @@ function Dashboard() {
   const kpis = [
     {
       label: 'Open jobs',
-      value: String(open.length),
+      value: String(summary?.open ?? 0),
       icon: IconWrench,
-      foot: checkedInThisWeek > 0 ? `+${checkedInThisWeek} this week` : 'No check-ins this week',
-      trend: checkinTrend,
+      foot:
+        (summary?.checkedInThisWeek ?? 0) > 0
+          ? `+${summary?.checkedInThisWeek ?? 0} this week`
+          : 'No check-ins this week',
+      trend: summary?.checkinTrend ?? [],
     },
     {
       label: 'In progress',
-      value: String(inProgress.length).padStart(2, '0'),
+      value: String(summary?.inProgress ?? 0).padStart(2, '0'),
       icon: IconCar,
-      foot: techsOnSite > 0 ? `${techsOnSite} technician${techsOnSite === 1 ? '' : 's'} on the floor` : 'No active work',
+      foot:
+        (summary?.techsOnSite ?? 0) > 0
+          ? `${summary?.techsOnSite ?? 0} technician${summary?.techsOnSite === 1 ? '' : 's'} on the floor`
+          : 'No active work',
     },
     {
       label: 'Ready for pickup',
-      value: String(ready.length).padStart(2, '0'),
+      value: String(summary?.ready ?? 0).padStart(2, '0'),
       icon: IconUsers,
-      foot: ready.length > 0 ? 'Awaiting collection' : 'Nothing waiting',
+      foot: (summary?.ready ?? 0) > 0 ? 'Awaiting collection' : 'Nothing waiting',
     },
     {
       label: 'Customers',
-      value: String(customerList.length),
+      value: String(summary?.customersTotal ?? 0),
       icon: IconUsers,
-      foot: newThisMonth > 0 ? `+${newThisMonth} this month` : 'Registered total',
-      trend: customerTrend,
+      foot:
+        (summary?.newThisMonth ?? 0) > 0
+          ? `+${summary?.newThisMonth ?? 0} this month`
+          : 'Registered total',
+      trend: summary?.customerTrend ?? [],
     },
   ]
 
@@ -122,7 +97,7 @@ function Dashboard() {
           </h1>
           <p className="mt-1 text-[13px] text-mute">
             {new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' })}
-            {' · '}{open.length} open job{open.length === 1 ? '' : 's'} in the workshop
+            {' · '}{summary?.open ?? 0} open job{(summary?.open ?? 0) === 1 ? '' : 's'} in the workshop
           </p>
         </div>
         <div className="flex gap-2.5">
@@ -166,7 +141,7 @@ function Dashboard() {
             <CardTitle className="flex items-center gap-2">
               Active jobs
               <span className="rounded-full bg-line-soft px-2 py-0.5 text-[11px] font-bold text-slate-600">
-                {open.length}
+              {summary?.open ?? 0}
               </span>
             </CardTitle>
             <Link
@@ -178,7 +153,7 @@ function Dashboard() {
           </CardHeader>
           {recent.length === 0 ? (
             <p className="px-[18px] py-10 text-center text-[13px] text-mute">
-              No jobs yet — check in the first vehicle of the day.
+              No jobs yet. Check in the first vehicle of the day.
             </p>
           ) : (
             <div className="overflow-auto">
@@ -207,7 +182,7 @@ function Dashboard() {
                       </td>
                       <td className="whitespace-nowrap px-[18px] py-3">
                         <div className="font-semibold text-ink">
-                          {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : '—'}
+                          {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : '-'}
                         </div>
                         {job.vehicle?.plate && (
                           <div className="text-[11px] tracking-wide text-mute">{job.vehicle.plate.toUpperCase()}</div>
@@ -219,7 +194,7 @@ function Dashboard() {
                             <Avatar name={job.customer.name} size={24} />
                             {job.customer.name}
                           </span>
-                        ) : '—'}
+                        ) : '-'}
                       </td>
                       <td className="hidden max-w-[220px] truncate px-[18px] py-3 text-mute lg:table-cell">
                         {job.complaint}
@@ -264,7 +239,7 @@ function Dashboard() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13px] font-medium text-ink">
                         {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : 'Vehicle'}
-                        {job.customer ? ` — ${job.customer.name}` : ''}
+                        {job.customer ? ` - ${job.customer.name}` : ''}
                       </span>
                       <span className="block text-[11.5px] text-mute">{formatDateTime(job.checkInTs)}</span>
                     </span>

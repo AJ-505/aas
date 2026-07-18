@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useRouter, useRouterState } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthActions } from '@convex-dev/auth/react'
@@ -14,8 +14,11 @@ import {
   IconChevronRight,
   IconGrid,
   IconLogOut,
+  IconMenu,
+  IconMoon,
   IconSearch,
   IconSliders,
+  IconSun,
   IconUsers,
   IconWrench,
 } from '~/components/icons'
@@ -75,22 +78,42 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const { signOut } = useAuthActions()
   const searchRef = useRef<HTMLInputElement>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light'
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  })
 
   const isLogin = pathname === '/auth/login'
+  const { data: openJobsCount } = useQuery({
+    ...jobQueries.openCount(),
+    enabled: !!user && !isLogin,
+  })
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader />
-      </div>
-    )
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem('theme')
+    const nextTheme =
+      stored === 'dark' || stored === 'light'
+        ? stored
+        : window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark')
+    setTheme(nextTheme)
+  }, [])
+
+  function toggleTheme() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark')
+    window.localStorage.setItem('theme', nextTheme)
+    setTheme(nextTheme)
   }
 
-  if (!user && !isLogin) {
-    return <Navigate to="/auth/login" />
-  }
-
-  if (!user && isLogin) {
+  if (isLogin) {
+    if (user) {
+      return <Navigate to="/" />
+    }
     return (
       <div className="relative flex h-full items-center justify-center overflow-auto bg-bg p-8">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(600px_260px_at_50%_0%,rgba(79,70,229,0.10),transparent)]" />
@@ -110,9 +133,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     )
   }
 
-  // user is signed in
-  if (isLogin) {
-    return <Navigate to="/" />
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader />
+      </div>
+    )
+  }
+
+  if (!user && !isLogin) {
+    return <Navigate to="/auth/login" />
   }
 
   if (!user!.role) {
@@ -125,7 +155,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-full min-h-0">
       {/* ── sidebar ─────────────────────────────── */}
-      <aside className="sticky top-0 hidden h-screen w-[250px] shrink-0 flex-col border-r border-line bg-surface md:flex">
+      <aside
+        className={cn(
+          'sticky top-0 h-screen w-[250px] shrink-0 flex-col border-r border-line bg-surface',
+          sidebarOpen ? 'hidden md:flex' : 'hidden',
+        )}
+      >
         <div className="flex items-center gap-2.5 px-[18px] pb-4 pt-[18px]">
           <span className="grid size-[34px] place-items-center rounded-[10px] bg-gradient-to-br from-indigo-500 via-accent to-violet-600 text-xs font-extrabold text-white shadow-[0_4px_12px_rgba(79,70,229,0.35)]">
             CM
@@ -137,8 +172,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 overflow-auto px-3 pb-3">
-          <NavSection label="General" items={NAV_GENERAL} role={role} pathname={pathname} />
-          <NavSection label="Operations" items={NAV_OPS} role={role} pathname={pathname} />
+          <NavSection
+          label="General"
+          items={NAV_GENERAL}
+          role={role}
+          pathname={pathname}
+          openJobsCount={openJobsCount}
+          />
+          <NavSection
+          label="Operations"
+          items={NAV_OPS}
+          role={role}
+          pathname={pathname}
+          openJobsCount={openJobsCount}
+          />
         </nav>
 
         <div className="m-3 flex items-center gap-2.5 rounded-xl border border-line p-2.5">
@@ -152,7 +199,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button
             aria-label="Sign out"
             title="Sign out"
-            className="grid size-8 place-items-center rounded-lg text-mute transition-colors hover:bg-[#f3f4f8] hover:text-rose-600"
+            className="grid size-8 place-items-center rounded-lg text-mute transition-colors hover:bg-bg hover:text-rose-600"
             onClick={async () => {
               await signOut()
               await queryClient.invalidateQueries()
@@ -167,16 +214,26 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ── main column ─────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-[60px] shrink-0 items-center justify-between gap-4 border-b border-line bg-surface/80 px-7 backdrop-blur-md">
-          <div className="flex items-center gap-1.5 text-[13px] text-mute">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+              className="grid size-[34px] place-items-center rounded-[9px] border border-line bg-surface text-body hover:bg-accent-soft"
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              <IconMenu size={17} />
+            </button>
+            <div className="flex items-center gap-1.5 text-[13px] text-mute">
             {crumbs.map((c, i) => (
               <span key={i} className="flex items-center gap-1.5">
                 {i > 0 && <IconChevronRight size={13} />}
                 <span className={i === crumbs.length - 1 ? 'font-semibold text-ink' : ''}>{c}</span>
               </span>
             ))}
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-[9px] bg-[#f2f3f7] px-3 py-[7px] text-mute transition-colors focus-within:bg-white focus-within:ring-2 focus-within:ring-accent/25 sm:flex sm:w-[280px]">
+            <div className="hidden items-center gap-2 rounded-[9px] bg-line-soft px-3 py-[7px] text-mute transition-colors focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent/25 sm:flex sm:w-[280px]">
               <IconSearch size={15} />
               <input
                 ref={searchRef}
@@ -186,14 +243,22 @@ export function AppShell({ children }: { children: ReactNode }) {
                   if (e.key === 'Enter') void router.navigate({ to: '/service/customers' })
                 }}
               />
-              <kbd className="rounded-md border border-line bg-white px-1.5 py-0.5 text-[10.5px] text-mute">⌘K</kbd>
+              <kbd className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10.5px] text-mute">⌘K</kbd>
             </div>
             <button
               aria-label="Notifications"
-              className="relative grid size-[34px] place-items-center rounded-[9px] border border-line bg-white text-body transition-colors hover:bg-[#f4f5f9]"
+              className="relative grid size-[34px] place-items-center rounded-[9px] border border-line bg-surface text-body transition-colors hover:bg-accent-soft"
             >
               <IconBell size={17} />
               <span className="absolute right-2 top-2 size-[7px] rounded-full border-[1.5px] border-white bg-rose-500" />
+            </button>
+            <button
+              type="button"
+              aria-label={theme === 'dark' ? 'Use light mode' : 'Use dark mode'}
+              className="grid size-[34px] place-items-center rounded-[9px] border border-line bg-surface text-body hover:bg-accent-soft"
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
             </button>
             <Avatar name={user!.name ?? user!.email ?? '?'} size={32} />
           </div>
@@ -211,11 +276,13 @@ function NavSection({
   items,
   role,
   pathname,
+  openJobsCount,
 }: {
   label: string
   items: NavItem[]
   role: Role
   pathname: string
+  openJobsCount?: number
 }) {
   const visible = items.filter((i) => canSee(i, role))
   if (visible.length === 0) return null
@@ -226,24 +293,34 @@ function NavSection({
       </div>
       <div className="flex flex-col gap-0.5">
         {visible.map((item) => (
-          <NavLink key={item.to} item={item} active={isActive(item, pathname)} />
+          <NavLink
+            key={item.to}
+            item={item}
+            active={isActive(item, pathname)}
+            openJobsCount={openJobsCount}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
-  const { data: jobs } = useQuery(jobQueries.all())
-  const openJobs = item.label === 'Jobs'
-    ? jobs?.filter((j: any) => j.status !== 'completed' && j.status !== 'paid').length
-    : undefined
+function NavLink({
+  item,
+  active,
+  openJobsCount,
+}: {
+  item: NavItem
+  active: boolean
+  openJobsCount?: number
+}) {
+  const openJobs = item.label === 'Jobs' ? openJobsCount : undefined
 
   return (
     <Link
       to={item.to}
       className={cn(
-        'flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[13.5px] font-medium text-body transition-colors hover:bg-[#f3f4f8] hover:text-ink',
+        'flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[13.5px] font-medium text-body transition-colors hover:bg-bg hover:text-ink',
         active && 'bg-accent-soft font-semibold text-accent-deep hover:bg-accent-soft hover:text-accent-deep',
       )}
     >
@@ -253,7 +330,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         <span
           className={cn(
             'rounded-full bg-line-soft px-2 py-0.5 text-[11px] font-bold text-slate-600',
-            active && 'bg-[#dfe3fd] text-accent-deep',
+            active && 'bg-accent-soft text-accent-deep',
           )}
         >
           {openJobs}

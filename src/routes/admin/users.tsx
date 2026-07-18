@@ -95,13 +95,13 @@ function UserRow({
         <span className="flex items-center gap-2.5">
           <Avatar name={user.name ?? user.email ?? '?'} size={28} />
           <span>
-            <span className="block font-semibold text-ink">{user.name ?? '—'}</span>
+            <span className="block font-semibold text-ink">{user.name ?? '-'}</span>
             <span className="block text-[11px] text-mute md:hidden">{user.email ?? ''}</span>
           </span>
         </span>
       </TableCell>
-      <TableCell className="hidden text-body md:table-cell">{user.email ?? '—'}</TableCell>
-      <TableCell className="hidden text-body lg:table-cell">{user.phone ?? '—'}</TableCell>
+      <TableCell className="hidden text-body md:table-cell">{user.email ?? '-'}</TableCell>
+      <TableCell className="hidden text-body lg:table-cell">{user.phone ?? '-'}</TableCell>
       <TableCell>
         <Select
           className="w-44"

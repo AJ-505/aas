@@ -1,4 +1,4 @@
-// Shared stroke icon set — 24x24 grid, currentColor stroke.
+// Shared stroke icon set - 24x24 grid, currentColor stroke.
 
 interface IconProps {
   size?: number
@@ -168,5 +168,24 @@ export const IconMail = (p: IconProps) => (
   <Svg {...p}>
     <rect x="2" y="4" width="20" height="16" rx="2" />
     <path d="M22 7l-10 6L2 7" />
+  </Svg>
+)
+
+export const IconMenu = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Svg>
+)
+
+export const IconSun = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2.3M12 19.7V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.3M19.7 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+  </Svg>
+)
+
+export const IconMoon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7.2 7.2 0 0 0 9.8 9.8z" />
   </Svg>
 )

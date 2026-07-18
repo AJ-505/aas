@@ -129,7 +129,7 @@ function CheckInPage() {
             )}
             {search.length > 0 && customers && customers.length === 0 && (
               <p className="text-[12.5px] text-mute">
-                No matches — add them first from the{' '}
+                No matches. Add them first from the{' '}
                 <Link to="/service/customers" className="font-semibold text-accent hover:underline">Customers</Link> page.
               </p>
             )}

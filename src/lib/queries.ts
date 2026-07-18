@@ -25,6 +25,8 @@ export const jobQueries = {
   all: (status?: string) => convexQuery(api.jobs.byStatus, { status }),
   myJobs: () => convexQuery(api.jobs.myJobs, {}),
   detail: (jobId: string) => convexQuery(api.jobs.getDetail, { jobId: jobId as Id<'jobs'> }),
+  openCount: () => convexQuery(api.jobs.openCount, {}),
+  dashboardSummary: () => convexQuery(api.jobs.dashboardSummary, {}),
 }
 
 export const partQueries = {

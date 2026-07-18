@@ -106,7 +106,7 @@ function CustomerDetailPage() {
               vehicles.map((v) => (
                 <TableRow key={v._id}>
                   <TableCell className="whitespace-nowrap font-semibold uppercase tracking-wide text-ink">
-                    {v.plate ?? '—'}
+                    {v.plate ?? '-'}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-body">
                     {v.make} {v.model} ({v.year})

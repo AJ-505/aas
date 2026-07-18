@@ -493,7 +493,7 @@ function JobItemsTable({ jobItems, canRemove }: { jobItems: any[]; canRemove: bo
                 </Badge>
               </TableCell>
               <TableCell className="text-body">
-                {item.type === 'part' && item.partId ? 'Part' : item.type === 'labour' && item.labourTypeId ? 'Labour' : '—'}
+                {item.type === 'part' && item.partId ? 'Part' : item.type === 'labour' && item.labourTypeId ? 'Labour' : '-'}
               </TableCell>
               <TableCell className="[font-variant-numeric:tabular-nums]">{item.qty}</TableCell>
               <TableCell className="text-right [font-variant-numeric:tabular-nums]">{formatNaira(item.unitPrice)}</TableCell>

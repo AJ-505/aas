@@ -10,9 +10,9 @@ const buttonVariants = cva(
         default:
           'bg-accent text-white shadow-[0_4px_12px_rgba(79,70,229,0.28)] hover:bg-accent-deep',
         secondary: 'bg-line-soft text-body hover:bg-line',
-        outline: 'border border-line bg-white text-body hover:bg-[#f4f5f9] hover:border-[#dcdfe8]',
+        outline: 'border border-line bg-surface text-body hover:bg-bg hover:border-line',
         destructive: 'bg-rose-600 text-white hover:bg-rose-700',
-        ghost: 'text-body hover:bg-[#f3f4f8] hover:text-ink',
+        ghost: 'text-body hover:bg-bg hover:text-ink',
         link: 'text-accent underline-offset-4 hover:underline',
       },
       size: {
