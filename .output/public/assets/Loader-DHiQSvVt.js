@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-bzQ4Vb5N.js";var t=e();function n(){return(0,t.jsx)(`div`,{className:`flex items-center justify-center p-8`,children:(0,t.jsx)(`div`,{className:`h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent`})})}export{n as t};

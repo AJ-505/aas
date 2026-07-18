@@ -1,1 +1,0 @@
-var e={checkedIn:`warning`,assigned:`info`,diagnosed:`violet`,waitingRelease:`destructive`,inProgress:`default`,readyForPickup:`success`,completed:`secondary`,paid:`success`},t={inStock:`info`,reserved:`warning`,sold:`success`,customerOwned:`secondary`},n={pending:`warning`,approved:`info`,rejected:`destructive`,dispatched:`success`};export{n,t as r,e as t};

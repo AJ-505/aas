@@ -1,1 +1,0 @@
-import{Q as e,Y as t,Z as n}from"./queries-C6N9N5sK.js";function r(){return e(n(t.users.me,{}))}export{r as t};
