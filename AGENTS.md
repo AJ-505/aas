@@ -1,1 +1,2 @@
 Do not mock any data directly. For any flow you want to mock, put the data directly inside of Convex, and then use the data directly there. That way we can ensure that there is little drift between the demo and what's coming from our DB.
+Edit ROADMAP.md as necessary - it's the roadmap we are using to track how far we've come to implementing all the features in our PRD.
