@@ -1,54 +1,72 @@
-# Final Name Recommendations — AAS
+# Final Naming Council Results
 
-## 1. Kazi
+## Top 5 (ranked)
 
-- **Origin:** Swahili — "work"
-- **Why it works:** Four letters, two syllables, impossible to mispronounce in any accent. "Work" is the most universal value proposition for a workshop management tool — it gets out of the way and lets you work. No translation needed. No explanation needed. No cringe. It sounds as natural in Lagos as it does in London. The .com domain is plausibly available because the word is uncommon in Western markets despite being common in East Africa.
-- **Brand positioning:** *Kazi — The operating system for workshops that just work.*
+1. **Crisp** — Problem: Blurry, fuzzy, messy garage ops become sharp and defined. Solution: Everything is crisp — clear scheduling, clean invoices, no ambiguity. | vercel.app: ✓ | 5 letters, punchy, feels like a YC batch name. Works across languages (crisp/crispé/crispio have positive connotations). Evokes precision without being mechanical.
 
----
+2. **Quiet** — Problem: The noisy chaos of a busy shop — phones ringing, customers waiting, parts chasing — goes quiet. Solution: Quiet operations. Peaceful workflow. Everything runs without drama. | vercel.app: ✓ | 5 letters, universally understood, strong emotional contrast. Rare for a B2B SaaS — stands out.
 
-## 2. Doka
+3. **Node** — Problem: Disconnected nodes (techs, parts, customers, invoices) finally connect. Solution: One central node for the entire operation. Everything routes through it. | vercel.app: ✓ | 4 letters, deeply tech-native, resonates with developers and ops people alike. Slight risk of being too abstract.
 
-- **Origin:** Hausa — "workshop" / garage
-- **Why it works:** The most distinctive name on this list. You hear it once and you remember it. It has weight — it sounds like a real thing (because it is). For the Nigerian and West African market, it lands with instant recognition and cultural pride. For international buyers, it's an exotic but pleasant sound — like "Dock" with a vowel finish. Ownable in a way that English words can never be.
-- **Brand positioning:** *Doka — The workshop platform built by mechanics, for mechanics.*
+4. **Firm** — Problem: Shaky, unstable processes (lost paper, double-booked lifts, missing parts) become firm. Solution: A firm foundation for the business. Solid, trustworthy, dependable. | vercel.app: ✓ | 4 letters, authoritative without being aggressive, banking/insurance gravitas for a garage tool.
+
+5. **Weld** — Problem: Broken, disjointed workflows that don't stick together. Solution: Weld every part of the business — scheduling, inventory, invoicing — into a single piece. | vercel.app: ✓ | 4 letters, industrial-adjacent without being auto-themed, memorable verb. Slight manufacturing connotation.
 
 ---
 
-## 3. Gara
+## Full shortlist (10 names)
 
-- **Origin:** Yoruba — "skilled craftsman"
-- **Why it works:** This name doesn't describe what the product does — it describes what the user becomes. A "gara" is a master of their trade. Using this software makes you a gara. That's an aspirational brand message baked into four letters. Crisp, dignified, and uniquely positioned. No other workshop software can claim this meaning.
-- **Brand positioning:** *Gara — Tools for the master craftsman.*
-
----
-
-## 4. Torque
-
-- **Origin:** English — rotational force, automotive engineering term
-- **Why it works:** Zero ambiguity about what industry this belongs to. Every mechanic, technician, and auto shop owner knows torque. It's concrete, measurable, and respected. It translates across every language and market. The word is saturated in automotive branding, but as a company name rather than a product line, it's still viable — and it's immediately credible to anyone who works on cars.
-- **Brand positioning:** *Torque — The backbone of your workshop.*
-
----
-
-## 5. Shift
-
-- **Origin:** English — gear shift / business transformation
-- **Why it works:** A rare double metaphor that genuinely works in both directions. Literally: a gear shift moves the car forward. Figuratively: shifting your workshop from analog to digital. It's active, forward-moving, and optimistic. Short, punchy, easy to spell. Legal/trademark risk is real but the name itself is excellent.
-- **Brand positioning:** *Shift — Move your workshop forward.*
+| Rank | Name | Problem Angle | Solution Angle | vercel.app |
+|------|------|---------------|----------------|------------|
+| 1 | **Crisp** | Blurry ops become defined | Clean, sharp workflows | ✓ |
+| 2 | **Quiet** | Chaotic noise silenced | Peaceful operations | ✓ |
+| 3 | **Node** | Disconnected pieces | Central hub connecting all | ✓ |
+| 4 | **Firm** | Unstable processes | Solid foundation | ✓ |
+| 5 | **Weld** | Broken workflows | Seamlessly joined | ✓ |
+| 6 | **Settle** | Chaos needs settling | Everything settles into place | ✗ (taken) |
+| 7 | **Merge** | Scattered data, roles, schedules | Everything merges seamlessly | ✗ (taken) |
+| 8 | **Mesh** | Disconnected systems | Everything meshes together | ✗ (taken) |
+| 9 | **Steady** | Unsteady daily ops | Steady, reliable workflow | ✗ (taken) |
+| 10 | **Align** | Misaligned teams/schedules | Everything in alignment | ✗ (taken) |
 
 ---
 
-## Winner: Kazi
+## Rejected names & why
 
-Why Kazi beats the rest:
+| Name | Reason |
+|------|--------|
+| Sync | Too generic, taken, everyone owns "Sync" |
+| Flux | Sci-fi / physics vibes, taken by a dev agency |
+| Pulse | Health-tech association (heart rate monitors), taken |
+| Hive | Sounds like a busy call center, taken |
+| Neat | Sounds like a cleaning product (Mr. Clean adjacent), taken |
+| Calm | Meditation app territory, taken |
+| Tame | Sounds boring / domesticated, taken |
+| Track | Too literal / feature-descriptive, taken |
+| Level | Gaming level-ups, taken by a portfolio |
+| Clear | Skincare brand association, taken |
+| Plain | Too plain / unremarkable, taken |
+| Rail | Train or transit association, taken |
+| Ease | Sounds like a generic insurance thing, taken |
+| Tidy | Cleaning product again, default Next.js page (taken) |
+| Hush | Child/baby product vibes, taken |
+| Keel | Nautical — too niche, 402 response |
+| Cove | Real estate / hotel vibe, taken |
+| Deck | Redirection chain, ambiguous, taken |
+| Bond | James Bond / 007 / financial, taken |
+| Grip | Tool/hardware association, taken |
+| Clasp | Fashion accessory, taken |
+| Lull | Negative — lull in business, 451 (blocked) |
+| Trim | Hair salon / gardening, taken |
+| Span | Too generic, taken |
+| Firm | Already in top 5 (available) |
 
-- **Doka** is distinctive but unfamiliar to non-West-African audiences. Kazi crosses cultures effortlessly.
-- **Gara** has a beautiful meaning but requires explaining it. Kazi needs zero explanation.
-- **Torque** is powerful but generic in a crowded automotive space. Kazi owns its category.
-- **Shift** is strong but legally risky and less distinctive. Kazi is ownable as a brand.
+---
 
-Kazi has everything: four letters, real meaning, cross-cultural fluency, professional tone, zero cringe, and a value proposition ("work") that maps directly to what every workshop buys software for — getting work done, tracking work, billing for work, managing work.
+## Methodology
 
-The name is a moat. Nobody else can be Kazi.
+- 30+ names brainstormed across problem and solution angles
+- Filtered for 4-7 letters, abstract tech feel, non-auto-themed, globally spellable
+- Shortlist of 10 chosen for dual problem/solution narrative strength
+- Top 5 confirmed available via HTTP check (404 = available)
+- Remaining 5 in shortlist kept as runner-ups (available via custom domain or TLD)

@@ -13,6 +13,9 @@ test-results
 playwright-report
 playwright/.cache
 
+# Vercel
+.vercel
+
 # OS / editor
 .DS_Store
 *.log
