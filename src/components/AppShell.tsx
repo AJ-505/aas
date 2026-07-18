@@ -103,6 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(
     () => typeof window === 'undefined' || window.innerWidth >= 768,
   )
+  const [profileOpen, setProfileOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window === 'undefined') return 'light'
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
@@ -298,7 +299,49 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
             </button>
-            <Avatar name={user!.name ?? user!.email ?? '?'} size={32} />
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="User menu"
+                className="grid size-[34px] place-items-center rounded-[9px] border border-line bg-surface transition-colors hover:bg-accent-soft"
+                onClick={() => setProfileOpen((v) => !v)}
+              >
+                <Avatar name={user!.name ?? user!.email ?? '?'} size={28} />
+              </button>
+              {profileOpen && (
+                <>
+                  <button
+                    type="button"
+                    className="fixed inset-0 z-30"
+                    onClick={() => setProfileOpen(false)}
+                  />
+                  <div className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
+                    <div className="border-b border-line px-4 py-3">
+                      <p className="truncate text-sm font-semibold text-ink">{user!.name}</p>
+                      <p className="truncate text-xs text-mute">{user!.email}</p>
+                    </div>
+                    <div className="border-b border-line px-4 py-2.5">
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-mute">Role</span>
+                      <p className="mt-0.5 text-sm text-ink">{ROLE_LABELS[role]}</p>
+                    </div>
+                    <div className="p-1.5">
+                      <button
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-mute transition-colors hover:bg-bg hover:text-rose-600"
+                        onClick={async () => {
+                          setProfileOpen(false)
+                          await signOut()
+                          await queryClient.invalidateQueries()
+                          void router.navigate({ to: '/auth/login' })
+                        }}
+                      >
+                        <IconLogOut size={15} />
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
         <main className="min-h-0 flex-1 overflow-auto">

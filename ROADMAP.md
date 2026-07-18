@@ -69,7 +69,7 @@
 |---|---------|--------|-------|
 | 4.1 | User roles (7 roles) | [x] | convex/users.ts + AppShell role gating |
 | 4.1 | User management UI | [x] | /admin/users route |
-| Forgot password flow | [ ] | Convex Auth supports it; need UI route + email config |
+| Forgot password / reset password | [x] | src/routes/auth/reset-password.tsx implemented |
 | 4.2 | VAT rate setting | [x] | In finance route |
 | 4.2 | Labour type management | [x] | In finance route |
 
@@ -100,7 +100,7 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| 5 landing page designs | [ ] | Enterprise dashboard style, Glacier design system |
+| 5 landing page designs | [x] | 5 concepts committed (src/routes/landing/1-5.tsx) |
 
 ---
 
@@ -148,19 +148,36 @@
 | Jobs CRUD flow | [~] | Basic tests exist; needs expansion |
 | Parts catalogue flow | [ ] | Need tests |
 | Sales module flow | [ ] | Need tests |
-| Full end-to-end smoke tests | [~] | In progress via subagents |
+| Full end-to-end smoke tests | [~] | Playwright tests passing (6/6). Browser visual verification pending |
+| agent-browser visual verification | [~] | Use agent-browser skill for in-browser smoke tests of all flows |
 
 ---
 
 ---
+
+## Naming
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Naming brainstorm (30 ideas) | [x] | docs/naming-brainstorm.md |
+| Naming critique | [x] | docs/naming-critique.md |
+| Naming final (v1: Kazi, Doka, Gara — REJECTED) | [x] | docs/naming-final.md. User hated them |
+| Naming v2 (Convex/Notion/Linear/Clerk style) | [~] | New council running with proper brief |
+
+## Seed & Demo Data
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Base seed (30 parts, 10 customers, 14 vehicles, 5 jobs) | [x] | convex/seed.ts |
+| Advanced seed (15 more parts, 8 customers, 5 vehicles, 7 jobs, invoices, payments, leads, sales orders) | [x] | convex/seedAdvanced.ts. 45 parts, 18 customers, 19 vehicles, 7 jobs, 3 invoices, 2 payments, 3 leads, 2 sales orders |
 
 ## Tooling & Infrastructure Upgrades
 
 | Task | Status | Notes |
 |------|--------|-------|
-| TypeScript v7 upgrade | [~] | In research (subagent tasked) |
-| Vite+ (blazingly fast tooling suite) | [~] | In research (subagent tasked) |
-| ClaudeCliProxy | [~] | In research (subagent tasked) |
+| TypeScript v7 upgrade (tsgo, 10x faster) | [x] | Migrated: removed baseUrl, switched to tsgo. Typecheck ~2s |
+| Vite+ (blazingly fast tooling suite) | [~] | Research doc at docs/viteplus-research.md. Beta (July 2026). Ready to adopt post-beta. |
+| ClaudeCliProxy ecosystem | [~] | Research doc at docs/claudecli-proxy-research.md. No single standard; 5+ community projects. Not urgent. |
 
 ## Future (Post-MVP)
 
