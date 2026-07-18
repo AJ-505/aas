@@ -151,6 +151,8 @@ export function useRemoveLabourTypeMutation() {
 // ---- Appointments ----
 export const appointmentQueries = {
   list: (date?: number) => convexQuery(api.appointments.list, { date }),
+  listRange: (startDate: number, endDate: number, status?: 'scheduled' | 'checkedIn' | 'cancelled') =>
+    convexQuery(api.appointments.listRange, { startDate, endDate, status }),
   upcoming: () => convexQuery(api.appointments.upcoming, {}),
   get: (appointmentId: string) => convexQuery(api.appointments.get, { appointmentId: appointmentId as Id<'appointments'> }),
 }

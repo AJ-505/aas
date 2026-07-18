@@ -21,6 +21,27 @@ export const list = query({
   },
 })
 
+export const listRange = query({
+  args: {
+    startDate: v.number(),
+    endDate: v.number(),
+    status: v.optional(v.union(v.literal('scheduled'), v.literal('checkedIn'), v.literal('cancelled'))),
+  },
+  handler: async (ctx, args) => {
+    await requireUser(ctx)
+    let q = ctx.db
+      .query('appointments')
+      .withIndex('appointmentTs', (idx) =>
+        idx.gte('appointmentTs', args.startDate).lte('appointmentTs', args.endDate),
+      )
+      .order('asc')
+    if (args.status) {
+      q = q.filter((f) => f.eq(f.field('status'), args.status))
+    }
+    return await q.collect()
+  },
+})
+
 export const upcoming = query({
   args: {},
   handler: async (ctx) => {

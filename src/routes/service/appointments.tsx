@@ -28,7 +28,7 @@ import {
   useCreateCustomerMutation,
   useCreateVehicleMutation,
 } from '~/lib/queries'
-import type { Id } from 'convex/_generated/dataModel'
+import type { Doc, Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/service/appointments')({
   component: AppointmentsPage,
@@ -46,19 +46,49 @@ const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 }
 
+type RangePreset = 'today' | 'week' | 'month'
+
+function getRange(preset: RangePreset): { startDate: number; endDate: number } {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const start = now.getTime()
+  if (preset === 'today') return { startDate: start, endDate: start + 86_400_000 }
+  if (preset === 'week') return { startDate: start, endDate: start + 7 * 86_400_000 }
+  const nextMonth = new Date(now)
+  nextMonth.setMonth(nextMonth.getMonth() + 1)
+  return { startDate: start, endDate: nextMonth.getTime() }
+}
+
+const RANGE_LABELS: Record<RangePreset, string> = { today: 'Today', week: 'This Week', month: 'This Month' }
+
+type AppointmentGroup = { date: string; ts: number; items: Doc<'appointments'>[] }
+
+function groupByDay(appointments: Doc<'appointments'>[]): AppointmentGroup[] {
+  const groups: AppointmentGroup[] = []
+  for (const a of appointments) {
+    const dayKey = new Date(a.appointmentTs).toDateString()
+    const dayTs = new Date(a.appointmentTs)
+    dayTs.setHours(0, 0, 0, 0)
+    const existing = groups[groups.length - 1]
+    if (existing && existing.date === dayKey) {
+      existing.items.push(a)
+    } else {
+      groups.push({ date: dayKey, ts: dayTs.getTime(), items: [a] })
+    }
+  }
+  return groups
+}
+
 function AppointmentsPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const [day, setDay] = useState(today.getTime())
+  const [preset, setPreset] = useState<RangePreset>('week')
   const [showCreate, setShowCreate] = useState(false)
 
-  const { data: appointments, isLoading } = useQuery(appointmentQueries.list(day))
+  const { startDate, endDate } = getRange(preset)
+  const { data: appointments, isLoading } = useQuery(appointmentQueries.listRange(startDate, endDate))
 
-  const prevDay = () => setDay((d) => d - 86_400_000)
-  const nextDay = () => setDay((d) => d + 86_400_000)
-  const isToday = day === today.getTime()
+  const dayGroups = appointments ? groupByDay(appointments) : []
 
   return (
     <div className="space-y-5">
@@ -66,25 +96,24 @@ function AppointmentsPage() {
         <div>
           <h1 className="text-[23px] font-extrabold tracking-tight text-ink">Appointments</h1>
           <p className="mt-1 text-[13px] text-mute">
-            {appointments ? `${appointments.length} for today` : 'Manage service appointments.'}
+            {appointments ? `${appointments.length} upcoming` : 'Manage service appointments.'}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={prevDay}>
-            &larr; Prev
-          </Button>
-          <span className="min-w-[140px] text-center text-[13px] font-semibold text-ink">
-            {isToday
-              ? 'Today'
-              : new Date(day).toLocaleDateString('en-NG', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                })}
-          </span>
-          <Button variant="outline" size="sm" onClick={nextDay} disabled={isToday}>
-            Next &rarr;
-          </Button>
+          <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-0.5">
+            {(Object.keys(RANGE_LABELS) as RangePreset[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                  preset === key ? 'bg-accent text-white' : 'text-mute hover:text-ink'
+                }`}
+                onClick={() => setPreset(key)}
+              >
+                {RANGE_LABELS[key]}
+              </button>
+            ))}
+          </div>
           <Button onClick={() => setShowCreate(true)}>
             <IconPlus size={15} /> Book appointment
           </Button>
@@ -104,7 +133,7 @@ function AppointmentsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Time</TableHead>
+              <TableHead>Date / Time</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Vehicle</TableHead>
@@ -123,30 +152,42 @@ function AppointmentsPage() {
             ) : !appointments || appointments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-mute">
-                  No appointments for this day.
+                  No appointments in this range.
                 </TableCell>
               </TableRow>
             ) : (
-              appointments.map((a) => (
-                <TableRow key={a._id}>
-                  <TableCell className="whitespace-nowrap font-semibold text-ink">
-                    {new Date(a.appointmentTs).toLocaleTimeString('en-NG', {
-                      hour: '2-digit',
-                      minute: '2-digit',
+              dayGroups.flatMap((group) => [
+                <TableRow key={group.date} className="bg-line-soft/40">
+                  <TableCell colSpan={7} className="py-2 pl-4 text-[12px] font-semibold text-mute">
+                    {new Date(group.date).toLocaleDateString('en-NG', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'short',
+                      year: group.ts < Date.now() - 6 * 86_400_000 || group.ts > Date.now() + 6 * 86_400_000 ? 'numeric' : undefined,
                     })}
+                    {' — '}{group.items.length} appointment{group.items.length !== 1 ? 's' : ''}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-body">{a.name}</TableCell>
-                  <TableCell className="whitespace-nowrap text-mute">{a.phone}</TableCell>
-                  <TableCell className="text-body">
-                    {[a.vehicleMake, a.vehicleModel, a.vehiclePlate].filter(Boolean).join(' ') || '-'}
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-mute">{a.complaint ?? '-'}</TableCell>
-                  <TableCell>
-                    <Badge dot variant={APPOINTMENT_STATUS_VARIANTS[a.status] ?? 'secondary'}>
-                      {APPOINTMENT_STATUS_LABELS[a.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
+                </TableRow>,
+                ...group.items.map((a) => (
+                  <TableRow key={a._id}>
+                    <TableCell className="whitespace-nowrap font-semibold text-ink">
+                      {new Date(a.appointmentTs).toLocaleTimeString('en-NG', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-body">{a.name}</TableCell>
+                    <TableCell className="whitespace-nowrap text-mute">{a.phone}</TableCell>
+                    <TableCell className="text-body">
+                      {[a.vehicleMake, a.vehicleModel, a.vehiclePlate].filter(Boolean).join(' ') || '-'}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate text-mute">{a.complaint ?? '-'}</TableCell>
+                    <TableCell>
+                      <Badge dot variant={APPOINTMENT_STATUS_VARIANTS[a.status] ?? 'secondary'}>
+                        {APPOINTMENT_STATUS_LABELS[a.status]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                     {a.status === 'scheduled' && (
                       <div className="flex gap-1">
                         <AppointmentCheckInButton
@@ -176,7 +217,8 @@ function AppointmentsPage() {
                   </TableCell>
                 </TableRow>
               ))
-            )}
+            ])
+          )}
           </TableBody>
         </Table>
       </Card>
