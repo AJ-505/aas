@@ -2,13 +2,14 @@
 
 A full-stack garage management app built with TanStack Start, Convex, and Vite+.
 
-**Tech stack:** React 19, TanStack Start 2, TanStack Router 1, Convex, Tailwind CSS 4, Vite 8 via Vite+, TypeScript 7.
+**Tech stack:** React 19, TanStack Start 2, TanStack Router 1, Convex, Tailwind CSS 4, Vite 8 via Vite+, TypeScript 7, pnpm.
 
 ## Prerequisites
 
 - **Node.js** ≥ 22
-- **npm** ≥ 10 (or bun)
+- **pnpm** ≥ 10 (via `corepack enable && corepack prepare pnpm@latest --activate`)
 - **Convex account** (free at [convex.dev](https://convex.dev))
+- **Vite+ shell integration** (see [Vite+ setup](#vite))
 
 ## Quick Start
 
@@ -16,20 +17,37 @@ A full-stack garage management app built with TanStack Start, Convex, and Vite+.
 # 1. Clone + install
 git clone <repo-url>
 cd aas
-npm install
+pnpm install
 
 # 2. Start Convex in one terminal
-npx convex dev
+pnpm exec convex dev
 
 # 3. Start the web dev server in another terminal
-npm run dev
+pnpm run dev
 ```
 
 The app opens at `http://localhost:3000`.
 
+## Vite+
+
+This project uses [Vite+](https://viteplus.dev) (`vp`) as the CLI orchestrator.
+
+```bash
+# Install Vite+ shell integration (one-time)
+curl -fsSL https://viteplus.dev/sh | bash
+source ~/.vite-plus/env
+
+# Common vp commands
+vp dev     # dev server
+vp build   # production build (~700ms)
+vp check   # lint + fmt + typecheck
+```
+
+The `vp` CLI wraps Vite, Vitest, oxlint, etc. — the underlying tools live in `node_modules`.
+
 ## Environment Variables
 
-After running `npx convex dev`, the following are set automatically in `.env.local`:
+After running `pnpm exec convex dev`, the following are set in `.env.local`:
 
 | Variable | Description |
 |----------|-------------|
@@ -39,33 +57,28 @@ After running `npx convex dev`, the following are set automatically in `.env.loc
 Optional overrides:
 | `VITE_CONVEX_SITE_URL` | File uploads URL |
 
-See `.env.local.example` for the template.
-
 ## Available Commands
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Convex + web dev server (concurrently) |
-| `npm run build` | Production build via Vite+ (~700ms) |
-| `npm test` | Run unit tests (Vitest, 40 tests) |
-| `npm run test:e2e` | Run Playwright E2E tests (6 tests, needs browser) |
-| `npm run typecheck` | TypeScript check via tsgo (~2s) |
-| `npm run lint` | Lint with oxlint |
-| `npm run convex:dev` | Convex dev server only |
+| `pnpm run dev` | Start Convex + web dev server (concurrently) |
+| `pnpm run build` | Production build via Vite+ |
+| `pnpm test` | Run unit tests (Vitest, 40 tests) |
+| `pnpm run test:e2e` | Run Playwright E2E tests (6 tests) |
+| `pnpm run typecheck` | TypeScript check (~2.5s) |
+| `pnpm run lint` | Lint with oxlint |
+| `pnpm exec convex dev` | Convex dev server only |
 
 ## Seeding Demo Data
 
 ```bash
-# Seed all demo data (parts, customers, vehicles, jobs, invoices, etc.)
-npx convex run seedAdvanced
-
-# Seed auth accounts for all 7 roles
-npx convex run seedAccounts
+pnpm exec convex run seedAdvanced
+pnpm exec convex run seedAccounts
 ```
 
 ## Test Accounts
 
-After running `seedAccounts`, the following accounts are available (all password `password123`):
+After `seedAccounts` (all password `password123`):
 
 | Role | Email | Permissions |
 |------|-------|-------------|
@@ -78,22 +91,6 @@ After running `seedAccounts`, the following accounts are available (all password
 | Sales Rep | emeka@example.com | Leads, sales orders |
 
 Full details in `docs/mock-accounts.md`.
-
-## Vite+
-
-This project uses [Vite+](https://viteplus.dev) (`vp`) as the CLI orchestrator for dev/build. The `vp` CLI is installed as a shell integration:
-
-```bash
-# Source the Vite+ env (already done by shell integration)
-source ~/.vite-plus/env
-
-# Or use the wrapper installed by the curl script
-vp dev    # starts dev server
-vp build  # production build
-vp check  # lint + fmt + typecheck
-```
-
-The underlying tools (Vite, Vitest, oxlint) remain in `node_modules` and are managed through `vp`.
 
 ## Project Structure
 
@@ -110,13 +107,12 @@ docs/             — Research, naming, setup references
 ## Deployment
 
 ```bash
-npm run build
+pnpm run build
 ```
 
-The build produces a `.output/` directory compatible with Vercel (via Nitro). Configure Vercel with:
+Produces `.output/` for Vercel (via Nitro). Vercel config:
 
 - **Framework preset:** `tanstack-start`
-- **Build command:** `npm run build`
+- **Build command:** `pnpm run build`
 - **Output directory:** `.output`
-- **Environment variables:** `VITE_CONVEX_URL` (from your Convex dashboard)
-
+- **Environment variables:** `VITE_CONVEX_URL`

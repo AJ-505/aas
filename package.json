@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -r npm:dev:web npm:dev:db",
+    "dev": "concurrently -r 'pnpm:dev:web' 'pnpm:dev:db'",
     "dev:web": "vp dev",
     "dev:db": "convex dev",
     "build": "vp build",
@@ -48,6 +48,7 @@
     "vite": "^8.0.0",
     "vitest": "^3.0.0"
   },
+  "packageManager": "pnpm@10.33.0",
   "allowScripts": {
     "esbuild@0.27.0": true
   }
