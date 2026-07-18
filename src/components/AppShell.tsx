@@ -152,6 +152,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     return (
       <div className="relative flex h-full items-center justify-center overflow-auto bg-bg p-8">
+        <button
+          type="button"
+          aria-label={theme === 'dark' ? 'Use light mode' : 'Use dark mode'}
+          className="absolute right-4 top-4 grid size-[34px] place-items-center rounded-[9px] border border-line bg-surface text-body hover:bg-accent-soft"
+          onClick={toggleTheme}
+        >
+          {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
+        </button>
         <div className="relative flex w-full max-w-sm flex-col items-center">
           <div className="mb-5 flex flex-col items-center gap-3">
             <span className="grid size-11 place-items-center rounded-xl bg-accent text-sm font-extrabold text-white">
