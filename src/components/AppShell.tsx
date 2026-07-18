@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useRouter, useRouterState } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthActions, useConvexAuth } from '@convex-dev/auth/react'
@@ -100,6 +100,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const { signOut } = useAuthActions()
   const searchRef = useRef<HTMLInputElement>(null)
+  const searchContext = useMemo(() => {
+    if (pathname === '/') return { placeholder: 'Search customers…', to: '/service/customers' as const }
+    if (pathname.startsWith('/service/appointments')) return { placeholder: 'Filter appointments…', to: '/service/appointments' as const }
+    if (pathname.startsWith('/service/customer')) return { placeholder: 'Search customers…', to: '/service/customers' as const }
+    if (pathname.startsWith('/service/job')) return { placeholder: 'Search jobs by plate or customer…', to: '/service/jobs' as const }
+    if (pathname.startsWith('/service/parts')) return { placeholder: 'Search parts by name or code…', to: '/service/parts' as const }
+    if (pathname.startsWith('/sales/inventory')) return { placeholder: 'Search vehicles…', to: '/sales/inventory' as const }
+    if (pathname.startsWith('/sales/lead')) return { placeholder: 'Search leads…', to: '/sales/leads' as const }
+    if (pathname.startsWith('/sales/order')) return { placeholder: 'Search orders…', to: '/sales/orders' as const }
+    return { placeholder: 'Search customers…', to: '/service/customers' as const }
+  }, [pathname])
   const [sidebarOpen, setSidebarOpen] = useState(
     () => typeof window === 'undefined' || window.innerWidth >= 768,
   )
@@ -276,10 +287,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <IconSearch size={15} />
               <input
                 ref={searchRef}
-                placeholder="Search jobs, plates, customers…"
+                placeholder={searchContext.placeholder}
                 className="w-full border-none bg-transparent text-[13px] text-ink outline-none placeholder:text-mute"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') void router.navigate({ to: '/service/customers' })
+                  if (e.key === 'Enter') void router.navigate({ to: searchContext.to })
                 }}
               />
               <kbd className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10.5px] text-mute">⌘K</kbd>

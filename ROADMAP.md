@@ -146,10 +146,9 @@
 |------|--------|-------|
 | Auth/nav flows | [x] | 6/6 tests passing (all green) |
 | Jobs CRUD flow | [~] | Basic tests exist; needs expansion |
-| Parts catalogue flow | [ ] | Need tests |
-| Sales module flow | [ ] | Need tests |
-| Full end-to-end smoke tests | [~] | Playwright tests passing (6/6). Browser visual verification pending |
-| agent-browser visual verification | [~] | Use agent-browser skill for in-browser smoke tests of all flows |
+| Parts catalogue flow | [~] | Need dedicated tests |
+| Sales module flow | [~] | Need dedicated tests |
+| agent-browser visual smoke tests | [~] | Screenshots captured for login, dashboard, appointments, dark mode |
 
 ---
 
@@ -162,7 +161,7 @@
 | Naming brainstorm (30 ideas) | [x] | docs/naming-brainstorm.md |
 | Naming critique | [x] | docs/naming-critique.md |
 | Naming final (v1: Kazi, Doka, Gara — REJECTED) | [x] | docs/naming-final.md. User hated them |
-| Naming v2 (Convex/Notion/Linear/Clerk style) | [~] | New council running with proper brief |
+| Naming v2 (Alto, Tempo, Nova, Summit, Primo, Flux, etc.) | [x] | docs/naming-v2.md. 10 abstract/tech-forward names |
 
 ## Seed & Demo Data
 
@@ -178,6 +177,33 @@
 | TypeScript v7 upgrade (tsgo, 10x faster) | [x] | Migrated: removed baseUrl, switched to tsgo. Typecheck ~2s |
 | Vite+ (blazingly fast tooling suite) | [~] | Research doc at docs/viteplus-research.md. Beta (July 2026). Ready to adopt post-beta. |
 | ClaudeCliProxy ecosystem | [~] | Research doc at docs/claudecli-proxy-research.md. No single standard; 5+ community projects. Not urgent. |
+
+## Multi-Tenant / Organizations
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Org/RBAC investigation | [x] | Investigation doc at /tmp/investigation-orgs.md. Medium effort (3-5 days) |
+| Profile dropdown with role indicator | [x] | Top-right avatar shows name, email, role, sign out |
+| Mock accounts for all 7 roles | [x] | docs/mock-accounts.md. Users: admin, manager, csr, tech, inventory, finance, salesRep |
+| Organizations table + scoping | [ ] | Next major feature. Needs schema migration, query rewrites, invite flow |
+
+## Deployment & Tooling
+
+| Task | Status | Notes |
+|------|--------|-------|
+| TS v7 migration (tsgo) | [x] | 10x faster typecheck, ~2s. Removed baseUrl, added tsgo |
+| Vite+ (vp) CLI installed | [x] | vp v0.2.1 installed. Tools downloading in background |
+| Nitro adapter for Vercel | [x] | nitro plugin in vite.config.ts, build produces .output/ |
+| vercel.json | [x] | Framework preset: tanstack-start, output dir: .output |
+| Route-aware search bar | [x] | Context-aware placeholder + navigation per page |
+
+## Appointments UI
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Range view (Today/Week/Month) | [x] | Replaced single-day nav with presets + day-grouped list |
+| listRange backend query | [x] | convex/appointments.ts with startDate/endDate + status filter |
+| All 7 roles seeded | [x] | convex/seedAccounts.ts. Password: password123 |
 
 ## Future (Post-MVP)
 
