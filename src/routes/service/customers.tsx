@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
+import { Textarea } from '~/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import {
   Table,
@@ -21,6 +22,8 @@ import {
   useCheckInMutation,
 } from '~/lib/queries'
 import { Loader } from '~/components/Loader'
+import { Avatar } from '~/components/Avatar'
+import { IconChevronRight, IconPlus, IconSearch } from '~/components/icons'
 import type { Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/service/customers')({
@@ -31,33 +34,42 @@ function CustomersPage() {
   const [q, setQ] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const { data: customers, isLoading } = useQuery(customerQueries.search(q))
+  const navigate = useNavigate()
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Customers</h1>
-        <Button onClick={() => setShowCreate((s) => !s)}>
-          {showCreate ? 'Close' : 'Add customer'}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[23px] font-extrabold tracking-tight text-ink">Customers</h1>
+          <p className="mt-1 text-[13px] text-mute">
+            {customers ? `${customers.length} registered` : 'Directory of customers and their vehicles.'}
+          </p>
+        </div>
+        <Button onClick={() => setShowCreate((s) => !s)} variant={showCreate ? 'outline' : 'default'}>
+          {showCreate ? 'Close' : (<><IconPlus size={15} /> Add customer</>)}
         </Button>
       </div>
 
       {showCreate && <CreateCustomerForm onDone={() => setShowCreate(false)} />}
 
-      <Input
-        placeholder="Search by name or phone..."
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        className="max-w-sm"
-      />
+      <div className="relative max-w-sm">
+        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
+        <Input
+          placeholder="Search by name or phone..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Phone</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead />
+              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -69,24 +81,27 @@ function CustomersPage() {
               </TableRow>
             ) : !customers || customers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-slate-500">
-                  No customers found.
+                <TableCell colSpan={4} className="py-10 text-center text-mute">
+                  No customers found{q ? ` for “${q}”` : ''}.
                 </TableCell>
               </TableRow>
             ) : (
               customers.map((c) => (
-                <TableRow key={c._id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell>{c.phone}</TableCell>
-                  <TableCell>{c.email ?? '—'}</TableCell>
-                  <TableCell>
-                    <Link
-                      to="/service/customer/$id"
-                      params={{ id: c._id }}
-                      className="text-sm font-medium text-slate-900 underline"
-                    >
-                      View
-                    </Link>
+                <TableRow
+                  key={c._id}
+                  className="cursor-pointer"
+                  onClick={() => navigate({ to: '/service/customer/$id', params: { id: c._id } })}
+                >
+                  <TableCell className="whitespace-nowrap">
+                    <span className="flex items-center gap-2.5 font-semibold text-ink">
+                      <Avatar name={c.name} size={28} />
+                      {c.name}
+                    </span>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-body">{c.phone}</TableCell>
+                  <TableCell className="hidden text-mute md:table-cell">{c.email ?? '—'}</TableCell>
+                  <TableCell className="px-2 text-mute">
+                    <IconChevronRight size={15} />
                   </TableCell>
                 </TableRow>
               ))
@@ -154,7 +169,7 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
       }
 
       if (complaint && vehicleId) {
-        const jobId = await checkIn.mutateAsync({
+        await checkIn.mutateAsync({
           vehicleId: vehicleId as Id<'vehicles'>,
           customerId: customerId as Id<'customers'>,
           complaint,
@@ -176,11 +191,11 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
     }
   }
 
+  const saving = createCustomer.isPending || createVehicle.isPending || checkIn.isPending
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>New customer</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>New customer</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -202,8 +217,8 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
             </div>
           </div>
 
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold mb-3">Vehicle (optional)</h3>
+          <div className="border-t border-line-soft pt-5">
+            <h3 className="mb-3 text-[13px] font-bold text-ink">Vehicle <span className="font-medium text-mute">(optional)</span></h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="make">Make</Label>
@@ -232,22 +247,21 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
             </div>
           </div>
 
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold mb-3">Complaint (optional)</h3>
+          <div className="border-t border-line-soft pt-5">
+            <h3 className="mb-3 text-[13px] font-bold text-ink">Complaint <span className="font-medium text-mute">(optional)</span></h3>
             <div className="space-y-2">
               <Label htmlFor="complaint">Describe the issue</Label>
-              <textarea
+              <Textarea
                 id="complaint"
                 name="complaint"
-                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                 placeholder="Customer's reported complaint..."
               />
             </div>
           </div>
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={createCustomer.isPending || createVehicle.isPending || checkIn.isPending}>
-              {(createCustomer.isPending || createVehicle.isPending || checkIn.isPending) ? 'Saving...' : 'Save'}
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving...' : 'Save customer'}
             </Button>
             <Button type="button" variant="outline" onClick={onDone}>
               Cancel

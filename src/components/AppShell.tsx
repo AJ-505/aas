@@ -1,30 +1,48 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { Link, Navigate, useRouter, useRouterState } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
-import { Badge } from '~/components/ui/badge'
+import { Card, CardContent } from '~/components/ui/card'
 import { Loader } from '~/components/Loader'
+import { Avatar } from '~/components/Avatar'
+import {
+  IconBanknote,
+  IconBell,
+  IconChevronRight,
+  IconGrid,
+  IconLogOut,
+  IconSearch,
+  IconSliders,
+  IconUsers,
+  IconWrench,
+} from '~/components/icons'
 import { useCurrentUser } from '~/lib/auth'
-import { userQueries, useBootstrapFirstAdminMutation } from '~/lib/queries'
+import { jobQueries, userQueries, useBootstrapFirstAdminMutation } from '~/lib/queries'
 import { ROLES, ROLE_LABELS, type Role } from '~/lib/enums'
 import { cn } from '~/lib/utils'
+
 interface NavItem {
   label: string
   to: string
+  icon: typeof IconGrid
   roles: Role[]
+  match: string[]
 }
 
 const ALL_STAFF: Role[] = [...ROLES]
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', to: '/', roles: ALL_STAFF },
-  { label: 'Customers', to: '/service/customers', roles: ALL_STAFF },
-  { label: 'Jobs', to: '/service/jobs', roles: ALL_STAFF },
-  { label: 'Finance', to: '/service/finance', roles: ['finance', 'manager', 'admin'] },
-  { label: 'User Management', to: '/admin/users', roles: ['admin'] },
+const NAV_GENERAL: NavItem[] = [
+  { label: 'Dashboard', to: '/', icon: IconGrid, roles: ALL_STAFF, match: ['/'] },
+  { label: 'Customers', to: '/service/customers', icon: IconUsers, roles: ALL_STAFF, match: ['/service/customer'] },
+  { label: 'Jobs', to: '/service/jobs', icon: IconWrench, roles: ALL_STAFF, match: ['/service/job', '/service/checkin'] },
+]
+
+const NAV_OPS: NavItem[] = [
+  { label: 'Finance', to: '/service/finance', icon: IconBanknote, roles: ['finance', 'manager', 'admin'], match: ['/service/finance'] },
+  { label: 'User Management', to: '/admin/users', icon: IconSliders, roles: ['admin'], match: ['/admin/users'] },
 ]
 
 function canSee(item: NavItem, role: Role | null): boolean {
@@ -33,12 +51,30 @@ function canSee(item: NavItem, role: Role | null): boolean {
   return item.roles.includes(role)
 }
 
+function isActive(item: NavItem, pathname: string): boolean {
+  if (item.to === '/') return pathname === '/'
+  return item.match.some((m) => pathname.startsWith(m))
+}
+
+function breadcrumb(pathname: string): string[] {
+  if (pathname === '/') return ['Workshop', 'Dashboard']
+  if (pathname.startsWith('/service/customers')) return ['Workshop', 'Customers']
+  if (pathname.startsWith('/service/customer/')) return ['Workshop', 'Customers', 'Profile']
+  if (pathname.startsWith('/service/jobs')) return ['Workshop', 'Jobs']
+  if (pathname.startsWith('/service/job/')) return ['Workshop', 'Jobs', `#${pathname.split('/').pop()?.slice(-6)}`]
+  if (pathname.startsWith('/service/checkin')) return ['Workshop', 'Jobs', 'Check in']
+  if (pathname.startsWith('/service/finance')) return ['Operations', 'Finance']
+  if (pathname.startsWith('/admin/users')) return ['Operations', 'User Management']
+  return ['Workshop']
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: user, isLoading } = useCurrentUser()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const router = useRouter()
   const queryClient = useQueryClient()
   const { signOut } = useAuthActions()
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const isLogin = pathname === '/auth/login'
 
@@ -55,7 +91,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (!user && isLogin) {
-    return <div className="flex h-full items-center justify-center p-8">{children}</div>
+    return (
+      <div className="relative flex h-full items-center justify-center overflow-auto bg-bg p-8">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(600px_260px_at_50%_0%,rgba(79,70,229,0.10),transparent)]" />
+        <div className="relative flex w-full max-w-sm flex-col items-center">
+          <div className="mb-5 flex flex-col items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 via-accent to-violet-600 text-sm font-extrabold text-white shadow-[0_6px_18px_rgba(79,70,229,0.4)]">
+              CM
+            </span>
+            <div className="text-center">
+              <div className="text-lg font-extrabold tracking-tight text-ink">Cedric Masters</div>
+              <div className="text-xs text-mute">Autos Management</div>
+            </div>
+          </div>
+          {children}
+        </div>
+      </div>
+    )
   }
 
   // user is signed in
@@ -67,54 +119,147 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <PendingRoleAssignment userId={user!._id} userName={user!.name} />
   }
 
-  const visibleNav = NAV_ITEMS.filter((item) => canSee(item, user!.role))
+  const role = user!.role
+  const crumbs = breadcrumb(pathname)
 
   return (
     <div className="flex h-full min-h-0">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-4">
-          <div className="text-lg font-black">Cedric Masters</div>
-          <div className="text-xs text-slate-500">Autos Management</div>
+      {/* ── sidebar ─────────────────────────────── */}
+      <aside className="sticky top-0 hidden h-screen w-[250px] shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <div className="flex items-center gap-2.5 px-[18px] pb-4 pt-[18px]">
+          <span className="grid size-[34px] place-items-center rounded-[10px] bg-gradient-to-br from-indigo-500 via-accent to-violet-600 text-xs font-extrabold text-white shadow-[0_4px_12px_rgba(79,70,229,0.35)]">
+            CM
+          </span>
+          <span>
+            <span className="block text-sm font-bold tracking-tight text-ink">Cedric Masters</span>
+            <span className="block text-[11px] text-mute">Autos Management</span>
+          </span>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {visibleNav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                'block rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100',
-                pathname === item.to && 'bg-slate-900 text-slate-50 hover:bg-slate-900',
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-          <Badge variant="secondary">{ROLE_LABELS[user!.role]}</Badge>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-600">
+        <nav className="flex-1 overflow-auto px-3 pb-3">
+          <NavSection label="General" items={NAV_GENERAL} role={role} pathname={pathname} />
+          <NavSection label="Operations" items={NAV_OPS} role={role} pathname={pathname} />
+        </nav>
+
+        <div className="m-3 flex items-center gap-2.5 rounded-xl border border-line p-2.5">
+          <Avatar name={user!.name ?? user!.email ?? '?'} size={34} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-semibold text-ink">
               {user!.name ?? user!.email}
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                await signOut()
-                await queryClient.invalidateQueries()
-                void router.navigate({ to: '/auth/login' })
-              }}
+            <span className="block text-[11.5px] text-mute">{ROLE_LABELS[role]}</span>
+          </span>
+          <button
+            aria-label="Sign out"
+            title="Sign out"
+            className="grid size-8 place-items-center rounded-lg text-mute transition-colors hover:bg-[#f3f4f8] hover:text-rose-600"
+            onClick={async () => {
+              await signOut()
+              await queryClient.invalidateQueries()
+              void router.navigate({ to: '/auth/login' })
+            }}
+          >
+            <IconLogOut size={16} />
+          </button>
+        </div>
+      </aside>
+
+      {/* ── main column ─────────────────────────── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 flex h-[60px] shrink-0 items-center justify-between gap-4 border-b border-line bg-surface/80 px-7 backdrop-blur-md">
+          <div className="flex items-center gap-1.5 text-[13px] text-mute">
+            {crumbs.map((c, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                {i > 0 && <IconChevronRight size={13} />}
+                <span className={i === crumbs.length - 1 ? 'font-semibold text-ink' : ''}>{c}</span>
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 rounded-[9px] bg-[#f2f3f7] px-3 py-[7px] text-mute transition-colors focus-within:bg-white focus-within:ring-2 focus-within:ring-accent/25 sm:flex sm:w-[280px]">
+              <IconSearch size={15} />
+              <input
+                ref={searchRef}
+                placeholder="Search jobs, plates, customers…"
+                className="w-full border-none bg-transparent text-[13px] text-ink outline-none placeholder:text-mute"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void router.navigate({ to: '/service/customers' })
+                }}
+              />
+              <kbd className="rounded-md border border-line bg-white px-1.5 py-0.5 text-[10.5px] text-mute">⌘K</kbd>
+            </div>
+            <button
+              aria-label="Notifications"
+              className="relative grid size-[34px] place-items-center rounded-[9px] border border-line bg-white text-body transition-colors hover:bg-[#f4f5f9]"
             >
-              Sign out
-            </Button>
+              <IconBell size={17} />
+              <span className="absolute right-2 top-2 size-[7px] rounded-full border-[1.5px] border-white bg-rose-500" />
+            </button>
+            <Avatar name={user!.name ?? user!.email ?? '?'} size={32} />
           </div>
         </header>
-        <main className="min-h-0 flex-1 overflow-auto p-6">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-[1280px] px-7 pb-16 pt-6">{children}</div>
+        </main>
       </div>
     </div>
+  )
+}
+
+function NavSection({
+  label,
+  items,
+  role,
+  pathname,
+}: {
+  label: string
+  items: NavItem[]
+  role: Role
+  pathname: string
+}) {
+  const visible = items.filter((i) => canSee(i, role))
+  if (visible.length === 0) return null
+  return (
+    <div>
+      <div className="px-2.5 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-mute">
+        {label}
+      </div>
+      <div className="flex flex-col gap-0.5">
+        {visible.map((item) => (
+          <NavLink key={item.to} item={item} active={isActive(item, pathname)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+  const { data: jobs } = useQuery(jobQueries.all())
+  const openJobs = item.label === 'Jobs'
+    ? jobs?.filter((j: any) => j.status !== 'completed' && j.status !== 'paid').length
+    : undefined
+
+  return (
+    <Link
+      to={item.to}
+      className={cn(
+        'flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[13.5px] font-medium text-body transition-colors hover:bg-[#f3f4f8] hover:text-ink',
+        active && 'bg-accent-soft font-semibold text-accent-deep hover:bg-accent-soft hover:text-accent-deep',
+      )}
+    >
+      <item.icon size={17} />
+      <span className="flex-1">{item.label}</span>
+      {openJobs != null && openJobs > 0 && (
+        <span
+          className={cn(
+            'rounded-full bg-line-soft px-2 py-0.5 text-[11px] font-bold text-slate-600',
+            active && 'bg-[#dfe3fd] text-accent-deep',
+          )}
+        >
+          {openJobs}
+        </span>
+      )}
+    </Link>
   )
 }
 
@@ -129,39 +274,41 @@ function PendingRoleAssignment({
   const bootstrap = useBootstrapFirstAdminMutation()
 
   return (
-    <div className="flex h-full items-center justify-center p-8">
-      <div className="max-w-md space-y-4 text-center">
-        <h1 className="text-xl font-semibold">Welcome{userName ? `, ${userName}` : ''}</h1>
-        <p className="text-sm text-slate-500">
-          Your account has not been assigned a role yet. Please contact an
-          administrator to get access.
-        </p>
-        {adminExists === false && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-left">
-            <p className="text-sm font-medium text-amber-800">
-              No administrator has been set up yet.
-            </p>
-            <p className="mt-1 text-sm text-amber-700">
-              If you are the first team member, you can claim the admin role to
-              get started.
-            </p>
-            <Button
-              className="mt-3"
-              onClick={() =>
-                bootstrap.mutate(undefined, {
-                  onSuccess: () => {
-                    toast.success('You are now an administrator.')
-                    void queryClient.invalidateQueries()
-                  },
-                })
-              }
-              disabled={bootstrap.isPending}
-            >
-              {bootstrap.isPending ? 'Claiming...' : 'Claim admin role'}
-            </Button>
-          </div>
-        )}
-      </div>
+    <div className="flex h-full items-center justify-center bg-bg p-8">
+      <Card className="w-full max-w-md">
+        <CardContent className="space-y-4 pt-6 text-center">
+          <h1 className="text-xl font-bold text-ink">Welcome{userName ? `, ${userName}` : ''}</h1>
+          <p className="text-[13px] text-mute">
+            Your account has not been assigned a role yet. Please contact an
+            administrator to get access.
+          </p>
+          {adminExists === false && (
+            <div className="rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-left">
+              <p className="text-[13px] font-semibold text-amber-800">
+                No administrator has been set up yet.
+              </p>
+              <p className="mt-1 text-[13px] text-amber-700">
+                If you are the first team member, you can claim the admin role to
+                get started.
+              </p>
+              <Button
+                className="mt-3"
+                onClick={() =>
+                  bootstrap.mutate(undefined, {
+                    onSuccess: () => {
+                      toast.success('You are now an administrator.')
+                      void queryClient.invalidateQueries()
+                    },
+                  })
+                }
+                disabled={bootstrap.isPending}
+              >
+                {bootstrap.isPending ? 'Claiming...' : 'Claim admin role'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

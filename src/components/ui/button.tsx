@@ -3,22 +3,22 @@ import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '~/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] text-[13px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-slate-900 text-slate-50 hover:bg-slate-900/90',
-        secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200',
-        outline:
-          'border border-slate-300 bg-transparent hover:bg-slate-100',
-        destructive: 'bg-red-600 text-slate-50 hover:bg-red-600/90',
-        ghost: 'hover:bg-slate-100 hover:text-slate-900',
-        link: 'text-slate-900 underline-offset-4 hover:underline',
+        default:
+          'bg-accent text-white shadow-[0_4px_12px_rgba(79,70,229,0.28)] hover:bg-accent-deep',
+        secondary: 'bg-line-soft text-body hover:bg-line',
+        outline: 'border border-line bg-white text-body hover:bg-[#f4f5f9] hover:border-[#dcdfe8]',
+        destructive: 'bg-rose-600 text-white hover:bg-rose-700',
+        ghost: 'text-body hover:bg-[#f3f4f8] hover:text-ink',
+        link: 'text-accent underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-10 rounded-md px-6',
+        default: 'h-9 px-3.5',
+        sm: 'h-8 rounded-lg px-3 text-xs',
+        lg: 'h-10 px-5 text-sm',
         icon: 'h-9 w-9',
       },
     },

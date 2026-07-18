@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { Card } from '~/components/ui/card'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
+import { Select } from '~/components/ui/select'
 import {
   Table,
   TableBody,
@@ -13,6 +14,7 @@ import {
   TableRow,
 } from '~/components/ui/table'
 import { Loader } from '~/components/Loader'
+import { Avatar } from '~/components/Avatar'
 import {
   userQueries,
   useSetRoleMutation,
@@ -33,29 +35,29 @@ function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">User Management</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-[23px] font-extrabold tracking-tight text-ink">User management</h1>
+        <p className="mt-1 text-[13px] text-mute">
           Assign roles and activate or deactivate team members.
         </p>
       </div>
-      <Card>
+      <Card className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden lg:table-cell">Phone</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead />
+              <TableHead className="w-28" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {!users || users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-slate-500">
+                <TableCell colSpan={6} className="py-10 text-center text-mute">
                   No users found.
                 </TableCell>
               </TableRow>
@@ -89,12 +91,20 @@ function UserRow({
 
   return (
     <TableRow>
-      <TableCell className="font-medium">{user.name ?? '—'}</TableCell>
-      <TableCell>{user.email ?? '—'}</TableCell>
-      <TableCell>{user.phone ?? '—'}</TableCell>
+      <TableCell className="whitespace-nowrap">
+        <span className="flex items-center gap-2.5">
+          <Avatar name={user.name ?? user.email ?? '?'} size={28} />
+          <span>
+            <span className="block font-semibold text-ink">{user.name ?? '—'}</span>
+            <span className="block text-[11px] text-mute md:hidden">{user.email ?? ''}</span>
+          </span>
+        </span>
+      </TableCell>
+      <TableCell className="hidden text-body md:table-cell">{user.email ?? '—'}</TableCell>
+      <TableCell className="hidden text-body lg:table-cell">{user.phone ?? '—'}</TableCell>
       <TableCell>
-        <select
-          className="h-8 rounded-md border border-slate-300 px-2 text-sm"
+        <Select
+          className="w-44"
           value={user.role ?? ''}
           onChange={(e) => {
             const role = e.target.value as Role
@@ -117,10 +127,10 @@ function UserRow({
               {ROLE_LABELS[r]}
             </option>
           ))}
-        </select>
+        </Select>
       </TableCell>
       <TableCell>
-        <Badge variant={user.active ? 'success' : 'destructive'}>
+        <Badge dot variant={user.active ? 'success' : 'destructive'}>
           {user.active ? 'Active' : 'Inactive'}
         </Badge>
       </TableCell>

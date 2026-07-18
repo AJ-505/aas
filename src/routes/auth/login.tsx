@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { Card, CardContent } from '~/components/ui/card'
 
 export const Route = createFileRoute('/auth/login')({
   component: LoginPage,
@@ -35,16 +35,23 @@ function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>{step === 'signIn' ? 'Sign in' : 'Create account'}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card className="w-full shadow-[0_18px_50px_rgba(15,18,34,0.10)]">
+      <CardContent className="pt-6">
+        <div className="mb-5">
+          <h1 className="text-lg font-extrabold tracking-tight text-ink">
+            {step === 'signIn' ? 'Welcome back' : 'Create your account'}
+          </h1>
+          <p className="mt-1 text-[13px] text-mute">
+            {step === 'signIn' ? 'Sign in to the workshop dashboard.' : 'Sign up to get started.'}
+          </p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" name="name" type="text" placeholder="Your name" />
-          </div>
+          {step === 'signUp' && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" type="text" placeholder="Your name" />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" placeholder="you@example.com" required />

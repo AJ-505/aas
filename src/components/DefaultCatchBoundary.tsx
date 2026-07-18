@@ -3,13 +3,13 @@ import { Link } from '@tanstack/react-router'
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-      <p className="text-sm font-medium text-red-600">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8 text-center">
+      <p className="text-sm font-semibold text-rose-600">
         {error.message || 'Something went wrong'}
       </p>
       <Link
         to="/"
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-slate-50"
+        className="rounded-[9px] bg-accent px-4 py-2 text-[13px] font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.28)] hover:bg-accent-deep"
       >
         Go home
       </Link>

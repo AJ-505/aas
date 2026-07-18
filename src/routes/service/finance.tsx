@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
-import { Badge } from '~/components/ui/badge'
 import { Loader } from '~/components/Loader'
 import {
   labourTypeQueries,
@@ -33,13 +32,15 @@ export const Route = createFileRoute('/service/finance')({
 
 function FinancePage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">Finance Settings</h1>
-        <p className="text-sm text-slate-500">Manage labour rates and VAT configuration.</p>
+        <h1 className="text-[23px] font-extrabold tracking-tight text-ink">Finance settings</h1>
+        <p className="mt-1 text-[13px] text-mute">Manage labour rates and VAT configuration.</p>
       </div>
-      <VatConfigCard />
-      <LabourTypesCard />
+      <div className="grid items-start gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
+        <VatConfigCard />
+        <LabourTypesCard />
+      </div>
     </div>
   )
 }
@@ -63,11 +64,11 @@ function VatConfigCard() {
 
   return (
     <Card>
-      <CardHeader><CardTitle>VAT Configuration</CardTitle></CardHeader>
+      <CardHeader><CardTitle>VAT configuration</CardTitle></CardHeader>
       <CardContent>
         <div className="flex items-end gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="vatRate">VAT Rate (%)</Label>
+          <div className="w-32 space-y-2">
+            <Label htmlFor="vatRate">VAT rate (%)</Label>
             <Input
               id="vatRate"
               type="number"
@@ -76,14 +77,13 @@ function VatConfigCard() {
               step={0.5}
               value={current}
               onChange={(e) => setVatRate(Number(e.target.value))}
-              className="w-32"
             />
           </div>
           <Button onClick={handleSave} disabled={updateVatRate.isPending}>
             {updateVatRate.isPending ? 'Saving...' : 'Save'}
           </Button>
         </div>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-3 text-[12.5px] text-mute">
           This rate is applied when generating invoices.
         </p>
       </CardContent>
@@ -130,74 +130,76 @@ function LabourTypesCard() {
   }
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Labour Types</CardTitle></CardHeader>
+    <Card className="overflow-hidden">
+      <CardHeader><CardTitle>Labour types</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        {/* Create form */}
+        {/* create form */}
         <form onSubmit={handleCreate} className="flex items-end gap-3">
           <div className="flex-1 space-y-2">
             <Label htmlFor="ltName">Name</Label>
             <Input id="ltName" placeholder="e.g. Oil Change" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="ltPrice">Fixed Price (&#8358;)</Label>
-            <Input id="ltPrice" type="number" min={0} placeholder="5000" value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} className="w-32" />
+          <div className="w-32 space-y-2">
+            <Label htmlFor="ltPrice">Fixed price (&#8358;)</Label>
+            <Input id="ltPrice" type="number" min={0} placeholder="5000" value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} />
           </div>
           <Button type="submit" disabled={create.isPending}>Add</Button>
         </form>
 
-        {/* List */}
+        {/* list */}
         {isLoading ? (
           <Loader />
         ) : !labourTypes || labourTypes.length === 0 ? (
-          <p className="text-center text-sm text-slate-500">No labour types configured yet.</p>
+          <p className="py-4 text-center text-[13px] text-mute">No labour types configured yet.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Fixed Price</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {labourTypes.map((lt: any) => (
-                <TableRow key={lt._id}>
-                  {editingId === lt._id ? (
-                    <>
-                      <TableCell>
-                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
-                      </TableCell>
-                      <TableCell>
-                        <Input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} className="h-8 w-32" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleUpdate(lt._id)}>Save</Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
-                        </div>
-                      </TableCell>
-                    </>
-                  ) : (
-                    <>
-                      <TableCell className="font-medium">{lt.name}</TableCell>
-                      <TableCell>{formatNaira(lt.fixedPrice)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => {
-                            setEditingId(lt._id)
-                            setEditName(lt.name)
-                            setEditPrice(String(lt.fixedPrice / 100))
-                          }}>Edit</Button>
-                          <Button size="sm" variant="ghost" className="text-red-600" onClick={() => handleRemove(lt._id)}>Delete</Button>
-                        </div>
-                      </TableCell>
-                    </>
-                  )}
+          <div className="overflow-hidden rounded-[10px] border border-line-soft">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="text-right">Fixed price</TableHead>
+                  <TableHead className="w-40" />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {labourTypes.map((lt: any) => (
+                  <TableRow key={lt._id}>
+                    {editingId === lt._id ? (
+                      <>
+                        <TableCell>
+                          <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} className="ml-auto h-8 w-32" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" onClick={() => handleUpdate(lt._id)}>Save</Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="font-semibold text-ink">{lt.name}</TableCell>
+                        <TableCell className="text-right font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(lt.fixedPrice)}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={() => {
+                              setEditingId(lt._id)
+                              setEditName(lt.name)
+                              setEditPrice(String(lt.fixedPrice / 100))
+                            }}>Edit</Button>
+                            <Button size="sm" variant="ghost" className="text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => handleRemove(lt._id)}>Delete</Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
