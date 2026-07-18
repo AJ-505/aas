@@ -1,0 +1,1 @@
+function e(e){return e/100}function t(t){return`\u20a6${e(t).toLocaleString(`en-NG`,{minimumFractionDigits:2,maximumFractionDigits:2})}`}function n(e){return new Date(e).toLocaleString(`en-NG`,{year:`numeric`,month:`short`,day:`numeric`,hour:`2-digit`,minute:`2-digit`})}export{t as n,n as t};
