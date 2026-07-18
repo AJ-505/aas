@@ -10,111 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ServicePartsRouteImport } from './routes/service/parts'
-import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
-import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
-import { Route as ServiceCustomersRouteImport } from './routes/service/customers'
-import { Route as ServiceCheckinRouteImport } from './routes/service/checkin'
-import { Route as ServiceAppointmentsRouteImport } from './routes/service/appointments'
-import { Route as SalesOrdersRouteImport } from './routes/sales/orders'
-import { Route as SalesLeadsRouteImport } from './routes/sales/leads'
-import { Route as SalesInventoryRouteImport } from './routes/sales/inventory'
-import { Route as Landing5RouteImport } from './routes/landing/5'
-import { Route as Landing4RouteImport } from './routes/landing/4'
-import { Route as Landing3RouteImport } from './routes/landing/3'
-import { Route as Landing2RouteImport } from './routes/landing/2'
-import { Route as Landing1RouteImport } from './routes/landing/1'
-import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
-import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
-import { Route as ServiceJobIdRouteImport } from './routes/service/job.$id'
-import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer.$id'
-import { Route as SalesOrderIdRouteImport } from './routes/sales/order.$id'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
+import { Route as Landing1RouteImport } from './routes/landing/1'
+import { Route as Landing2RouteImport } from './routes/landing/2'
+import { Route as Landing3RouteImport } from './routes/landing/3'
+import { Route as Landing4RouteImport } from './routes/landing/4'
+import { Route as Landing5RouteImport } from './routes/landing/5'
+import { Route as SalesInventoryRouteImport } from './routes/sales/inventory'
+import { Route as SalesLeadsRouteImport } from './routes/sales/leads'
+import { Route as SalesOrdersRouteImport } from './routes/sales/orders'
+import { Route as ServiceAppointmentsRouteImport } from './routes/service/appointments'
+import { Route as ServiceCheckinRouteImport } from './routes/service/checkin'
+import { Route as ServiceCustomersRouteImport } from './routes/service/customers'
+import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
+import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
+import { Route as ServicePartsRouteImport } from './routes/service/parts'
 import { Route as SalesLeadIdRouteImport } from './routes/sales/lead.$id'
+import { Route as SalesOrderIdRouteImport } from './routes/sales/order.$id'
+import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer.$id'
+import { Route as ServiceJobIdRouteImport } from './routes/service/job.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServicePartsRoute = ServicePartsRouteImport.update({
-  id: '/service/parts',
-  path: '/service/parts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServiceJobsRoute = ServiceJobsRouteImport.update({
-  id: '/service/jobs',
-  path: '/service/jobs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServiceFinanceRoute = ServiceFinanceRouteImport.update({
-  id: '/service/finance',
-  path: '/service/finance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServiceCustomersRoute = ServiceCustomersRouteImport.update({
-  id: '/service/customers',
-  path: '/service/customers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServiceCheckinRoute = ServiceCheckinRouteImport.update({
-  id: '/service/checkin',
-  path: '/service/checkin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServiceAppointmentsRoute = ServiceAppointmentsRouteImport.update({
-  id: '/service/appointments',
-  path: '/service/appointments',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SalesOrdersRoute = SalesOrdersRouteImport.update({
-  id: '/sales/orders',
-  path: '/sales/orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SalesLeadsRoute = SalesLeadsRouteImport.update({
-  id: '/sales/leads',
-  path: '/sales/leads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SalesInventoryRoute = SalesInventoryRouteImport.update({
-  id: '/sales/inventory',
-  path: '/sales/inventory',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Landing5Route = Landing5RouteImport.update({
-  id: '/landing/5',
-  path: '/landing/5',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Landing4Route = Landing4RouteImport.update({
-  id: '/landing/4',
-  path: '/landing/4',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Landing3Route = Landing3RouteImport.update({
-  id: '/landing/3',
-  path: '/landing/3',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Landing2Route = Landing2RouteImport.update({
-  id: '/landing/2',
-  path: '/landing/2',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Landing1Route = Landing1RouteImport.update({
-  id: '/landing/1',
-  path: '/landing/1',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/auth/reset-password',
-  path: '/auth/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -122,14 +42,89 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServiceJobIdRoute = ServiceJobIdRouteImport.update({
-  id: '/service/job/$id',
-  path: '/service/job/$id',
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServiceCustomerIdRoute = ServiceCustomerIdRouteImport.update({
-  id: '/service/customer/$id',
-  path: '/service/customer/$id',
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing1Route = Landing1RouteImport.update({
+  id: '/landing/1',
+  path: '/landing/1',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing2Route = Landing2RouteImport.update({
+  id: '/landing/2',
+  path: '/landing/2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing3Route = Landing3RouteImport.update({
+  id: '/landing/3',
+  path: '/landing/3',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing4Route = Landing4RouteImport.update({
+  id: '/landing/4',
+  path: '/landing/4',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Landing5Route = Landing5RouteImport.update({
+  id: '/landing/5',
+  path: '/landing/5',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesInventoryRoute = SalesInventoryRouteImport.update({
+  id: '/sales/inventory',
+  path: '/sales/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesLeadsRoute = SalesLeadsRouteImport.update({
+  id: '/sales/leads',
+  path: '/sales/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesOrdersRoute = SalesOrdersRouteImport.update({
+  id: '/sales/orders',
+  path: '/sales/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceAppointmentsRoute = ServiceAppointmentsRouteImport.update({
+  id: '/service/appointments',
+  path: '/service/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceCheckinRoute = ServiceCheckinRouteImport.update({
+  id: '/service/checkin',
+  path: '/service/checkin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceCustomersRoute = ServiceCustomersRouteImport.update({
+  id: '/service/customers',
+  path: '/service/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceFinanceRoute = ServiceFinanceRouteImport.update({
+  id: '/service/finance',
+  path: '/service/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceJobsRoute = ServiceJobsRouteImport.update({
+  id: '/service/jobs',
+  path: '/service/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicePartsRoute = ServicePartsRouteImport.update({
+  id: '/service/parts',
+  path: '/service/parts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesLeadIdRoute = SalesLeadIdRouteImport.update({
+  id: '/sales/lead/$id',
+  path: '/sales/lead/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SalesOrderIdRoute = SalesOrderIdRouteImport.update({
@@ -137,9 +132,14 @@ const SalesOrderIdRoute = SalesOrderIdRouteImport.update({
   path: '/sales/order/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SalesLeadIdRoute = SalesLeadIdRouteImport.update({
-  id: '/sales/lead/$id',
-  path: '/sales/lead/$id',
+const ServiceCustomerIdRoute = ServiceCustomerIdRouteImport.update({
+  id: '/service/customer/$id',
+  path: '/service/customer/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceJobIdRoute = ServiceJobIdRouteImport.update({
+  id: '/service/job/$id',
+  path: '/service/job/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -325,109 +325,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/service/parts': {
-      id: '/service/parts'
-      path: '/service/parts'
-      fullPath: '/service/parts'
-      preLoaderRoute: typeof ServicePartsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/service/jobs': {
-      id: '/service/jobs'
-      path: '/service/jobs'
-      fullPath: '/service/jobs'
-      preLoaderRoute: typeof ServiceJobsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/service/finance': {
-      id: '/service/finance'
-      path: '/service/finance'
-      fullPath: '/service/finance'
-      preLoaderRoute: typeof ServiceFinanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/service/customers': {
-      id: '/service/customers'
-      path: '/service/customers'
-      fullPath: '/service/customers'
-      preLoaderRoute: typeof ServiceCustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/service/checkin': {
-      id: '/service/checkin'
-      path: '/service/checkin'
-      fullPath: '/service/checkin'
-      preLoaderRoute: typeof ServiceCheckinRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/service/appointments': {
-      id: '/service/appointments'
-      path: '/service/appointments'
-      fullPath: '/service/appointments'
-      preLoaderRoute: typeof ServiceAppointmentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sales/orders': {
-      id: '/sales/orders'
-      path: '/sales/orders'
-      fullPath: '/sales/orders'
-      preLoaderRoute: typeof SalesOrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sales/leads': {
-      id: '/sales/leads'
-      path: '/sales/leads'
-      fullPath: '/sales/leads'
-      preLoaderRoute: typeof SalesLeadsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sales/inventory': {
-      id: '/sales/inventory'
-      path: '/sales/inventory'
-      fullPath: '/sales/inventory'
-      preLoaderRoute: typeof SalesInventoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing/5': {
-      id: '/landing/5'
-      path: '/landing/5'
-      fullPath: '/landing/5'
-      preLoaderRoute: typeof Landing5RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing/4': {
-      id: '/landing/4'
-      path: '/landing/4'
-      fullPath: '/landing/4'
-      preLoaderRoute: typeof Landing4RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing/3': {
-      id: '/landing/3'
-      path: '/landing/3'
-      fullPath: '/landing/3'
-      preLoaderRoute: typeof Landing3RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing/2': {
-      id: '/landing/2'
-      path: '/landing/2'
-      fullPath: '/landing/2'
-      preLoaderRoute: typeof Landing2RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landing/1': {
-      id: '/landing/1'
-      path: '/landing/1'
-      fullPath: '/landing/1'
-      preLoaderRoute: typeof Landing1RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/auth/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login': {
@@ -437,25 +339,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/admin/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/service/job/$id': {
-      id: '/service/job/$id'
-      path: '/service/job/$id'
-      fullPath: '/service/job/$id'
-      preLoaderRoute: typeof ServiceJobIdRouteImport
+    '/landing/1': {
+      id: '/landing/1'
+      path: '/landing/1'
+      fullPath: '/landing/1'
+      preLoaderRoute: typeof Landing1RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/service/customer/$id': {
-      id: '/service/customer/$id'
-      path: '/service/customer/$id'
-      fullPath: '/service/customer/$id'
-      preLoaderRoute: typeof ServiceCustomerIdRouteImport
+    '/landing/2': {
+      id: '/landing/2'
+      path: '/landing/2'
+      fullPath: '/landing/2'
+      preLoaderRoute: typeof Landing2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing/3': {
+      id: '/landing/3'
+      path: '/landing/3'
+      fullPath: '/landing/3'
+      preLoaderRoute: typeof Landing3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing/4': {
+      id: '/landing/4'
+      path: '/landing/4'
+      fullPath: '/landing/4'
+      preLoaderRoute: typeof Landing4RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing/5': {
+      id: '/landing/5'
+      path: '/landing/5'
+      fullPath: '/landing/5'
+      preLoaderRoute: typeof Landing5RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/inventory': {
+      id: '/sales/inventory'
+      path: '/sales/inventory'
+      fullPath: '/sales/inventory'
+      preLoaderRoute: typeof SalesInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/leads': {
+      id: '/sales/leads'
+      path: '/sales/leads'
+      fullPath: '/sales/leads'
+      preLoaderRoute: typeof SalesLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/orders': {
+      id: '/sales/orders'
+      path: '/sales/orders'
+      fullPath: '/sales/orders'
+      preLoaderRoute: typeof SalesOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/appointments': {
+      id: '/service/appointments'
+      path: '/service/appointments'
+      fullPath: '/service/appointments'
+      preLoaderRoute: typeof ServiceAppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/checkin': {
+      id: '/service/checkin'
+      path: '/service/checkin'
+      fullPath: '/service/checkin'
+      preLoaderRoute: typeof ServiceCheckinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/customers': {
+      id: '/service/customers'
+      path: '/service/customers'
+      fullPath: '/service/customers'
+      preLoaderRoute: typeof ServiceCustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/finance': {
+      id: '/service/finance'
+      path: '/service/finance'
+      fullPath: '/service/finance'
+      preLoaderRoute: typeof ServiceFinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/jobs': {
+      id: '/service/jobs'
+      path: '/service/jobs'
+      fullPath: '/service/jobs'
+      preLoaderRoute: typeof ServiceJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/parts': {
+      id: '/service/parts'
+      path: '/service/parts'
+      fullPath: '/service/parts'
+      preLoaderRoute: typeof ServicePartsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales/lead/$id': {
+      id: '/sales/lead/$id'
+      path: '/sales/lead/$id'
+      fullPath: '/sales/lead/$id'
+      preLoaderRoute: typeof SalesLeadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sales/order/$id': {
@@ -465,11 +458,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sales/lead/$id': {
-      id: '/sales/lead/$id'
-      path: '/sales/lead/$id'
-      fullPath: '/sales/lead/$id'
-      preLoaderRoute: typeof SalesLeadIdRouteImport
+    '/service/customer/$id': {
+      id: '/service/customer/$id'
+      path: '/service/customer/$id'
+      fullPath: '/service/customer/$id'
+      preLoaderRoute: typeof ServiceCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/job/$id': {
+      id: '/service/job/$id'
+      path: '/service/job/$id'
+      fullPath: '/service/job/$id'
+      preLoaderRoute: typeof ServiceJobIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

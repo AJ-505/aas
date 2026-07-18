@@ -1,7 +1,5 @@
 {
   "framework": "tanstack-start",
-  "buildCommand": "pnpm run build",
-  "devCommand": "pnpm run dev",
-  "installCommand": "pnpm install",
+  "buildCommand": "pnpm exec convex deploy --cmd 'pnpm run build'",
   "outputDirectory": ".output"
 }

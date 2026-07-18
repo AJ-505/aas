@@ -6,7 +6,6 @@ dist
 .env.*.local
 
 # Convex
-convex/_generated*
 .convex/
 
 # Playwright
@@ -19,3 +18,4 @@ playwright/.cache
 *.log
 .vscode/*
 !.vscode/extensions.json
+.vercel
