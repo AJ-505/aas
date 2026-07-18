@@ -148,6 +148,74 @@ export function useRemoveLabourTypeMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.labourTypes.remove) })
 }
 
+// ---- Appointments ----
+export const appointmentQueries = {
+  list: (date?: number) => convexQuery(api.appointments.list, { date }),
+  upcoming: () => convexQuery(api.appointments.upcoming, {}),
+  get: (appointmentId: string) => convexQuery(api.appointments.get, { appointmentId: appointmentId as Id<'appointments'> }),
+}
+
+// ---- Sales module ----
+export const leadQueries = {
+  list: () => convexQuery(api.leads.list, {}),
+  search: (q: string) => convexQuery(api.leads.search, { q }),
+  get: (leadId: string) => convexQuery(api.leads.get, { leadId: leadId as Id<'leads'> }),
+}
+
+export const salesOrderQueries = {
+  list: () => convexQuery(api.salesOrders.list, {}),
+  get: (salesOrderId: string) => convexQuery(api.salesOrders.get, { salesOrderId: salesOrderId as Id<'salesOrders'> }),
+  byVehicle: (vehicleId: string) => convexQuery(api.salesOrders.byVehicle, { vehicleId: vehicleId as Id<'vehicles'> }),
+  byLead: (leadId: string) => convexQuery(api.salesOrders.byLead, { leadId: leadId as Id<'leads'> }),
+}
+
+export const deliveryQueries = {
+  get: (deliveryId: string) => convexQuery(api.deliveries.get, { deliveryId: deliveryId as Id<'deliveries'> }),
+  getBySalesOrder: (salesOrderId: string) => convexQuery(api.deliveries.getBySalesOrder, { salesOrderId: salesOrderId as Id<'salesOrders'> }),
+}
+
+// Appointment mutations
+export function useCreateAppointmentMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.appointments.create) })
+}
+
+export function useMarkAppointmentCheckedInMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.appointments.markCheckedIn) })
+}
+
+export function useCancelAppointmentMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.appointments.cancel) })
+}
+
+// Sales mutations
+export function useCreateLeadMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.leads.create) })
+}
+
+export function useUpdateLeadStageMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.leads.updateStage) })
+}
+
+export function useLogFollowUpMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.leads.logFollowUp) })
+}
+
+export function useCreateSalesOrderMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.salesOrders.create) })
+}
+
+export function useCompleteSalesOrderMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.salesOrders.complete) })
+}
+
+export function useCancelSalesOrderMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.salesOrders.cancel) })
+}
+
+export function useCompleteDeliveryMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.deliveries.complete) })
+}
+
 // Parts mutations
 export function useCreatePartMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.parts.createPart) })

@@ -193,6 +193,22 @@ export const IconBox = (p: IconProps) => (
   </Svg>
 )
 
+export const IconCalendar = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </Svg>
+)
+
+export const IconTrendingUp = (p: IconProps) => (
+  <Svg {...p}>
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </Svg>
+)
+
 export const IconSun = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="4" />

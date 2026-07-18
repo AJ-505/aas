@@ -12,6 +12,8 @@ import {
   IconBanknote,
   IconBell,
   IconBox,
+  IconCalendar,
+  IconCar,
   IconChevronRight,
   IconGrid,
   IconLogOut,
@@ -20,6 +22,7 @@ import {
   IconSearch,
   IconSliders,
   IconSun,
+  IconTrendingUp,
   IconUsers,
   IconWrench,
 } from '~/components/icons'
@@ -40,8 +43,15 @@ const ALL_STAFF: Role[] = [...ROLES]
 
 const NAV_GENERAL: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: IconGrid, roles: ALL_STAFF, match: ['/'] },
+  { label: 'Appointments', to: '/service/appointments', icon: IconCalendar, roles: ['csr', 'manager', 'admin'], match: ['/service/appointments'] },
   { label: 'Customers', to: '/service/customers', icon: IconUsers, roles: ALL_STAFF, match: ['/service/customer'] },
   { label: 'Jobs', to: '/service/jobs', icon: IconWrench, roles: ALL_STAFF, match: ['/service/job', '/service/checkin'] },
+]
+
+const NAV_SALES: NavItem[] = [
+  { label: 'Inventory', to: '/sales/inventory', icon: IconCar, roles: ['salesRep', 'manager', 'admin'], match: ['/sales/inventory'] },
+  { label: 'Leads', to: '/sales/leads', icon: IconTrendingUp, roles: ['salesRep', 'manager', 'admin'], match: ['/sales/lead'] },
+  { label: 'Orders', to: '/sales/orders', icon: IconBanknote, roles: ['salesRep', 'manager', 'admin'], match: ['/sales/order'] },
 ]
 
 const NAV_OPS: NavItem[] = [
@@ -68,8 +78,14 @@ function breadcrumb(pathname: string): string[] {
   if (pathname.startsWith('/service/jobs')) return ['Workshop', 'Jobs']
   if (pathname.startsWith('/service/job/')) return ['Workshop', 'Jobs', `#${pathname.split('/').pop()?.slice(-6)}`]
   if (pathname.startsWith('/service/checkin')) return ['Workshop', 'Jobs', 'Check in']
+  if (pathname.startsWith('/service/appointments')) return ['Workshop', 'Appointments']
   if (pathname.startsWith('/service/finance')) return ['Operations', 'Finance']
   if (pathname.startsWith('/service/parts')) return ['Operations', 'Parts Catalogue']
+  if (pathname.startsWith('/sales/inventory')) return ['Sales', 'Inventory']
+  if (pathname.startsWith('/sales/leads')) return ['Sales', 'Leads']
+  if (pathname.startsWith('/sales/lead/')) return ['Sales', 'Leads', 'Detail']
+  if (pathname.startsWith('/sales/orders')) return ['Sales', 'Orders']
+  if (pathname.startsWith('/sales/order/')) return ['Sales', 'Orders', 'Detail']
   if (pathname.startsWith('/admin/users')) return ['Operations', 'User Management']
   return ['Workshop']
 }
@@ -186,6 +202,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           role={role}
           pathname={pathname}
           openJobsCount={openJobsCount}
+          />
+          <NavSection
+          label="Sales"
+          items={NAV_SALES}
+          role={role}
+          pathname={pathname}
+          openJobsCount={undefined}
           />
           <NavSection
           label="Operations"

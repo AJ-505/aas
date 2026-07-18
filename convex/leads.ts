@@ -9,6 +9,14 @@ import {
   logFollowUpSchema,
 } from '../src/lib/schemas'
 
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireUser(ctx)
+    return await ctx.db.query('leads').order('desc').take(100)
+  },
+})
+
 export const search = query({
   args: { q: v.string() },
   handler: async (ctx, args) => {

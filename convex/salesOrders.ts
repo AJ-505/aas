@@ -21,6 +21,28 @@ export const list = query({
   },
 })
 
+export const byVehicle = query({
+  args: { vehicleId: v.id('vehicles') },
+  handler: async (ctx, args) => {
+    await requireUser(ctx)
+    return await ctx.db
+      .query('salesOrders')
+      .withIndex('vehicleId', (q) => q.eq('vehicleId', args.vehicleId))
+      .first()
+  },
+})
+
+export const byLead = query({
+  args: { leadId: v.id('leads') },
+  handler: async (ctx, args) => {
+    await requireUser(ctx)
+    return await ctx.db
+      .query('salesOrders')
+      .withIndex('leadId', (q) => q.eq('leadId', args.leadId))
+      .first()
+  },
+})
+
 export const create = mutation({
   args: {
     vehicleId: v.id('vehicles'),

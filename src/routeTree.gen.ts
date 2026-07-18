@@ -15,6 +15,7 @@ import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
 import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
 import { Route as ServiceCustomersRouteImport } from './routes/service/customers'
 import { Route as ServiceCheckinRouteImport } from './routes/service/checkin'
+import { Route as ServiceAppointmentsRouteImport } from './routes/service/appointments'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as ServiceJobIdRouteImport } from './routes/service/job.$id'
@@ -50,6 +51,11 @@ const ServiceCheckinRoute = ServiceCheckinRouteImport.update({
   path: '/service/checkin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServiceAppointmentsRoute = ServiceAppointmentsRouteImport.update({
+  id: '/service/appointments',
+  path: '/service/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/login': typeof AuthLoginRoute
+  '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/service/appointments'
     | '/service/checkin'
     | '/service/customers'
     | '/service/finance'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/service/appointments'
     | '/service/checkin'
     | '/service/customers'
     | '/service/finance'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/users'
     | '/auth/login'
+    | '/service/appointments'
     | '/service/checkin'
     | '/service/customers'
     | '/service/finance'
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AuthLoginRoute: typeof AuthLoginRoute
+  ServiceAppointmentsRoute: typeof ServiceAppointmentsRoute
   ServiceCheckinRoute: typeof ServiceCheckinRoute
   ServiceCustomersRoute: typeof ServiceCustomersRoute
   ServiceFinanceRoute: typeof ServiceFinanceRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServiceCheckinRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/service/appointments': {
+      id: '/service/appointments'
+      path: '/service/appointments'
+      fullPath: '/service/appointments'
+      preLoaderRoute: typeof ServiceAppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -239,6 +259,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminUsersRoute: AdminUsersRoute,
   AuthLoginRoute: AuthLoginRoute,
+  ServiceAppointmentsRoute: ServiceAppointmentsRoute,
   ServiceCheckinRoute: ServiceCheckinRoute,
   ServiceCustomersRoute: ServiceCustomersRoute,
   ServiceFinanceRoute: ServiceFinanceRoute,

@@ -42,6 +42,23 @@ export default defineSchema({
     active: v.optional(v.boolean()),
   }).index('email', ['email']),
 
+  appointments: defineTable({
+    name: v.string(),
+    phone: v.string(),
+    email: v.optional(v.string()),
+    vehicleMake: v.optional(v.string()),
+    vehicleModel: v.optional(v.string()),
+    vehiclePlate: v.optional(v.string()),
+    complaint: v.optional(v.string()),
+    appointmentTs: v.number(),
+    status: v.union(v.literal('scheduled'), v.literal('checkedIn'), v.literal('cancelled')),
+    createdById: v.id('users'),
+    checkInJobId: v.optional(v.id('jobs')),
+  })
+    .index('appointmentTs', ['appointmentTs'])
+    .index('status', ['status'])
+    .index('phone', ['phone']),
+
   // ---- Service module ----
   customers: defineTable({
     name: v.string(),
