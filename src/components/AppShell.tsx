@@ -446,6 +446,8 @@ function PendingRoleAssignment({
   userId: string
   userName: string | null
 }) {
+  const { signOut } = useAuthActions()
+  const router = useRouter()
   const queryClient = useQueryClient()
   const { data: adminExists } = useQuery(userQueries.adminExists())
   const bootstrap = useBootstrapFirstAdminMutation()
@@ -484,6 +486,19 @@ function PendingRoleAssignment({
               </Button>
             </div>
           )}
+          <div className="pt-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                await signOut()
+                await queryClient.invalidateQueries()
+                void router.navigate({ to: '/auth/login' })
+              }}
+            >
+              Sign out
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
