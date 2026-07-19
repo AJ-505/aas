@@ -72,13 +72,13 @@ Optional overrides:
 ## Seeding Demo Data
 
 ```bash
+pnpm exec convex run seed:seed
 pnpm exec convex run seedAdvanced
-pnpm exec convex run seedAccounts
 ```
 
 ## Test Accounts
 
-After `seedAccounts` (all password `password123`):
+After `seed:seed` (all password `password123`):
 
 | Role | Email | Permissions |
 |------|-------|-------------|

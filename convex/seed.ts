@@ -1,9 +1,20 @@
-import { mutation } from './_generated/server'
+import { action, mutation, query } from './_generated/server'
+import { createAccount } from '@convex-dev/auth/server'
 import type { Id } from './_generated/dataModel'
 
 function kobo(naira: number) {
   return Math.round(naira * 100)
 }
+
+const ACCOUNTS = [
+  { name: 'Cedric Masters', email: 'cedric@cedricmastersautos.com', role: 'admin' as const },
+  { name: 'Amara Obi', email: 'amara@cedricmastersautos.com', role: 'csr' as const },
+  { name: 'Tunde Bakare', email: 'tunde@cedricmastersautos.com', role: 'technician' as const },
+  { name: 'Kunle Davies', email: 'kunle@cedricmastersautos.com', role: 'manager' as const },
+  { name: 'Yetunde Salami', email: 'yetunde@cedricmastersautos.com', role: 'inventoryManager' as const },
+  { name: 'Funmi Akinlade', email: 'funmi@cedricmastersautos.com', role: 'finance' as const },
+  { name: 'Emeka Okafor', email: 'emeka@cedricmastersautos.com', role: 'salesRep' as const },
+]
 
 const PARTS = [
   { code: 'OIL-001', description: 'Engine Oil (5W-30) - 4L', costPrice: kobo(12000), sellingPrice: kobo(18000), stockQty: 20, reorderLevel: 5 },
@@ -128,7 +139,7 @@ const JOBS = [
   },
 ]
 
-export const seed = mutation({
+export const seedData = mutation({
   args: {},
   handler: async (ctx) => {
     const results: string[] = []
@@ -140,49 +151,6 @@ export const seed = mutation({
       results.push('settings: VAT rate set to 7.5%')
     } else {
       results.push('settings: already exists (skipped)')
-    }
-
-    // --- Users ---
-    const existingUsers = await ctx.db.query('users').collect()
-    let adminId: Id<'users'> | undefined
-    let csrId: Id<'users'> | undefined
-    let techId: Id<'users'> | undefined
-
-    const adminUser = existingUsers.find((u) => u.role === 'admin')
-    const csrUser = existingUsers.find((u) => u.role === 'csr')
-    const techUser = existingUsers.find((u) => u.role === 'technician')
-
-    if (adminUser) {
-      adminId = adminUser._id
-      csrId = csrUser?._id
-      techId = techUser?._id
-      results.push('users: already exist (skipped)')
-    } else {
-      adminId = await ctx.db.insert('users', {
-        name: 'Cedric Masters',
-        email: 'cedric@cedricmastersautos.com',
-        role: 'admin',
-        active: true,
-      })
-      csrId = await ctx.db.insert('users', {
-        name: 'Amara Obi',
-        email: 'amara@cedricmastersautos.com',
-        role: 'csr',
-        active: true,
-      })
-      techId = await ctx.db.insert('users', {
-        name: 'Tunde Bakare',
-        email: 'tunde@cedricmastersautos.com',
-        role: 'technician',
-        active: true,
-      })
-      await ctx.db.insert('users', {
-        name: 'Chidi Eze',
-        email: 'chidi@cedricmastersautos.com',
-        role: 'inventoryManager',
-        active: true,
-      })
-      results.push('users: created 4 staff accounts')
     }
 
     // --- Parts ---
@@ -250,49 +218,93 @@ export const seed = mutation({
 
     // --- Jobs ---
     const existingJobs = await ctx.db.query('jobs').first()
-    if (!existingJobs && csrId && techId && customerIds.length > 0 && vehicleIds.length > 0) {
-      const now = Date.now()
-      for (const job of JOBS) {
-        const customer = customerIds[job.customerIdx]
-        const vehicle = vehicleIds[job.vehicleIdx]
-        if (!customer || !vehicle) continue
+    if (!existingJobs && customerIds.length > 0 && vehicleIds.length > 0) {
+      const csr = await ctx.db.query('users').withIndex('email', (q) => q.eq('email', 'amara@cedricmastersautos.com')).first()
+      const tech = await ctx.db.query('users').withIndex('email', (q) => q.eq('email', 'tunde@cedricmastersautos.com')).first()
 
-        const checkInTs = now - job.offsetMinutes.checkIn * 60 * 1000
-        const assignedTs = job.offsetMinutes.assigned
-          ? now - job.offsetMinutes.assigned * 60 * 1000
-          : undefined
-        const diagnosedTs = job.offsetMinutes.diagnosed
-          ? now - job.offsetMinutes.diagnosed * 60 * 1000
-          : undefined
-        const inProgressTs = job.offsetMinutes.inProgress
-          ? now - job.offsetMinutes.inProgress * 60 * 1000
-          : undefined
-        const readyForPickupTs = job.offsetMinutes.readyForPickup
-          ? now - job.offsetMinutes.readyForPickup * 60 * 1000
-          : undefined
+      if (csr && tech) {
+        const now = Date.now()
+        for (const job of JOBS) {
+          const customer = customerIds[job.customerIdx]
+          const vehicle = vehicleIds[job.vehicleIdx]
+          if (!customer || !vehicle) continue
 
-        await ctx.db.insert('jobs', {
-          vehicleId: vehicle,
-          customerId: customer,
-          csrId,
-          technicianId: ['diagnosed', 'inProgress', 'readyForPickup'].includes(job.status)
-            ? techId
-            : undefined,
-          status: job.status,
-          complaint: job.complaint,
-          checkInTs,
-          assignedTs,
-          diagnosedTs,
-          inProgressTs,
-          readyForPickupTs,
-        })
+          const checkInTs = now - job.offsetMinutes.checkIn * 60 * 1000
+          const assignedTs = job.offsetMinutes.assigned
+            ? now - job.offsetMinutes.assigned * 60 * 1000
+            : undefined
+          const diagnosedTs = job.offsetMinutes.diagnosed
+            ? now - job.offsetMinutes.diagnosed * 60 * 1000
+            : undefined
+          const inProgressTs = job.offsetMinutes.inProgress
+            ? now - job.offsetMinutes.inProgress * 60 * 1000
+            : undefined
+          const readyForPickupTs = job.offsetMinutes.readyForPickup
+            ? now - job.offsetMinutes.readyForPickup * 60 * 1000
+            : undefined
+
+          await ctx.db.insert('jobs', {
+            vehicleId: vehicle,
+            customerId: customer,
+            csrId: csr._id,
+            technicianId: ['diagnosed', 'inProgress', 'readyForPickup'].includes(job.status)
+              ? tech._id
+              : undefined,
+            status: job.status,
+            complaint: job.complaint,
+            checkInTs,
+            assignedTs,
+            diagnosedTs,
+            inProgressTs,
+            readyForPickupTs,
+          })
+        }
+        results.push(`jobs: inserted ${JOBS.length} jobs with various statuses`)
+      } else {
+        results.push('jobs: skipped (CSR or technician not found — run seed action first)')
       }
-      results.push(`jobs: inserted ${JOBS.length} jobs with various statuses`)
     } else if (existingJobs) {
       results.push('jobs: already exist (skipped)')
     }
 
-    // --- Summary ---
     return results
+  },
+})
+
+export const seed = action({
+  args: {},
+  handler: async (ctx) => {
+    const results: string[] = []
+
+    // --- Accounts (users + authAccounts) ---
+    const existingUsers = await ctx.runQuery('seed:checkEmails' as any, {})
+    const existingEmails = new Set(existingUsers as string[])
+
+    for (const acc of ACCOUNTS) {
+      if (existingEmails.has(acc.email)) {
+        results.push(`account: ${acc.email} already exists (skipped)`)
+        continue
+      }
+      await createAccount(ctx, {
+        provider: 'password',
+        account: { id: acc.email, secret: 'password123' },
+        profile: { name: acc.name, email: acc.email, role: acc.role, active: true },
+      })
+      results.push(`account: created ${acc.email} (${acc.role})`)
+    }
+
+    // --- Seed remaining data ---
+    const dataResults = await ctx.runMutation('seed:seedData' as any, {})
+    results.push(...dataResults)
+
+    return results
+  },
+})
+
+export const checkEmails = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect()
+    return users.map((u) => u.email)
   },
 })

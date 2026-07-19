@@ -203,7 +203,7 @@
 |------|--------|-------|
 | Range view (Today/Week/Month) | [x] | Replaced single-day nav with presets + day-grouped list |
 | listRange backend query | [x] | convex/appointments.ts with startDate/endDate + status filter |
-| All 7 roles seeded | [x] | convex/seedAccounts.ts. Password: password123 |
+| All 7 roles seeded | [x] | convex/seed.ts (seed action). Password: password123 |
 
 ## Future (Post-MVP)
 

@@ -24,7 +24,6 @@ import type * as partsRequests from "../partsRequests.js";
 import type * as payments from "../payments.js";
 import type * as salesOrders from "../salesOrders.js";
 import type * as seed from "../seed.js";
-import type * as seedAccounts from "../seedAccounts.js";
 import type * as seedAdvanced from "../seedAdvanced.js";
 import type * as settings from "../settings.js";
 import type * as users from "../users.js";
@@ -53,7 +52,6 @@ declare const fullApi: ApiFromModules<{
   payments: typeof payments;
   salesOrders: typeof salesOrders;
   seed: typeof seed;
-  seedAccounts: typeof seedAccounts;
   seedAdvanced: typeof seedAdvanced;
   settings: typeof settings;
   users: typeof users;
