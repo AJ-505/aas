@@ -234,7 +234,7 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Comprehensive User Manual | [x] | Created role-based user manual with UI mockups & state diagrams (`user_manual.md`) |
+| Comprehensive User Manual | [x] | Updated role-based multi-page user manual with live screenshots, RBAC rules, print features & inventory-invoice auto-sync (`user_manual.md`) |
 
 ## Future (Post-MVP)
 
