@@ -7,6 +7,7 @@ function kobo(naira: number) {
 }
 
 const ACCOUNTS = [
+  { name: 'Test Admin', email: 'test@t.com', role: 'admin' as const, password: 'password' },
   { name: 'Cedric Masters', email: 'cedric@cedricmastersautos.com', role: 'admin' as const },
   { name: 'Amara Obi', email: 'amara@cedricmastersautos.com', role: 'csr' as const },
   { name: 'Tunde Bakare', email: 'tunde@cedricmastersautos.com', role: 'technician' as const },
@@ -287,7 +288,7 @@ export const seed = action({
       }
       await createAccount(ctx, {
         provider: 'password',
-        account: { id: acc.email, secret: 'password123' },
+        account: { id: acc.email, secret: (acc as any).password ?? 'password123' },
         profile: { name: acc.name, email: acc.email, role: acc.role, active: true },
       })
       results.push(`account: created ${acc.email} (${acc.role})`)

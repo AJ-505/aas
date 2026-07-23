@@ -221,3 +221,18 @@ export const IconMoon = (p: IconProps) => (
     <path d="M21 12.8A9 9 0 1 1 11.2 3a7.2 7.2 0 0 0 9.8 9.8z" />
   </Svg>
 )
+
+export const IconPencil = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+  </Svg>
+)
+
+export const IconRefresh = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M23 4v6h-6" />
+    <path d="M1 20v-6h6" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </Svg>
+)
+

@@ -46,22 +46,24 @@
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 3.1 | Vehicle inventory (CRUD) | [x] | convex/vehicles.ts + vehicleQueries |
+| 3.1 | Vehicle inventory (CRUD) | [x] | convex/vehicles.ts + stockQty & reorderLevel tracking |
 | 3.1 | Vehicle status tracking | [x] | inStock/reserved/sold/customerOwned |
-| 3.1 | Sales inventory UI | [x] | /sales/inventory route with status badges |
+| 3.1 | Sales inventory UI | [x] | /sales/inventory route with Stock Qty, Reorder Level columns, Stock adjustment modal & low stock alerts |
+
 | 3.2 | Customer leads (CRUD) | [x] | convex/leads.ts |
 | 3.2 | Lead stages (New→Contacted→Qualified→Won/Lost) | [x] | updateStage mutation + UI stage buttons |
 | 3.2 | Follow-up notes & reminders | [x] | logFollowUp mutation + notes timeline |
 | 3.2 | Leads UI (list + create) | [x] | /sales/leads route with search + create |
-| 3.2 | Lead detail UI (stage + follow-ups) | [x] | /sales/lead/$id with stage change + notes |
-| 3.3 | Sales orders (create, complete, cancel) | [x] | convex/salesOrders.ts |
+| 3.2 | Lead detail UI (stage + follow-ups) | [x] | /sales/lead/$id with stage change, notes + Create Sales Order action |
+| 3.3 | Sales orders (create, complete, cancel, addPayment) | [x] | convex/salesOrders.ts |
 | 3.3 | Auto-reserve vehicle | [x] | salesOrders.create sets vehicle→reserved |
-| 3.3 | Balance tracking | [x] | Schema has balance field |
-| 3.3 | Sales orders UI | [x] | /sales/orders + /sales/order/$id |
+| 3.3 | Balance & deposit payment tracking | [x] | addPayment mutation + Record Payment modal |
+| 3.3 | Sales orders UI | [x] | /sales/orders with New Order modal + /sales/order/$id with Record Payment |
 | 3.4 | Delivery handover checklist | [x] | convex/deliveries.ts |
 | 3.4 | Delivery UI | [x] | Delivery form in order detail + checklist |
 | 3.5 | Trade-in management | [-] | Post-MVP |
 | 3.6 | Commission tracking | [-] | Post-MVP |
+
 
 ### Administration
 
@@ -204,6 +206,12 @@
 | Range view (Today/Week/Month) | [x] | Replaced single-day nav with presets + day-grouped list |
 | listRange backend query | [x] | convex/appointments.ts with startDate/endDate + status filter |
 | All 7 roles seeded | [x] | convex/seed.ts (seed action). Password: password123 |
+
+## Documentation & Enablement
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Comprehensive User Manual | [x] | Created role-based user manual with UI mockups & state diagrams (`user_manual.md`) |
 
 ## Future (Post-MVP)
 

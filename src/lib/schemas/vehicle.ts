@@ -16,7 +16,10 @@ export const createVehicleSchema = z.object({
   cost: moneyKobo.optional(),
   sellingPrice: moneyKobo.optional(),
   status: vehicleStatusSchema.default('customerOwned'),
+  stockQty: z.number().int().min(0).optional(),
+  reorderLevel: z.number().int().min(0).optional(),
 })
+
 
 export const updateVehicleSchema = createVehicleSchema.partial()
 

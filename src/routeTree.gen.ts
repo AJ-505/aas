@@ -27,6 +27,7 @@ import { Route as ServiceCustomersRouteImport } from './routes/service/customers
 import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
 import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
 import { Route as ServicePartsRouteImport } from './routes/service/parts'
+import { Route as ServiceVehiclesRouteImport } from './routes/service/vehicles'
 import { Route as SalesLeadIdRouteImport } from './routes/sales/lead.$id'
 import { Route as SalesOrderIdRouteImport } from './routes/sales/order.$id'
 import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer.$id'
@@ -122,6 +123,11 @@ const ServicePartsRoute = ServicePartsRouteImport.update({
   path: '/service/parts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServiceVehiclesRoute = ServiceVehiclesRouteImport.update({
+  id: '/service/vehicles',
+  path: '/service/vehicles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalesLeadIdRoute = SalesLeadIdRouteImport.update({
   id: '/sales/lead/$id',
   path: '/sales/lead/$id',
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
+  '/service/vehicles': typeof ServiceVehiclesRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
+  '/service/vehicles': typeof ServiceVehiclesRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
@@ -211,6 +219,7 @@ export interface FileRoutesById {
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
+  '/service/vehicles': typeof ServiceVehiclesRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
+    | '/service/vehicles'
     | '/sales/lead/$id'
     | '/sales/order/$id'
     | '/service/customer/$id'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
+    | '/service/vehicles'
     | '/sales/lead/$id'
     | '/sales/order/$id'
     | '/service/customer/$id'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
+    | '/service/vehicles'
     | '/sales/lead/$id'
     | '/sales/order/$id'
     | '/service/customer/$id'
@@ -310,6 +322,7 @@ export interface RootRouteChildren {
   ServiceFinanceRoute: typeof ServiceFinanceRoute
   ServiceJobsRoute: typeof ServiceJobsRoute
   ServicePartsRoute: typeof ServicePartsRoute
+  ServiceVehiclesRoute: typeof ServiceVehiclesRoute
   SalesLeadIdRoute: typeof SalesLeadIdRoute
   SalesOrderIdRoute: typeof SalesOrderIdRoute
   ServiceCustomerIdRoute: typeof ServiceCustomerIdRoute
@@ -444,6 +457,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicePartsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/service/vehicles': {
+      id: '/service/vehicles'
+      path: '/service/vehicles'
+      fullPath: '/service/vehicles'
+      preLoaderRoute: typeof ServiceVehiclesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sales/lead/$id': {
       id: '/sales/lead/$id'
       path: '/sales/lead/$id'
@@ -494,6 +514,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServiceFinanceRoute: ServiceFinanceRoute,
   ServiceJobsRoute: ServiceJobsRoute,
   ServicePartsRoute: ServicePartsRoute,
+  ServiceVehiclesRoute: ServiceVehiclesRoute,
   SalesLeadIdRoute: SalesLeadIdRoute,
   SalesOrderIdRoute: SalesOrderIdRoute,
   ServiceCustomerIdRoute: ServiceCustomerIdRoute,

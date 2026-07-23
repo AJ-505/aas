@@ -81,7 +81,10 @@ export default defineSchema({
     cost: v.optional(v.number()),
     sellingPrice: v.optional(v.number()),
     status: vehicleStatusValidator,
+    stockQty: v.optional(v.number()),
+    reorderLevel: v.optional(v.number()),
   })
+
     .index('status', ['status'])
     .index('owner', ['ownerId'])
     .index('by_plate', ['plate'])
@@ -217,9 +220,18 @@ export default defineSchema({
     balance: v.number(),
     reservedTs: v.number(),
     status: salesOrderStatusValidator,
+    payments: v.optional(
+      v.array(
+        v.object({
+          amount: v.number(),
+          ts: v.number(),
+        }),
+      ),
+    ),
   })
     .index('vehicleId', ['vehicleId'])
     .index('leadId', ['leadId']),
+
 
   deliveries: defineTable({
     salesOrderId: v.id('salesOrders'),

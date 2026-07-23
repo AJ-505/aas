@@ -70,6 +70,8 @@ export const create = mutation({
     cost: v.optional(v.number()),
     sellingPrice: v.optional(v.number()),
     status: v.optional(v.string()),
+    stockQty: v.optional(v.number()),
+    reorderLevel: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireRole(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
@@ -96,9 +98,40 @@ export const create = mutation({
       cost: parsed.cost,
       sellingPrice: parsed.sellingPrice,
       status: parsed.status,
+      stockQty: parsed.stockQty ?? (parsed.status === 'inStock' ? 1 : 0),
+      reorderLevel: parsed.reorderLevel ?? 0,
     })
     await audit(ctx, 'vehicle.create', 'vehicles', id)
     return id
+  },
+})
+
+export const adjustStock = mutation({
+  args: {
+    vehicleId: v.id('vehicles'),
+    qtyToAdd: v.number(),
+    cost: v.optional(v.number()),
+    sellingPrice: v.optional(v.number()),
+    reorderLevel: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
+    const vehicle = await ctx.db.get(args.vehicleId)
+    if (!vehicle) throw new ConvexError('Vehicle not found.')
+    const currentQty = vehicle.stockQty ?? 0
+    const newQty = Math.max(0, currentQty + Math.round(args.qtyToAdd))
+    const patch: Record<string, unknown> = {
+      stockQty: newQty,
+    }
+    if (args.cost !== undefined) patch.cost = args.cost
+    if (args.sellingPrice !== undefined) patch.sellingPrice = args.sellingPrice
+    if (args.reorderLevel !== undefined) patch.reorderLevel = args.reorderLevel
+    if (newQty > 0 && vehicle.status !== 'customerOwned') {
+      patch.status = 'inStock'
+    }
+    await ctx.db.patch(args.vehicleId, patch)
+    await audit(ctx, 'vehicle.adjustStock', 'vehicles', args.vehicleId)
+    return newQty
   },
 })
 
@@ -115,6 +148,8 @@ export const update = mutation({
     cost: v.optional(v.number()),
     sellingPrice: v.optional(v.number()),
     status: v.optional(v.string()),
+    stockQty: v.optional(v.number()),
+    reorderLevel: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await requireRole(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
@@ -139,3 +174,4 @@ export const update = mutation({
     return null
   },
 })
+

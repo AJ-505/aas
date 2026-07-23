@@ -9,12 +9,13 @@ import { Textarea } from '~/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
 import { Loader } from '~/components/Loader'
-import { IconChevronRight } from '~/components/icons'
+import { IconChevronRight, IconPlus } from '~/components/icons'
 import {
   leadQueries,
   useUpdateLeadStageMutation,
   useLogFollowUpMutation,
 } from '~/lib/queries'
+import { CreateSalesOrderModal } from '~/routes/sales/orders'
 import type { Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/sales/lead/$id')({
@@ -41,6 +42,7 @@ function LeadDetailPage() {
 
   const [followUpNote, setFollowUpNote] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
+  const [showCreateOrder, setShowCreateOrder] = useState(false)
 
   if (isLoading) return <Loader />
   if (isError) {
@@ -113,13 +115,26 @@ function LeadDetailPage() {
             {lead.phone}{lead.email ? ` \u2022 ${lead.email}` : ''}
           </p>
         </div>
-        <Link
-          to="/sales/leads"
-          className="flex items-center gap-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
-        >
-          <IconChevronRight size={13} className="rotate-180" /> Back to leads
-        </Link>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => setShowCreateOrder(true)} size="sm">
+            <IconPlus size={14} /> Create Sales Order
+          </Button>
+          <Link
+            to="/sales/leads"
+            className="flex items-center gap-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
+          >
+            <IconChevronRight size={13} className="rotate-180" /> Back to leads
+          </Link>
+        </div>
       </div>
+
+      {showCreateOrder && (
+        <CreateSalesOrderModal
+          initialLeadId={id}
+          onDone={() => setShowCreateOrder(false)}
+        />
+      )}
+
 
       {/* Stage management */}
       <Card>

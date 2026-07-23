@@ -59,6 +59,17 @@ export function useCreateVehicleMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.vehicles.create) })
 }
 
+export function useUpdateVehicleMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.vehicles.update) })
+}
+
+export function useAdjustVehicleStockMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.vehicles.adjustStock) })
+}
+
+
+
+
 export function useSetRoleMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.users.setRole) })
 }
@@ -213,6 +224,11 @@ export function useCompleteSalesOrderMutation() {
 export function useCancelSalesOrderMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.salesOrders.cancel) })
 }
+
+export function useAddSalesOrderPaymentMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.salesOrders.addPayment) })
+}
+
 
 export function useCompleteDeliveryMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.deliveries.complete) })
