@@ -319,18 +319,29 @@ function CancelButton({ appointmentId, onDone }: { appointmentId: string; onDone
 
 function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
   const create = useCreateAppointmentMutation()
+  const todayStr = new Date().toLocaleDateString('en-CA')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
     const name = (f.get('name') as string).trim()
     const phone = (f.get('phone') as string).trim()
+    const email = (f.get('email') as string).trim()
+    const vehicleMake = (f.get('vehicleMake') as string).trim()
+    const vehicleModel = (f.get('vehicleModel') as string).trim()
+    const vehiclePlate = (f.get('vehiclePlate') as string).trim()
+    const complaint = (f.get('complaint') as string).trim()
+    const dateStr = f.get('date') as string
+    const timeStr = f.get('time') as string
+
     if (!name || !phone) {
       toast.error('Name and phone are required.')
       return
     }
-    const dateStr = f.get('date') as string
-    const timeStr = f.get('time') as string
+    if (!vehicleMake || !vehicleModel || !vehiclePlate || !complaint) {
+      toast.error('Vehicle details (make, model, plate) and complaint are required.')
+      return
+    }
     if (!dateStr || !timeStr) {
       toast.error('Date and time are required.')
       return
@@ -340,16 +351,20 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
       toast.error('Invalid date or time.')
       return
     }
+    if (appointmentTs < Date.now() - 60_000) {
+      toast.error('Appointment date cannot be in the past.')
+      return
+    }
 
     await create.mutateAsync(
       {
         name,
         phone,
-        email: (f.get('email') as string).trim() || undefined,
-        vehicleMake: (f.get('vehicleMake') as string).trim() || undefined,
-        vehicleModel: (f.get('vehicleModel') as string).trim() || undefined,
-        vehiclePlate: (f.get('vehiclePlate') as string).trim() || undefined,
-        complaint: (f.get('complaint') as string).trim() || undefined,
+        email: email || undefined,
+        vehicleMake,
+        vehicleModel,
+        vehiclePlate,
+        complaint,
         appointmentTs,
       },
       {
@@ -382,27 +397,27 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
           <div className="space-y-2" />
           <div className="space-y-2">
             <Label htmlFor="date">Date *</Label>
-            <Input id="date" name="date" type="date" required />
+            <Input id="date" name="date" type="date" min={todayStr} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="time">Time *</Label>
             <Input id="time" name="time" type="time" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="vehicleMake">Vehicle make</Label>
-            <Input id="vehicleMake" name="vehicleMake" />
+            <Label htmlFor="vehicleMake">Vehicle make *</Label>
+            <Input id="vehicleMake" name="vehicleMake" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="vehicleModel">Vehicle model</Label>
-            <Input id="vehicleModel" name="vehicleModel" />
+            <Label htmlFor="vehicleModel">Vehicle model *</Label>
+            <Input id="vehicleModel" name="vehicleModel" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="vehiclePlate">Plate</Label>
-            <Input id="vehiclePlate" name="vehiclePlate" />
+            <Label htmlFor="vehiclePlate">Plate *</Label>
+            <Input id="vehiclePlate" name="vehiclePlate" required />
           </div>
           <div className="sm:col-span-2 space-y-2">
-            <Label htmlFor="complaint">Complaint</Label>
-            <Textarea id="complaint" name="complaint" rows={2} />
+            <Label htmlFor="complaint">Complaint *</Label>
+            <Textarea id="complaint" name="complaint" rows={2} required />
           </div>
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit" disabled={create.isPending}>

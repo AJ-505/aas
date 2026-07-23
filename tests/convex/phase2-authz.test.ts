@@ -61,4 +61,15 @@ describe.skipIf(!CONVEX_URL)('Phase 2 authorization guards (anonymous)', () => {
       client.mutation('settings:setVatRate', { vatRate: 7.5 }),
     ).rejects.toThrow()
   })
+
+  it('rejects adding a sales order payment without auth', async () => {
+    const client = anonymousClient() as any
+    await expect(
+      client.mutation('salesOrders:addPayment', {
+        salesOrderId: '000000000000000000000000',
+        amount: 500000,
+      }),
+    ).rejects.toThrow()
+  })
 })
+

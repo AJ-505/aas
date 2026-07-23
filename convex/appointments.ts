@@ -76,14 +76,25 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ['csr', 'manager', 'admin'])
+    if (args.appointmentTs < Date.now() - 60_000) {
+      throw new ConvexError('Appointment date cannot be in the past.')
+    }
+    if (
+      !args.vehicleMake?.trim() ||
+      !args.vehicleModel?.trim() ||
+      !args.vehiclePlate?.trim() ||
+      !args.complaint?.trim()
+    ) {
+      throw new ConvexError('Vehicle details (make, model, plate) and complaint are required.')
+    }
     const id = await ctx.db.insert('appointments', {
-      name: args.name,
-      phone: args.phone,
-      email: args.email,
-      vehicleMake: args.vehicleMake,
-      vehicleModel: args.vehicleModel,
-      vehiclePlate: args.vehiclePlate,
-      complaint: args.complaint,
+      name: args.name.trim(),
+      phone: args.phone.trim(),
+      email: args.email?.trim() || undefined,
+      vehicleMake: args.vehicleMake.trim(),
+      vehicleModel: args.vehicleModel.trim(),
+      vehiclePlate: args.vehiclePlate.trim(),
+      complaint: args.complaint.trim(),
       appointmentTs: args.appointmentTs,
       status: 'scheduled',
       createdById: user._id,

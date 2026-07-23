@@ -206,6 +206,8 @@
 | Range view (Today/Week/Month) | [x] | Replaced single-day nav with presets + day-grouped list |
 | listRange backend query | [x] | convex/appointments.ts with startDate/endDate + status filter |
 | All 7 roles seeded | [x] | convex/seed.ts (seed action). Password: password123 |
+| Past date prevention | [x] | Date input `min` attribute + frontend & backend timestamp validation |
+| Mandatory appointment fields | [x] | Vehicle details (make, model, plate) and complaint required in UI & backend |
 
 ## Documentation & Enablement
 

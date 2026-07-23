@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createCustomerSchema, updateCustomerSchema } from '~/lib/schemas/customer'
 import { createVehicleSchema } from '~/lib/schemas/vehicle'
 import { roleSchema } from '~/lib/schemas/user'
+import { createAppointmentSchema } from '~/lib/schemas/appointment'
 import { ROLES } from '~/lib/enums'
 
 describe('createCustomerSchema', () => {
@@ -79,3 +80,60 @@ describe('roleSchema', () => {
     expect(() => roleSchema.parse('superuser')).toThrow()
   })
 })
+
+describe('createAppointmentSchema', () => {
+  it('validates a complete future appointment', () => {
+    const parsed = createAppointmentSchema.parse({
+      name: 'John Doe',
+      phone: '08012345678',
+      vehicleMake: 'Toyota',
+      vehicleModel: 'Camry',
+      vehiclePlate: 'KJA-123AA',
+      complaint: 'Engine oil change and brake inspection',
+      appointmentTs: Date.now() + 86400000,
+    })
+    expect(parsed.name).toBe('John Doe')
+    expect(parsed.vehicleMake).toBe('Toyota')
+  })
+
+  it('rejects past appointment date', () => {
+    expect(() =>
+      createAppointmentSchema.parse({
+        name: 'John Doe',
+        phone: '08012345678',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+        vehiclePlate: 'KJA-123AA',
+        complaint: 'Check brakes',
+        appointmentTs: Date.now() - 86400000,
+      }),
+    ).toThrow(/past/)
+  })
+
+  it('rejects missing vehicle details or complaint', () => {
+    expect(() =>
+      createAppointmentSchema.parse({
+        name: 'John Doe',
+        phone: '08012345678',
+        vehicleMake: '',
+        vehicleModel: 'Camry',
+        vehiclePlate: 'KJA-123AA',
+        complaint: 'Check brakes',
+        appointmentTs: Date.now() + 86400000,
+      }),
+    ).toThrow()
+
+    expect(() =>
+      createAppointmentSchema.parse({
+        name: 'John Doe',
+        phone: '08012345678',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+        vehiclePlate: 'KJA-123AA',
+        complaint: '   ',
+        appointmentTs: Date.now() + 86400000,
+      }),
+    ).toThrow()
+  })
+})
+
