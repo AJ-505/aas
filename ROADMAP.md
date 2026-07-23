@@ -209,6 +209,27 @@
 | Past date prevention | [x] | Date input `min` attribute + frontend & backend timestamp validation |
 | Mandatory appointment fields | [x] | Vehicle details (make, model, plate) and complaint required in UI & backend |
 
+## Jobs Module Fixes & Enhancements
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Technician Add Items Gating | [x] | Technicians restricted from viewing/adding/removing parts and labour on job cards |
+| Technician Invoice Gating | [x] | Invoices hidden from Technicians |
+| CSR Completion Access Scope | [x] | CSR write access ends after check-in; completion transition restricted to Manager and Admin |
+| Printable Dynamic Job Card | [x] | Printable Job Card component populated dynamically from backend data (`PrintableJobCard.tsx`) |
+| Printable Dynamic Invoice | [x] | Printable Invoice component populated dynamically from backend data (`PrintableInvoice.tsx`) |
+| Parts Request Dispatch Confirmation | [x] | Inventory Manager confirmation modal with stock status verification |
+| Reverse Parts Request | [x] | Reversal mutation (`partsRequests.reverse`) and UI action returning items to inventory stock |
+| Resolved Part Names Display | [x] | Parts requests list resolves part code and description (e.g., `OIL-001 - Synthetic Motor Oil 5W30 ×2`) |
+| Manager Parts Request Restriction | [x] | Manager restricted from creating parts requests (reserved for Technician and Admin) |
+| Global Search Bar Removal | [x] | Top bar global search removed completely from AppShell |
+| Hidden Printable Previews | [x] | Job Card and Invoice printable previews hidden on screen (`hidden print:block`), accessible only via print buttons |
+| Job Card Template Refactoring | [x] | Customer info and CSR removed from Job Card template; print date used; blank diagnosis if uninspected |
+| Invoice Template Refactoring | [x] | Removed support note footer from Invoice template |
+| Job Item Product Names | [x] | Job items table displays actual part code & description (e.g. `OIL-001 - Synthetic Motor Oil 5W30`) |
+| Invoice Regeneration | [x] | Added `invoices.regenerate` mutation & UI button to re-sync invoice when job items change |
+| Inventory Dispatch to Job Items Integration | [x] | Approved parts dispatched by Inventory Manager auto-populate `jobItems` and update invoice; manual part addition blocked for Finance; dispatched parts locked from manual deletion |
+
 ## Documentation & Enablement
 
 | Task | Status | Notes |

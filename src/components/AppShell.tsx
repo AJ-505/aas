@@ -44,8 +44,8 @@ const ALL_STAFF: Role[] = [...ROLES]
 const NAV_GENERAL: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: IconGrid, roles: ALL_STAFF, match: ['/'] },
   { label: 'Appointments', to: '/service/appointments', icon: IconCalendar, roles: ['csr', 'manager', 'admin'], match: ['/service/appointments'] },
-  { label: 'Customers', to: '/service/customers', icon: IconUsers, roles: ALL_STAFF, match: ['/service/customer'] },
-  { label: 'Jobs', to: '/service/jobs', icon: IconWrench, roles: ALL_STAFF, match: ['/service/job', '/service/checkin'] },
+  { label: 'Customers', to: '/service/customers', icon: IconUsers, roles: ['csr', 'finance', 'manager', 'admin'], match: ['/service/customer'] },
+  { label: 'Jobs', to: '/service/jobs', icon: IconWrench, roles: ['csr', 'technician', 'inventoryManager', 'finance', 'manager', 'admin'], match: ['/service/job', '/service/checkin'] },
 ]
 
 const NAV_SALES: NavItem[] = [
@@ -55,7 +55,7 @@ const NAV_SALES: NavItem[] = [
 ]
 
 const NAV_OPS: NavItem[] = [
-  { label: 'Customer Vehicles', to: '/service/vehicles', icon: IconCar, roles: ALL_STAFF, match: ['/service/vehicles'] },
+  { label: 'Customer Vehicles', to: '/service/vehicles', icon: IconCar, roles: ['csr', 'manager', 'admin'], match: ['/service/vehicles'] },
   { label: 'Parts', to: '/service/parts', icon: IconBox, roles: ['inventoryManager', 'manager', 'admin'], match: ['/service/parts'] },
   { label: 'Finance', to: '/service/finance', icon: IconBanknote, roles: ['finance', 'manager', 'admin'], match: ['/service/finance'] },
   { label: 'User Management', to: '/admin/users', icon: IconSliders, roles: ['admin'], match: ['/admin/users'] },
@@ -294,18 +294,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-[9px] bg-line-soft px-3 py-[7px] text-mute transition-colors focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent/25 sm:flex sm:w-[280px]">
-              <IconSearch size={15} />
-              <input
-                ref={searchRef}
-                placeholder={searchContext.placeholder}
-                className="w-full border-none bg-transparent text-[13px] text-ink outline-none placeholder:text-mute"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void router.navigate({ to: searchContext.to })
-                }}
-              />
-              <kbd className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10.5px] text-mute">⌘K</kbd>
-            </div>
             <button
               aria-label="Notifications"
               className="relative grid size-[34px] place-items-center rounded-[9px] border border-line bg-surface text-body transition-colors hover:bg-accent-soft"

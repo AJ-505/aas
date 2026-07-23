@@ -26,11 +26,20 @@ import {
 import { formatNaira } from '~/lib/format'
 import type { Id } from 'convex/_generated/dataModel'
 
+import { useCurrentUser } from '~/lib/auth'
+import { Navigate } from '@tanstack/react-router'
+
 export const Route = createFileRoute('/service/finance')({
   component: FinancePage,
 })
 
 function FinancePage() {
+  const { data: user } = useCurrentUser()
+
+  if (user?.role && !['finance', 'manager', 'admin'].includes(user.role)) {
+    return <Navigate to="/" />
+  }
+
   return (
     <div className="space-y-5">
       <div>

@@ -44,3 +44,12 @@
     @apply bg-bg font-sans text-body antialiased;
   }
 }
+
+@media print {
+  body.print-job-card .printable-invoice {
+    display: none !important;
+  }
+  body.print-invoice .printable-job-card {
+    display: none !important;
+  }
+}

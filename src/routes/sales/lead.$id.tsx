@@ -18,6 +18,9 @@ import {
 import { CreateSalesOrderModal } from '~/routes/sales/orders'
 import type { Id } from 'convex/_generated/dataModel'
 
+import { useCurrentUser } from '~/lib/auth'
+import { Navigate } from '@tanstack/react-router'
+
 export const Route = createFileRoute('/sales/lead/$id')({
   component: LeadDetailPage,
 })
@@ -34,9 +37,14 @@ const STAGES = ['new', 'contacted', 'qualified', 'won', 'lost'] as const
 
 function LeadDetailPage() {
   const { id } = Route.useParams()
+  const { data: user } = useCurrentUser()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { data: lead, isLoading, isError, error } = useQuery(leadQueries.get(id))
+
+  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+    return <Navigate to="/" />
+  }
   const updateStage = useUpdateLeadStageMutation()
   const logFollowUp = useLogFollowUpMutation()
 

@@ -34,6 +34,7 @@ export const PARTS_REQUEST_STATUSES = [
   'approved',
   'rejected',
   'dispatched',
+  'reversed',
 ] as const
 export type PartsRequestStatus = (typeof PARTS_REQUEST_STATUSES)[number]
 
@@ -86,6 +87,7 @@ export const PARTS_REQUEST_STATUS_LABELS: Record<PartsRequestStatus, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   dispatched: 'Dispatched',
+  reversed: 'Reversed',
 }
 
 export const JOB_ITEM_TYPE_LABELS: Record<JobItemType, string> = {

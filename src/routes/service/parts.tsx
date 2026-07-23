@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { useState, useEffect, useRef } from 'react'
+import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useCurrentUser } from '~/lib/auth'
@@ -29,6 +29,9 @@ import { cn } from '~/lib/utils'
 import type { Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/service/parts')({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: (search.q as string) || undefined,
+  }),
   component: PartsPage,
 })
 
@@ -51,11 +54,24 @@ const emptyForm: PartForm = {
 }
 
 function PartsPage() {
+  const searchParams = Route.useSearch()
+  const navigate = useNavigate()
   const { data: user } = useCurrentUser()
+
+  if (user?.role && !['inventoryManager', 'manager', 'admin'].includes(user.role)) {
+    return <Navigate to="/" />
+  }
+
   const canEdit = user?.role === 'inventoryManager' || user?.role === 'manager' || user?.role === 'admin'
 
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(searchParams.q || '')
   const { data: parts, isLoading } = useQuery(partQueries.search(q))
+
+  useEffect(() => {
+    if (searchParams.q !== undefined) {
+      setQ(searchParams.q)
+    }
+  }, [searchParams.q])
 
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)

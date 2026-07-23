@@ -6,6 +6,7 @@ import { audit } from './lib/audit'
 import { canTransition } from '../src/lib/job-utils'
 import type { JobStatus } from '../src/lib/enums'
 import { checkInJobSchema, assignTechnicianSchema } from '../src/lib/schemas'
+import { computeInvoiceTotals, type InvoiceLineItem } from '../src/lib/schemas/invoice'
 
 export const getDetail = query({
   args: { jobId: v.id('jobs') },
@@ -389,7 +390,7 @@ export const markReady = mutation({
 export const complete = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'manager', 'admin'])
+    await requireRole(ctx, ['manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (!canTransition(job.status, 'completed')) {
@@ -434,6 +435,53 @@ export const markPaid = mutation({
   },
 })
 
+export async function syncInvoiceForJob(ctx: any, jobId: Id<'jobs'>) {
+  const existing = await ctx.db
+    .query('invoices')
+    .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
+    .first()
+  if (!existing || existing.paid) return
+
+  const jobItems = await ctx.db
+    .query('jobItems')
+    .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
+    .collect()
+
+  const lineItems: InvoiceLineItem[] = jobItems.map((item: any) => ({
+    type: item.type,
+    description: '',
+    qty: item.qty,
+    unitPrice: item.unitPrice,
+    lineTotal: item.lineTotal,
+  }))
+
+  for (const [i, item] of jobItems.entries()) {
+    const li = lineItems[i]
+    if (!li) continue
+    if (item.type === 'part' && item.partId) {
+      const part = await ctx.db.get(item.partId)
+      if (part) li.description = `${part.code} - ${part.description}`
+    } else if (item.type === 'labour' && item.labourTypeId) {
+      const lt = await ctx.db.get(item.labourTypeId)
+      if (lt) li.description = lt.name
+    }
+  }
+
+  const settings = await ctx.db.query('settings').first()
+  const vatRate = settings?.vatRate ?? 7.5
+  const totals = computeInvoiceTotals(lineItems, vatRate)
+
+  await ctx.db.patch(existing._id, {
+    lineItems,
+    partsTotal: totals.partsTotal,
+    labourTotal: totals.labourTotal,
+    subtotal: totals.subtotal,
+    vat: totals.vat,
+    grandTotal: totals.grandTotal,
+    approved: false,
+  })
+}
+
 export const addJobItem = mutation({
   args: {
     jobId: v.id('jobs'),
@@ -444,46 +492,41 @@ export const addJobItem = mutation({
     unitPrice: v.number(),
   },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['technician', 'manager', 'admin'])
+    await requireRole(ctx, ['finance', 'csr', 'manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
-    if (job.technicianId && job.technicianId !== user._id && user.role !== 'admin' && user.role !== 'manager') {
-      throw new ConvexError('You are not the assigned technician for this job.')
-    }
-    // Items can only be added before the invoice is generated
-    if (job.status === 'readyForPickup' || job.status === 'completed' || job.status === 'paid') {
-      throw new ConvexError('Cannot add items to a job that is past the work stage.')
+    if (job.status === 'completed' || job.status === 'paid') {
+      throw new ConvexError('Cannot add items to a job that is completed or paid.')
     }
 
-    const type = args.type as 'part' | 'labour'
-    if (type !== 'part' && type !== 'labour') {
-      throw new ConvexError('Item type must be "part" or "labour".')
+    if (args.type === 'part') {
+      throw new ConvexError('Spare parts can only be added via Inventory Manager parts request approval.')
+    }
+    const type = args.type as 'labour'
+    if (type !== 'labour') {
+      throw new ConvexError('Item type must be "labour".')
     }
 
     let description = ''
-    if (type === 'part' && args.partId) {
-      const part = await ctx.db.get(args.partId)
-      if (!part) throw new ConvexError('Part not found.')
-      description = `${part.code} - ${part.description}`
-    } else if (type === 'labour' && args.labourTypeId) {
+    if (type === 'labour' && args.labourTypeId) {
       const lt = await ctx.db.get(args.labourTypeId)
       if (!lt) throw new ConvexError('Labour type not found.')
       description = lt.name
     } else {
-      throw new ConvexError('Part items need a partId, labour items need a labourTypeId.')
+      throw new ConvexError('Labour items need a labourTypeId.')
     }
 
     const lineTotal = args.unitPrice * args.qty
     const itemId = await ctx.db.insert('jobItems', {
       jobId: args.jobId,
-      type,
-      partId: args.partId,
+      type: 'labour',
       labourTypeId: args.labourTypeId,
       qty: args.qty,
       unitPrice: args.unitPrice,
       lineTotal,
     })
     await audit(ctx, 'job.addItem', 'jobItems', itemId)
+    await syncInvoiceForJob(ctx, args.jobId)
     return itemId
   },
 })
@@ -491,18 +534,19 @@ export const addJobItem = mutation({
 export const removeJobItem = mutation({
   args: { jobItemId: v.id('jobItems') },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['technician', 'manager', 'admin'])
+    await requireRole(ctx, ['finance', 'csr', 'manager', 'admin'])
     const item = await ctx.db.get(args.jobItemId)
     if (!item) throw new ConvexError('Job item not found.')
     const job = await ctx.db.get(item.jobId)
     if (!job) throw new ConvexError('Job not found.')
-    if (job.technicianId && job.technicianId !== user._id && user.role !== 'admin' && user.role !== 'manager') {
-      throw new ConvexError('You are not the assigned technician for this job.')
+    if (job.status === 'completed' || job.status === 'paid') {
+      throw new ConvexError('Cannot remove items from a job that is completed or paid.')
     }
-    if (job.status === 'readyForPickup' || job.status === 'completed' || job.status === 'paid') {
-      throw new ConvexError('Cannot remove items from a job that is past the work stage.')
+    if (item.type === 'part') {
+      throw new ConvexError('Dispatched parts items cannot be manually removed. Reversal must be done through Inventory Parts Request.')
     }
     await ctx.db.delete(args.jobItemId)
+    await syncInvoiceForJob(ctx, item.jobId)
     return null
   },
 })

@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Card } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
+import { Input } from '~/components/ui/input'
 import { buttonVariants } from '~/components/ui/button'
 import {
   Table,
@@ -14,7 +15,8 @@ import {
 } from '~/components/ui/table'
 import { Loader } from '~/components/Loader'
 import { Avatar } from '~/components/Avatar'
-import { IconChevronRight, IconPlus } from '~/components/icons'
+import { IconChevronRight, IconPlus, IconSearch } from '~/components/icons'
+import { useCurrentUser } from '~/lib/auth'
 import { jobQueries } from '~/lib/queries'
 import { JOB_STATUSES, JOB_STATUS_LABELS, type JobStatus } from '~/lib/enums'
 import { JOB_STATUS_VARIANTS } from '~/lib/status-ui'
@@ -22,17 +24,49 @@ import { formatDateTime } from '~/lib/format'
 import { cn } from '~/lib/utils'
 
 export const Route = createFileRoute('/service/jobs')({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: (search.q as string) || undefined,
+  }),
   component: JobsBoardPage,
 })
 
 function JobsBoardPage() {
+  const searchParams = Route.useSearch()
+  const [q, setQ] = useState(searchParams.q || '')
   const [statusFilter, setStatusFilter] = useState<JobStatus | undefined>()
   const { data, isLoading } = useQuery(jobQueries.all())
+  const { data: user } = useCurrentUser()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    if (searchParams.q !== undefined) {
+      setQ(searchParams.q)
+    }
+  }, [searchParams.q])
+
   const jobs = (data ?? []) as any[]
-  const visible = statusFilter ? jobs.filter((j) => j.status === statusFilter) : jobs
-  const countFor = (s: JobStatus) => jobs.filter((j) => j.status === s).length
+
+  // Filter jobs by search query text
+  const searchedJobs = jobs.filter((j) => {
+    if (!q.trim()) return true
+    const term = q.toLowerCase().trim()
+    const vehicleMatch =
+      j.vehicle?.make?.toLowerCase().includes(term) ||
+      j.vehicle?.model?.toLowerCase().includes(term) ||
+      j.vehicle?.plate?.toLowerCase().includes(term)
+    const customerMatch =
+      j.customer?.name?.toLowerCase().includes(term) ||
+      j.customer?.phone?.toLowerCase().includes(term)
+    const complaintMatch = j.complaint?.toLowerCase().includes(term)
+    return vehicleMatch || customerMatch || complaintMatch
+  })
+
+  const visible = statusFilter
+    ? searchedJobs.filter((j) => j.status === statusFilter)
+    : searchedJobs
+
+  const countFor = (s: JobStatus) => searchedJobs.filter((j) => j.status === s).length
+  const canCheckIn = ['csr', 'manager', 'admin'].includes(user?.role ?? '')
 
   return (
     <div className="space-y-5">
@@ -41,9 +75,30 @@ function JobsBoardPage() {
           <h1 className="text-[23px] font-extrabold tracking-tight text-ink">Workshop jobs</h1>
           <p className="mt-1 text-[13px] text-mute">Track every vehicle through the workshop.</p>
         </div>
-        <Link to="/service/checkin" className={buttonVariants()}>
-          <IconPlus size={15} /> Check In Vehicle
-        </Link>
+        {canCheckIn && (
+          <Link to="/service/checkin" className={buttonVariants()}>
+            <IconPlus size={15} /> Check In Vehicle
+          </Link>
+        )}
+      </div>
+
+      {/* Search Input Bar */}
+      <div className="relative max-w-md">
+        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
+        <Input
+          placeholder="Search jobs by plate, vehicle, customer or complaint..."
+          value={q}
+          onChange={(e) => {
+            const val = e.target.value
+            setQ(val)
+            void navigate({
+              to: '/service/jobs',
+              search: (prev) => ({ ...prev, q: val || undefined }),
+              replace: true,
+            })
+          }}
+          className="pl-9"
+        />
       </div>
 
       {/* filter chips */}
@@ -51,7 +106,7 @@ function JobsBoardPage() {
         <FilterChip
           active={statusFilter === undefined}
           label="All"
-          count={jobs.length}
+          count={searchedJobs.length}
           onClick={() => setStatusFilter(undefined)}
         />
         {JOB_STATUSES.map((s) => {
@@ -91,7 +146,7 @@ function JobsBoardPage() {
             ) : visible.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-10 text-center text-mute">
-                  No jobs found{statusFilter ? ` with status “${JOB_STATUS_LABELS[statusFilter]}”` : ''}.
+                  No jobs found{statusFilter ? ` with status “${JOB_STATUS_LABELS[statusFilter]}”` : ''}{q ? ` matching "${q}"` : ''}.
                 </TableCell>
               </TableRow>
             ) : (

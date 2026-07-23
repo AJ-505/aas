@@ -75,6 +75,7 @@ function CheckInPage() {
         </div>
         <Link
           to="/service/jobs"
+          search={{}}
           className="flex items-center gap-1 pt-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
         >
           <IconChevronRight size={13} className="rotate-180" /> Back to jobs
@@ -130,7 +131,7 @@ function CheckInPage() {
             {search.length > 0 && customers && customers.length === 0 && (
               <p className="text-[12.5px] text-mute">
                 No matches. Add them first from the{' '}
-                <Link to="/service/customers" className="font-semibold text-accent hover:underline">Customers</Link> page.
+                <Link to="/service/customers" search={{}} className="font-semibold text-accent hover:underline">Customers</Link> page.
               </p>
             )}
           </div>

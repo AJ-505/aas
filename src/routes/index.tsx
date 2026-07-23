@@ -87,6 +87,10 @@ function Dashboard() {
     },
   ]
 
+  const canCheckIn = ['csr', 'manager', 'admin'].includes(user?.role ?? '')
+  const canSeeCustomers = ['csr', 'finance', 'manager', 'admin'].includes(user?.role ?? '')
+  const canSeeJobs = user?.role !== 'salesRep'
+
   return (
     <div className="space-y-5">
       {/* page head */}
@@ -100,14 +104,16 @@ function Dashboard() {
             {' · '}{summary?.open ?? 0} open job{(summary?.open ?? 0) === 1 ? '' : 's'} in the workshop
           </p>
         </div>
-        <div className="flex gap-2.5">
-          <Link to="/service/customers" className={buttonVariants({ variant: 'outline' })}>
-            Add customer
-          </Link>
-          <Link to="/service/checkin" className={buttonVariants()}>
-            <IconPlus size={15} /> Check In Vehicle
-          </Link>
-        </div>
+        {canCheckIn && (
+          <div className="flex gap-2.5">
+            <Link to="/service/customers" className={buttonVariants({ variant: 'outline' })}>
+              Add customer
+            </Link>
+            <Link to="/service/checkin" className={buttonVariants()}>
+              <IconPlus size={15} /> Check In Vehicle
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* KPI row */}
@@ -218,7 +224,7 @@ function Dashboard() {
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>Recent check-ins</CardTitle>
-              <Link to="/service/jobs" className="text-[12.5px] font-semibold text-accent hover:text-accent-deep">
+              <Link to="/service/jobs" search={{}} className="text-[12.5px] font-semibold text-accent hover:text-accent-deep">
                 All jobs
               </Link>
             </CardHeader>
@@ -283,8 +289,12 @@ function Dashboard() {
           <Card>
             <CardHeader><CardTitle>Quick links</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-1 pt-2">
-              <QuickLink to="/service/customers" label="Customers" note="Directory & vehicles" />
-              <QuickLink to="/service/jobs" label="Workshop jobs" note="Board & check-in" />
+              {canSeeCustomers && (
+                <QuickLink to="/service/customers" label="Customers" note="Directory & vehicles" />
+              )}
+              {canSeeJobs && (
+                <QuickLink to="/service/jobs" label="Workshop jobs" note="Board & check-in" />
+              )}
               {user?.role === 'admin' && (
                 <QuickLink to="/admin/users" label="User management" note="Roles & access" />
               )}

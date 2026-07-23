@@ -132,9 +132,17 @@ export function useDispatchPartsRequestMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.partsRequests.dispatch) })
 }
 
+export function useReversePartsRequestMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.partsRequests.reverse) })
+}
+
 // Invoice mutations
 export function useGenerateInvoiceMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.generate) })
+}
+
+export function useRegenerateInvoiceMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.regenerate) })
 }
 
 export function useApproveInvoiceMutation() {

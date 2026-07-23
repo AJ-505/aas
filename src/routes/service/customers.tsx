@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -15,6 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
+import { useCurrentUser } from '~/lib/auth'
+import { Navigate } from '@tanstack/react-router'
 import {
   customerQueries,
   useCreateCustomerMutation,
@@ -27,14 +29,31 @@ import { IconChevronRight, IconPlus, IconSearch } from '~/components/icons'
 import type { Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/service/customers')({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: (search.q as string) || undefined,
+  }),
   component: CustomersPage,
 })
 
 function CustomersPage() {
-  const [q, setQ] = useState('')
+  const searchParams = Route.useSearch()
+  const [q, setQ] = useState(searchParams.q || '')
   const [showCreate, setShowCreate] = useState(false)
+  const { data: user } = useCurrentUser()
   const { data: customers, isLoading } = useQuery(customerQueries.search(q))
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (searchParams.q !== undefined) {
+      setQ(searchParams.q)
+    }
+  }, [searchParams.q])
+
+  if (user && (user.role === 'technician' || user.role === 'salesRep')) {
+    return <Navigate to="/" />
+  }
+
+  const canAdd = ['csr', 'manager', 'admin'].includes(user?.role ?? '')
 
   return (
     <div className="space-y-5">
@@ -45,9 +64,11 @@ function CustomersPage() {
             {customers ? `${customers.length} registered` : 'Directory of customers and their vehicles.'}
           </p>
         </div>
-        <Button onClick={() => setShowCreate((s) => !s)} variant={showCreate ? 'outline' : 'default'}>
-          {showCreate ? 'Close' : (<><IconPlus size={15} /> Add customer</>)}
-        </Button>
+        {canAdd && (
+          <Button onClick={() => setShowCreate((s) => !s)} variant={showCreate ? 'outline' : 'default'}>
+            {showCreate ? 'Close' : (<><IconPlus size={15} /> Add customer</>)}
+          </Button>
+        )}
       </div>
 
       {showCreate && <CreateCustomerForm onDone={() => setShowCreate(false)} />}

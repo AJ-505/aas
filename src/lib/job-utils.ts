@@ -7,8 +7,8 @@ const TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   assigned: ['diagnosed'],
   diagnosed: ['waitingRelease', 'inProgress'],
   waitingRelease: ['inProgress', 'diagnosed'],
-  inProgress: ['readyForPickup'],
-  readyForPickup: ['completed'],
+  inProgress: ['readyForPickup', 'waitingRelease'],
+  readyForPickup: ['completed', 'waitingRelease'],
   completed: ['paid'],
   paid: [],
 }

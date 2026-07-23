@@ -17,6 +17,8 @@ import { Badge } from '~/components/ui/badge'
 import { Loader } from '~/components/Loader'
 import { Avatar } from '~/components/Avatar'
 import { IconChevronRight, IconMail, IconPhone } from '~/components/icons'
+import { useCurrentUser } from '~/lib/auth'
+import { Navigate } from '@tanstack/react-router'
 import { customerQueries, jobQueries, useCreateVehicleMutation } from '~/lib/queries'
 import { VEHICLE_STATUS_LABELS, JOB_STATUS_LABELS, type VehicleStatus, type JobStatus } from '~/lib/enums'
 import { VEHICLE_STATUS_VARIANTS, JOB_STATUS_VARIANTS } from '~/lib/status-ui'
@@ -28,9 +30,14 @@ export const Route = createFileRoute('/service/customer/$id')({
 
 function CustomerDetailPage() {
   const { id: customerId } = Route.useParams()
+  const { data: user } = useCurrentUser()
   const { data, isLoading, isError, error } = useQuery(customerQueries.detail(customerId))
   const navigate = useNavigate()
   const { data: jobHistory } = useQuery(jobQueries.byCustomer(customerId))
+
+  if (user && (user.role === 'technician' || user.role === 'salesRep')) {
+    return <Navigate to="/" />
+  }
 
   if (isLoading) {
     return <Loader />
@@ -39,7 +46,7 @@ function CustomerDetailPage() {
     return (
       <div className="space-y-4">
         <p className="text-rose-600">Error loading customer: {error?.message ?? 'Unknown error'}</p>
-        <Link to="/service/customers" className="text-[13px] font-semibold text-accent hover:underline">
+        <Link to="/service/customers" search={{}} className="text-[13px] font-semibold text-accent hover:underline">
           &larr; Back to customers
         </Link>
       </div>
@@ -49,7 +56,7 @@ function CustomerDetailPage() {
     return (
       <div className="space-y-4">
         <p className="text-mute">Customer not found.</p>
-        <Link to="/service/customers" className="text-[13px] font-semibold text-accent hover:underline">
+        <Link to="/service/customers" search={{}} className="text-[13px] font-semibold text-accent hover:underline">
           &larr; Back to customers
         </Link>
       </div>
@@ -74,6 +81,7 @@ function CustomerDetailPage() {
         </div>
         <Link
           to="/service/customers"
+          search={{}}
           className="flex items-center gap-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
         >
           <IconChevronRight size={13} className="rotate-180" /> Back to customers

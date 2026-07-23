@@ -35,11 +35,15 @@ import {
   useCreatePartsRequestMutation,
   useReviewPartsRequestMutation,
   useDispatchPartsRequestMutation,
+  useReversePartsRequestMutation,
   useGenerateInvoiceMutation,
+  useRegenerateInvoiceMutation,
   useApproveInvoiceMutation,
   useRecordPaymentMutation,
   useMarkPaidMutation,
 } from '~/lib/queries'
+import { PrintableJobCard } from '~/components/PrintableJobCard'
+import { PrintableInvoice } from '~/components/PrintableInvoice'
 import {
   JOB_STATUSES,
   JOB_STATUS_LABELS,
@@ -69,7 +73,7 @@ function JobDetailPage() {
     return (
       <div className="space-y-4">
         <p className="text-mute">Job not found.</p>
-        <Link to="/service/jobs" className="text-[13px] font-semibold text-accent hover:underline">
+        <Link to="/service/jobs" search={{}} className="text-[13px] font-semibold text-accent hover:underline">
           &larr; Back to jobs
         </Link>
       </div>
@@ -81,34 +85,53 @@ function JobDetailPage() {
   const canActOnJob =
     me?.role === 'admin' ||
     me?.role === 'manager' ||
-    (me?.role === 'technician' && (!job.technicianId || job.technicianId === me._id)) ||
-    (me?.role === 'csr' && ['checkedIn', 'readyForPickup'].includes(job.status))
+    (me?.role === 'technician' && (!job.technicianId || job.technicianId === me._id))
+
+  const canAssignTechnician = me?.role === 'manager' || me?.role === 'admin'
+  const canAddItems = ['finance', 'manager', 'admin'].includes(me?.role ?? '')
+  const canSeeInvoice = me?.role !== 'technician'
+  const canSeeJobItems = me?.role !== 'technician'
+  const canRequestParts = (me?.role === 'technician' || me?.role === 'admin') && (!job.technicianId || job.technicianId === me._id)
+  const canPrintJobCard = ['manager', 'technician', 'csr', 'admin'].includes(me?.role ?? '')
 
   const allowedNext = nextStatuses(job.status as JobStatus)
 
   return (
     <div className="space-y-5">
       {/* header */}
-      <div>
-        <Link
-          to="/service/jobs"
-          className="flex w-fit items-center gap-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
-        >
-          <IconChevronRight size={13} className="rotate-180" /> Back to jobs
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-[23px] font-extrabold tracking-tight text-ink">
-            Job #{job._id.slice(-6)}
-          </h1>
-          <Badge dot variant={JOB_STATUS_VARIANTS[job.status as JobStatus] ?? 'secondary'}>
-            {JOB_STATUS_LABELS[job.status as JobStatus]}
-          </Badge>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link
+            to="/service/jobs"
+            search={{}}
+            className="flex w-fit items-center gap-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
+          >
+            <IconChevronRight size={13} className="rotate-180" /> Back to jobs
+          </Link>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <h1 className="text-[23px] font-extrabold tracking-tight text-ink">
+              Job #{job._id.slice(-6)}
+            </h1>
+            <Badge dot variant={JOB_STATUS_VARIANTS[job.status as JobStatus] ?? 'secondary'}>
+              {JOB_STATUS_LABELS[job.status as JobStatus]}
+            </Badge>
+          </div>
+          <p className="mt-1 text-[13px] text-mute">
+            Checked in {formatDateTime(job.checkInTs)}
+            {technician ? ` · Technician: ${technician.name}` : ''}
+            {csr ? ` · Front desk: ${csr.name}` : ''}
+          </p>
         </div>
-        <p className="mt-1 text-[13px] text-mute">
-          Checked in {formatDateTime(job.checkInTs)}
-          {technician ? ` · Technician: ${technician.name}` : ''}
-          {csr ? ` · Front desk: ${csr.name}` : ''}
-        </p>
+
+        {canPrintJobCard && (
+          <PrintableJobCard
+            job={job}
+            vehicle={vehicle}
+            customer={customer}
+            technician={technician}
+            csr={csr}
+          />
+        )}
       </div>
 
       {/* status stepper */}
@@ -151,8 +174,8 @@ function JobDetailPage() {
                 <Avatar name={customer.name} size={36} />
                 <div>
                   <p className="font-semibold text-ink">{customer.name}</p>
-                  <p className="text-mute">{customer.phone}</p>
-                  {customer.email && <p className="text-mute">{customer.email}</p>}
+                  <p className="text-mute">Phone: <span className="text-body">{customer.phone}</span></p>
+                  {customer.email && <p className="text-mute">Email: <span className="text-body">{customer.email}</span></p>}
                 </div>
               </div>
             ) : <p className="text-mute">Customer not found.</p>}
@@ -180,7 +203,7 @@ function JobDetailPage() {
       )}
 
       {/* assign technician */}
-      {job.status === 'checkedIn' && (
+      {job.status === 'checkedIn' && canAssignTechnician && (
         <AssignTechnician jobId={job._id} />
       )}
 
@@ -189,26 +212,31 @@ function JobDetailPage() {
         <DiagnosisForm jobId={job._id} />
       )}
 
-      {/* job items (parts + labour) */}
-      {['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status) && canActOnJob && (
+      {/* job items (parts + labour) - ONLY for Finance, CSR, Manager, Admin */}
+      {['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status) && canAddItems && (
         <AddJobItemForm jobId={job._id} />
       )}
 
-      <JobItemsTable jobItems={jobItems} canRemove={canActOnJob && ['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status)} />
+      {canSeeJobItems && (
+        <JobItemsTable jobItems={jobItems} canRemove={canAddItems && ['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status)} />
+      )}
 
-      {/* parts requests */}
-      {['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status) && canActOnJob && (
+      {/* parts requests - ONLY for Technician and Admin */}
+      {['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status) && canRequestParts && (
         <CreatePartsRequestForm jobId={job._id} />
       )}
       {partsRequests.length > 0 && (
         <PartsRequestsList partsRequests={partsRequests} />
       )}
 
-      {/* invoice */}
-      {job.status !== 'checkedIn' && job.status !== 'assigned' && (
+      {/* invoice - HIDDEN from Technicians */}
+      {job.status !== 'checkedIn' && job.status !== 'assigned' && canSeeInvoice && (
         <InvoiceSection
           jobId={job._id}
           invoice={invoice}
+          job={job}
+          customer={customer}
+          vehicle={vehicle}
           payments={payments}
           hasItems={jobItems.length > 0}
         />
@@ -282,7 +310,7 @@ function StatusActions({ jobId, allowedNext }: { jobId: string; allowedNext: Job
   const role = me?.role
   const canStartWork = role === 'technician' || role === 'manager' || role === 'admin'
   const canMarkReady = role === 'technician' || role === 'manager' || role === 'admin'
-  const canComplete = role === 'csr' || role === 'manager' || role === 'admin'
+  const canComplete = role === 'manager' || role === 'admin'
 
   return (
     <Card>
@@ -378,85 +406,49 @@ function DiagnosisForm({ jobId }: { jobId: string }) {
 
 function AddJobItemForm({ jobId }: { jobId: string }) {
   const queryClient = useQueryClient()
-  const { data: parts } = useQuery(partQueries.list())
   const { data: labourTypes } = useQuery(labourTypeQueries.list())
   const addJobItem = useAddJobItemMutation()
-  const [itemType, setItemType] = useState<'part' | 'labour'>('part')
-  const [partId, setPartId] = useState('')
   const [labourTypeId, setLabourTypeId] = useState('')
-  const [qty, setQty] = useState(1)
 
-  const selectedPart = parts?.find((p: any) => p._id === partId)
   const selectedLabour = labourTypes?.find((lt: any) => lt._id === labourTypeId)
-  const unitPrice = itemType === 'part' ? (selectedPart?.sellingPrice ?? 0) : (selectedLabour?.fixedPrice ?? 0)
+  const unitPrice = selectedLabour?.fixedPrice ?? 0
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (itemType === 'part') {
-      if (!partId) { toast.error('Select a part.'); return }
-      addJobItem.mutate({ jobId: jobId as Id<'jobs'>, type: 'part', partId: partId as Id<'parts'>, qty, unitPrice }, {
-        onSuccess: () => { toast.success('Part added.'); setPartId(''); setQty(1); void queryClient.invalidateQueries() },
-      })
-    } else {
-      if (!labourTypeId) { toast.error('Select a labour type.'); return }
-      addJobItem.mutate({ jobId: jobId as Id<'jobs'>, type: 'labour', labourTypeId: labourTypeId as Id<'labourTypes'>, qty, unitPrice }, {
-        onSuccess: () => { toast.success('Labour added.'); setLabourTypeId(''); setQty(1); void queryClient.invalidateQueries() },
-      })
-    }
+    if (!labourTypeId) { toast.error('Select a labour type.'); return }
+    addJobItem.mutate({
+      jobId: jobId as Id<'jobs'>,
+      type: 'labour',
+      labourTypeId: labourTypeId as Id<'labourTypes'>,
+      qty: 1,
+      unitPrice,
+    }, {
+      onSuccess: () => { toast.success('Labour cost added.'); setLabourTypeId(''); void queryClient.invalidateQueries() },
+      onError: (err) => toast.error(err.message),
+    })
   }
 
   return (
     <Card>
-      <CardHeader><CardTitle>Add parts / labour</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Add labour cost</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="flex w-fit rounded-[9px] bg-line-soft p-0.5">
-            {(['part', 'labour'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setItemType(t)}
-                className={cn(
-                  'rounded-[7px] px-3.5 py-1.5 text-xs font-semibold capitalize transition-colors',
-                  itemType === t ? 'bg-white text-ink shadow-sm' : 'text-mute hover:text-body',
-                )}
-              >
-                {t}
-              </button>
-            ))}
+          <div className="space-y-2">
+            <Label htmlFor="labour">Labour type</Label>
+            <Select id="labour" value={labourTypeId} onChange={(e) => setLabourTypeId(e.target.value)}>
+              <option value="" disabled>Select labour type...</option>
+              {labourTypes?.map((lt: any) => (
+                <option key={lt._id} value={lt._id}>{lt.name} ({formatNaira(lt.fixedPrice)})</option>
+              ))}
+            </Select>
           </div>
-          {itemType === 'part' ? (
-            <div className="space-y-2">
-              <Label htmlFor="part">Part</Label>
-              <Select id="part" value={partId} onChange={(e) => setPartId(e.target.value)}>
-                <option value="" disabled>Select part...</option>
-                {parts?.map((p: any) => (
-                  <option key={p._id} value={p._id}>{p.code} - {p.description} ({formatNaira(p.sellingPrice)})</option>
-                ))}
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="labour">Labour type</Label>
-              <Select id="labour" value={labourTypeId} onChange={(e) => setLabourTypeId(e.target.value)}>
-                <option value="" disabled>Select labour type...</option>
-                {labourTypes?.map((lt: any) => (
-                  <option key={lt._id} value={lt._id}>{lt.name} ({formatNaira(lt.fixedPrice)})</option>
-                ))}
-              </Select>
+          {labourTypeId && (
+            <div className="text-[13px] text-mute">
+              Labour cost: <span className="font-bold text-ink">{formatNaira(unitPrice)}</span>
             </div>
           )}
-          <div className="flex items-end gap-3">
-            <div className="w-24 space-y-2">
-              <Label htmlFor="qty">Qty</Label>
-              <Input id="qty" type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value))} />
-            </div>
-            <div className="pb-2 text-[13px] text-mute">
-              Unit price: <span className="font-bold text-ink">{formatNaira(unitPrice)}</span>
-            </div>
-          </div>
           <Button type="submit" disabled={addJobItem.isPending}>
-            {addJobItem.isPending ? 'Adding...' : 'Add Item'}
+            {addJobItem.isPending ? 'Adding...' : 'Add Labour Cost'}
           </Button>
         </form>
       </CardContent>
@@ -467,6 +459,8 @@ function AddJobItemForm({ jobId }: { jobId: string }) {
 function JobItemsTable({ jobItems, canRemove }: { jobItems: any[]; canRemove: boolean }) {
   const queryClient = useQueryClient()
   const removeItem = useRemoveJobItemMutation()
+  const { data: parts } = useQuery(partQueries.list())
+  const { data: labourTypes } = useQuery(labourTypeQueries.list())
 
   if (jobItems.length === 0) return null
 
@@ -481,39 +475,53 @@ function JobItemsTable({ jobItems, canRemove }: { jobItems: any[]; canRemove: bo
             <TableHead>Qty</TableHead>
             <TableHead className="text-right">Unit price</TableHead>
             <TableHead className="text-right">Line total</TableHead>
-            {canRemove && <TableHead className="w-20" />}
+            {canRemove && <TableHead className="w-32 text-right">Action</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jobItems.map((item: any) => (
-            <TableRow key={item._id}>
-              <TableCell>
-                <Badge variant={item.type === 'part' ? 'info' : 'violet'}>
-                  {JOB_ITEM_TYPE_LABELS[item.type as keyof typeof JOB_ITEM_TYPE_LABELS]}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-body">
-                {item.type === 'part' && item.partId ? 'Part' : item.type === 'labour' && item.labourTypeId ? 'Labour' : '-'}
-              </TableCell>
-              <TableCell className="[font-variant-numeric:tabular-nums]">{item.qty}</TableCell>
-              <TableCell className="text-right [font-variant-numeric:tabular-nums]">{formatNaira(item.unitPrice)}</TableCell>
-              <TableCell className="text-right font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(item.lineTotal)}</TableCell>
-              {canRemove && (
+          {jobItems.map((item: any) => {
+            let desc = '-'
+            if (item.type === 'part') {
+              const part = parts?.find((p: any) => p._id === item.partId)
+              desc = part ? `${part.code} - ${part.description}` : item.description || 'Part'
+            } else if (item.type === 'labour') {
+              const lt = labourTypes?.find((l: any) => l._id === item.labourTypeId)
+              desc = lt ? lt.name : item.description || 'Labour'
+            }
+
+            return (
+              <TableRow key={item._id}>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                    onClick={() => removeItem.mutate({ jobItemId: item._id }, {
-                      onSuccess: () => { toast.success('Item removed.'); void queryClient.invalidateQueries() },
-                    })}
-                  >
-                    Remove
-                  </Button>
+                  <Badge variant={item.type === 'part' ? 'info' : 'violet'}>
+                    {JOB_ITEM_TYPE_LABELS[item.type as keyof typeof JOB_ITEM_TYPE_LABELS]}
+                  </Badge>
                 </TableCell>
-              )}
-            </TableRow>
-          ))}
+                <TableCell className="font-semibold text-ink">{desc}</TableCell>
+                <TableCell className="[font-variant-numeric:tabular-nums]">{item.qty}</TableCell>
+                <TableCell className="text-right [font-variant-numeric:tabular-nums]">{formatNaira(item.unitPrice)}</TableCell>
+                <TableCell className="text-right font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(item.lineTotal)}</TableCell>
+                {canRemove && (
+                  <TableCell className="text-right">
+                    {item.type === 'part' ? (
+                      <span className="text-[11px] font-semibold text-mute">Inventory Dispatched</span>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                        onClick={() => removeItem.mutate({ jobItemId: item._id }, {
+                          onSuccess: () => { toast.success('Labour item removed.'); void queryClient.invalidateQueries() },
+                          onError: (err) => toast.error(err.message),
+                        })}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     </Card>
@@ -596,10 +604,29 @@ function CreatePartsRequestForm({ jobId }: { jobId: string }) {
 function PartsRequestsList({ partsRequests }: { partsRequests: any[] }) {
   const queryClient = useQueryClient()
   const { data: me } = useCurrentUser()
+  const { data: parts } = useQuery(partQueries.list())
   const review = useReviewPartsRequestMutation()
   const dispatch = useDispatchPartsRequestMutation()
+  const reverse = useReversePartsRequestMutation()
+
+  const [confirmingPr, setConfirmingPr] = useState<any | null>(null)
+  const [reversingPrId, setReversingPrId] = useState<string | null>(null)
 
   const canReview = me?.role === 'inventoryManager' || me?.role === 'manager' || me?.role === 'admin'
+
+  function handleReverse(requestId: string) {
+    reverse.mutate(
+      { partsRequestId: requestId as Id<'partsRequests'>, note: 'Reversed from inventory management' },
+      {
+        onSuccess: () => {
+          toast.success('Parts request reversed and items returned to stock.')
+          setReversingPrId(null)
+          void queryClient.invalidateQueries()
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    )
+  }
 
   return (
     <Card>
@@ -608,57 +635,184 @@ function PartsRequestsList({ partsRequests }: { partsRequests: any[] }) {
         <div className="space-y-3">
           {partsRequests.map((pr: any) => (
             <div key={pr._id} className="rounded-[10px] border border-line p-3.5">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <Badge dot variant={PARTS_REQUEST_VARIANTS[pr.status as PartsRequestStatus] ?? 'secondary'}>
-                  {PARTS_REQUEST_STATUS_LABELS[pr.status as keyof typeof PARTS_REQUEST_STATUS_LABELS]}
+                  {PARTS_REQUEST_STATUS_LABELS[pr.status as keyof typeof PARTS_REQUEST_STATUS_LABELS] ?? pr.status}
                 </Badge>
-                {canReview && pr.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() =>
-                      review.mutate({ partsRequestId: pr._id, status: 'rejected' }, {
-                        onSuccess: () => { toast.success('Request rejected.'); void queryClient.invalidateQueries() },
-                      })
-                    }>Reject</Button>
+                <div className="flex flex-wrap gap-2">
+                  {canReview && pr.status === 'pending' && (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() =>
+                        review.mutate({ partsRequestId: pr._id, status: 'rejected' }, {
+                          onSuccess: () => { toast.success('Request rejected.'); void queryClient.invalidateQueries() },
+                        })
+                      }>Reject</Button>
+                      <Button size="sm" onClick={() => setConfirmingPr(pr)}>
+                        Review & Dispatch
+                      </Button>
+                    </>
+                  )}
+                  {canReview && pr.status === 'approved' && (
                     <Button size="sm" onClick={() =>
-                      review.mutate({ partsRequestId: pr._id, status: 'approved' }, {
-                        onSuccess: () => { toast.success('Request approved.'); void queryClient.invalidateQueries() },
+                      dispatch.mutate({ partsRequestId: pr._id }, {
+                        onSuccess: () => { toast.success('Parts dispatched.'); void queryClient.invalidateQueries() },
                       })
-                    }>Approve</Button>
+                    } disabled={dispatch.isPending}>
+                      {dispatch.isPending ? 'Dispatching...' : 'Dispatch'}
+                    </Button>
+                  )}
+                  {canReview && (pr.status === 'approved' || pr.status === 'dispatched') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      onClick={() => setReversingPrId(pr._id)}
+                    >
+                      Reverse Request
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Resolved Part Details */}
+              <div className="mt-3 space-y-1 text-[13px] text-body">
+                {pr.items.map((item: any, idx: number) => {
+                  const part = parts?.find((p: any) => p._id === item.partId)
+                  return (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="font-semibold text-ink">{part ? `${part.code} - ${part.description}` : 'Part'}</span>
+                      <span className="text-mute font-mono">×{item.qty}</span>
+                      {part && (
+                        <span className="text-[11px] text-mute">(Stock: {part.stockQty})</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {pr.note && <p className="mt-2 text-xs text-mute">Note: {pr.note}</p>}
+
+              {/* Reverse Confirmation Modal */}
+              {reversingPrId === pr._id && (
+                <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
+                  <p className="font-semibold">Reverse this parts request?</p>
+                  <p className="mt-0.5">Stock quantities will be credited back to inventory.</p>
+                  <div className="mt-2 flex gap-2">
+                    <Button size="sm" variant="destructive" onClick={() => handleReverse(pr._id)} disabled={reverse.isPending}>
+                      {reverse.isPending ? 'Reversing...' : 'Confirm Reversal'}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setReversingPrId(null)}>
+                      Cancel
+                    </Button>
                   </div>
-                )}
-                {canReview && pr.status === 'approved' && (
-                  <Button size="sm" onClick={() =>
-                    dispatch.mutate({ partsRequestId: pr._id }, {
-                      onSuccess: () => { toast.success('Parts dispatched.'); void queryClient.invalidateQueries() },
-                    })
-                  } disabled={dispatch.isPending}>
-                    {dispatch.isPending ? 'Dispatching...' : 'Dispatch'}
-                  </Button>
-                )}
-              </div>
-              <div className="mt-2 text-[13px] text-body">
-                {pr.items.map((item: any, idx: number) => (
-                  <span key={idx} className="mr-3">{item.qty}x part</span>
-                ))}
-              </div>
-              {pr.note && <p className="mt-1 text-xs text-mute">Note: {pr.note}</p>}
+                </div>
+              )}
             </div>
           ))}
         </div>
+
+        {/* Dispatch Confirmation Modal */}
+        {confirmingPr && (
+          <DispatchConfirmationModal
+            request={confirmingPr}
+            parts={parts ?? []}
+            onClose={() => setConfirmingPr(null)}
+            onApproved={() => {
+              setConfirmingPr(null)
+              void queryClient.invalidateQueries()
+            }}
+          />
+        )}
       </CardContent>
     </Card>
   )
 }
 
-function InvoiceSection({ jobId, invoice, payments, hasItems }: {
+function DispatchConfirmationModal({
+  request,
+  parts,
+  onClose,
+  onApproved,
+}: {
+  request: any
+  parts: any[]
+  onClose: () => void
+  onApproved: () => void
+}) {
+  const review = useReviewPartsRequestMutation()
+  const dispatch = useDispatchPartsRequestMutation()
+  const [loading, setLoading] = useState(false)
+
+  async function handleConfirmAndDispatch() {
+    setLoading(true)
+    try {
+      await review.mutateAsync({ partsRequestId: request._id, status: 'approved' })
+      await dispatch.mutateAsync({ partsRequestId: request._id })
+      toast.success('Parts request approved and dispatched!')
+      onApproved()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Action failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <Card className="w-full max-w-lg shadow-xl">
+        <CardHeader><CardTitle>Confirm Parts Dispatch</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-mute">
+            Review the requested items and verify stock availability before confirming release from inventory.
+          </p>
+
+          <div className="space-y-2 rounded-lg border border-line p-3 text-xs">
+            {request.items.map((item: any, idx: number) => {
+              const part = parts.find((p) => p._id === item.partId)
+              const hasStock = part ? part.stockQty >= item.qty : false
+              return (
+                <div key={idx} className="flex items-center justify-between border-b border-line-soft pb-2 last:border-0 last:pb-0">
+                  <div>
+                    <p className="font-semibold text-ink">{part ? `${part.code} - ${part.description}` : 'Part'}</p>
+                    <p className="text-mute">Available in stock: <span className="font-semibold">{part?.stockQty ?? 0}</span></p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-ink">×{item.qty}</span>
+                    <Badge variant={hasStock ? 'success' : 'destructive'} className="ml-2">
+                      {hasStock ? 'In Stock' : 'Low Stock'}
+                    </Badge>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmAndDispatch} disabled={loading}>
+              {loading ? 'Dispatching...' : 'Approve & Dispatch Parts'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function InvoiceSection({ jobId, invoice, job, customer, vehicle, payments, hasItems }: {
   jobId: string
   invoice: any
+  job?: any
+  customer?: any
+  vehicle?: any
   payments: any[]
   hasItems: boolean
 }) {
   const queryClient = useQueryClient()
   const { data: me } = useCurrentUser()
   const generate = useGenerateInvoiceMutation()
+  const regenerate = useRegenerateInvoiceMutation()
   const approve = useApproveInvoiceMutation()
   const recordPayment = useRecordPaymentMutation()
   const [method, setMethod] = useState('cash')
@@ -692,9 +846,13 @@ function InvoiceSection({ jobId, invoice, payments, hasItems }: {
     <Card className="overflow-hidden">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle>Invoice</CardTitle>
-        <Badge dot variant={invoice.approved ? 'success' : 'warning'}>
-          {invoice.approved ? 'Approved' : 'Pending Approval'}
-        </Badge>
+        <PrintableInvoice
+          invoice={invoice}
+          job={job}
+          customer={customer}
+          vehicle={vehicle}
+          payments={payments}
+        />
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="overflow-hidden rounded-[10px] border border-line-soft">
@@ -730,13 +888,29 @@ function InvoiceSection({ jobId, invoice, payments, hasItems }: {
           <div className="flex justify-between font-bold text-ink"><span>Balance</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(balance)}</span></div>
         </div>
 
-        {/* approve */}
-        {canFinance && !invoice.approved && (
-          <Button onClick={() => approve.mutate({ invoiceId: invoice._id }, {
-            onSuccess: () => { toast.success('Invoice approved.'); void queryClient.invalidateQueries() },
-          })} disabled={approve.isPending}>
-            {approve.isPending ? 'Approving...' : 'Approve Invoice'}
-          </Button>
+        {/* approve / regenerate */}
+        {canFinance && (
+          <div className="flex flex-wrap gap-2 pt-2">
+            {!invoice.approved && (
+              <Button onClick={() => approve.mutate({ invoiceId: invoice._id }, {
+                onSuccess: () => { toast.success('Invoice approved.'); void queryClient.invalidateQueries() },
+              })} disabled={approve.isPending}>
+                {approve.isPending ? 'Approving...' : 'Approve Invoice'}
+              </Button>
+            )}
+
+            {!invoice.paid && (
+              <Button
+                variant="outline"
+                onClick={() => regenerate.mutate({ jobId: jobId as Id<'jobs'> }, {
+                  onSuccess: () => { toast.success('Invoice regenerated with current job items.'); void queryClient.invalidateQueries() },
+                })}
+                disabled={regenerate.isPending}
+              >
+                {regenerate.isPending ? 'Regenerating...' : 'Regenerate Invoice'}
+              </Button>
+            )}
+          </div>
         )}
 
         {/* record payment */}

@@ -19,14 +19,22 @@ import {
 } from '~/lib/queries'
 import type { Id } from 'convex/_generated/dataModel'
 
+import { useCurrentUser } from '~/lib/auth'
+import { Navigate } from '@tanstack/react-router'
+
 export const Route = createFileRoute('/sales/order/$id')({
   component: SalesOrderDetailPage,
 })
 
 function SalesOrderDetailPage() {
   const { id } = Route.useParams()
+  const { data: user } = useCurrentUser()
   const queryClient = useQueryClient()
   const { data: order, isLoading, isError, error } = useQuery(salesOrderQueries.get(id))
+
+  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+    return <Navigate to="/" />
+  }
   const { data: delivery } = useQuery(deliveryQueries.getBySalesOrder(id))
   const completeOrder = useCompleteSalesOrderMutation()
   const cancelOrder = useCancelSalesOrderMutation()
@@ -40,7 +48,7 @@ function SalesOrderDetailPage() {
     return (
       <div className="space-y-4">
         <p className="text-rose-600">Error: {error?.message}</p>
-        <Link to="/sales/orders" className="text-[13px] font-semibold text-accent hover:underline">
+        <Link to="/sales/orders" search={{}} className="text-[13px] font-semibold text-accent hover:underline">
           &larr; Back to orders
         </Link>
       </div>
@@ -50,7 +58,7 @@ function SalesOrderDetailPage() {
     return (
       <div className="space-y-4">
         <p className="text-mute">Order not found.</p>
-        <Link to="/sales/orders" className="text-[13px] font-semibold text-accent hover:underline">
+        <Link to="/sales/orders" search={{}} className="text-[13px] font-semibold text-accent hover:underline">
           &larr; Back to orders
         </Link>
       </div>
@@ -70,6 +78,7 @@ function SalesOrderDetailPage() {
         </div>
         <Link
           to="/sales/orders"
+          search={{}}
           className="flex items-center gap-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
         >
           <IconChevronRight size={13} className="rotate-180" /> Back to orders

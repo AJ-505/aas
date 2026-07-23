@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -20,7 +20,13 @@ import { IconChevronRight, IconPlus, IconSearch } from '~/components/icons'
 import { leadQueries, useCreateLeadMutation } from '~/lib/queries'
 import type { Id } from 'convex/_generated/dataModel'
 
+import { useCurrentUser } from '~/lib/auth'
+import { Navigate } from '@tanstack/react-router'
+
 export const Route = createFileRoute('/sales/leads')({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: (search.q as string) || undefined,
+  }),
   component: LeadsPage,
 })
 
@@ -41,10 +47,22 @@ const LEAD_STAGE_LABELS: Record<string, string> = {
 }
 
 function LeadsPage() {
+  const searchParams = Route.useSearch()
   const navigate = useNavigate()
-  const [q, setQ] = useState('')
+  const { data: user } = useCurrentUser()
+  const [q, setQ] = useState(searchParams.q || '')
   const [showCreate, setShowCreate] = useState(false)
+
+  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+    return <Navigate to="/" />
+  }
   const { data: leads, isLoading } = useQuery(leadQueries.search(q))
+
+  useEffect(() => {
+    if (searchParams.q !== undefined) {
+      setQ(searchParams.q)
+    }
+  }, [searchParams.q])
 
   return (
     <div className="space-y-5">

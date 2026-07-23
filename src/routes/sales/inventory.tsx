@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
+import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useCurrentUser } from '~/lib/auth'
@@ -17,7 +17,7 @@ import {
 import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Loader } from '~/components/Loader'
-import { IconPlus } from '~/components/icons'
+import { IconPlus, IconSearch } from '~/components/icons'
 import {
   vehicleQueries,
   useCreateVehicleMutation,
@@ -30,6 +30,9 @@ import { cn } from '~/lib/utils'
 import type { Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/sales/inventory')({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: (search.q as string) || undefined,
+  }),
   component: SalesInventoryPage,
 })
 
@@ -71,16 +74,28 @@ function FilterChip({
 }
 
 function SalesInventoryPage() {
+  const searchParams = Route.useSearch()
+  const navigate = useNavigate()
   const { data: user } = useCurrentUser()
+
+  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+    return <Navigate to="/" />
+  }
+
   const canEdit =
     user?.role === 'salesRep' ||
-    user?.role === 'inventoryManager' ||
     user?.role === 'manager' ||
-    user?.role === 'admin' ||
-    user?.role === 'csr'
+    user?.role === 'admin'
 
+  const [q, setQ] = useState(searchParams.q || '')
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | undefined>()
   const { data: vehiclesData, isLoading } = useQuery(vehicleQueries.inventory())
+
+  useEffect(() => {
+    if (searchParams.q !== undefined) {
+      setQ(searchParams.q)
+    }
+  }, [searchParams.q])
 
   const [showAdd, setShowAdd] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState<any | null>(null)
@@ -90,11 +105,25 @@ function SalesInventoryPage() {
   const salesVehicles = (vehiclesData ?? []).filter(
     (v: any) => v.status !== 'customerOwned',
   )
+
+  const searchedVehicles = salesVehicles.filter((v: any) => {
+    if (!q.trim()) return true
+    const term = q.toLowerCase().trim()
+    return (
+      v.make?.toLowerCase().includes(term) ||
+      v.model?.toLowerCase().includes(term) ||
+      String(v.year).includes(term) ||
+      v.color?.toLowerCase().includes(term) ||
+      v.plate?.toLowerCase().includes(term) ||
+      v.vin?.toLowerCase().includes(term)
+    )
+  })
+
   const visibleVehicles = statusFilter
-    ? salesVehicles.filter((v) => v.status === statusFilter)
-    : salesVehicles
+    ? searchedVehicles.filter((v) => v.status === statusFilter)
+    : searchedVehicles
   const countFor = (status?: VehicleStatus) =>
-    status ? salesVehicles.filter((v) => v.status === status).length : salesVehicles.length
+    status ? searchedVehicles.filter((v) => v.status === status).length : searchedVehicles.length
 
   return (
     <div className="space-y-5">
@@ -110,6 +139,25 @@ function SalesInventoryPage() {
             <IconPlus size={15} /> Add Stock Vehicle
           </Button>
         )}
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
+        <Input
+          placeholder="Search vehicles by make, model, year, color, plate, VIN..."
+          value={q}
+          onChange={(e) => {
+            const val = e.target.value
+            setQ(val)
+            void navigate({
+              to: '/sales/inventory',
+              search: (prev) => ({ ...prev, q: val || undefined }),
+              replace: true,
+            })
+          }}
+          className="pl-9"
+        />
       </div>
 
       {/* Filter chips */}

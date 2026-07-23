@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
+import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useCurrentUser } from '~/lib/auth'
@@ -17,7 +17,7 @@ import {
 import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Loader } from '~/components/Loader'
-import { IconChevronRight, IconPlus } from '~/components/icons'
+import { IconChevronRight, IconPlus, IconSearch } from '~/components/icons'
 import {
   salesOrderQueries,
   vehicleQueries,
@@ -27,6 +27,9 @@ import {
 import type { Id } from 'convex/_generated/dataModel'
 
 export const Route = createFileRoute('/sales/orders')({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: (search.q as string) || undefined,
+  }),
   component: SalesOrdersPage,
 })
 
@@ -37,16 +40,42 @@ const ORDER_STATUS_VARIANTS: Record<string, 'warning' | 'success' | 'destructive
 }
 
 function SalesOrdersPage() {
+  const searchParams = Route.useSearch()
   const navigate = useNavigate()
   const { data: user } = useCurrentUser()
+
+  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+    return <Navigate to="/" />
+  }
+
   const canEdit =
     user?.role === 'salesRep' ||
     user?.role === 'manager' ||
-    user?.role === 'admin' ||
-    user?.role === 'csr'
+    user?.role === 'admin'
 
+  const [q, setQ] = useState(searchParams.q || '')
   const { data: orders, isLoading } = useQuery(salesOrderQueries.list())
   const [showCreate, setShowCreate] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.q !== undefined) {
+      setQ(searchParams.q)
+    }
+  }, [searchParams.q])
+
+  const searchedOrders = (orders ?? []).filter((o: any) => {
+    if (!q.trim()) return true
+    const term = q.toLowerCase().trim()
+    return (
+      o.lead?.name?.toLowerCase().includes(term) ||
+      o.lead?.phone?.toLowerCase().includes(term) ||
+      o.vehicle?.make?.toLowerCase().includes(term) ||
+      o.vehicle?.model?.toLowerCase().includes(term) ||
+      o.vehicle?.plate?.toLowerCase().includes(term) ||
+      o.status?.toLowerCase().includes(term) ||
+      o._id.toLowerCase().includes(term)
+    )
+  })
 
   return (
     <div className="space-y-5">
@@ -66,6 +95,24 @@ function SalesOrdersPage() {
 
       {showCreate && <CreateSalesOrderModal onDone={() => setShowCreate(false)} />}
 
+      <div className="relative max-w-md">
+        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
+        <Input
+          placeholder="Search orders by customer, vehicle, ID or status..."
+          value={q}
+          onChange={(e) => {
+            const val = e.target.value
+            setQ(val)
+            void navigate({
+              to: '/sales/orders',
+              search: (prev) => ({ ...prev, q: val || undefined }),
+              replace: true,
+            })
+          }}
+          className="pl-9"
+        />
+      </div>
+
       <Card className="overflow-hidden">
         <Table>
           <TableHeader>
@@ -84,14 +131,14 @@ function SalesOrdersPage() {
               <TableRow>
                 <TableCell colSpan={7}><Loader /></TableCell>
               </TableRow>
-            ) : !orders || orders.length === 0 ? (
+            ) : !searchedOrders || searchedOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-mute">
-                  No sales orders yet.
+                  No sales orders found{q ? ` matching "${q}"` : ''}.
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((o) => (
+              searchedOrders.map((o) => (
                 <TableRow
                   key={o._id}
                   className="cursor-pointer"

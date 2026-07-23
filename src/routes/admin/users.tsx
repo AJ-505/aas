@@ -23,12 +23,20 @@ import {
 import type { Id } from 'convex/_generated/dataModel'
 import { ROLES, ROLE_LABELS, type Role } from '~/lib/enums'
 
+import { useCurrentUser } from '~/lib/auth'
+import { Navigate } from '@tanstack/react-router'
+
 export const Route = createFileRoute('/admin/users')({
   component: UsersPage,
 })
 
 function UsersPage() {
+  const { data: user } = useCurrentUser()
   const { data: users, isLoading } = useQuery(userQueries.list())
+
+  if (user?.role && user.role !== 'admin') {
+    return <Navigate to="/" />
+  }
 
   if (isLoading) {
     return <Loader />

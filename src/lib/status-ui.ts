@@ -34,4 +34,5 @@ export const PARTS_REQUEST_VARIANTS: Record<PartsRequestStatus, StatusVariant> =
   approved: 'info',
   rejected: 'destructive',
   dispatched: 'success',
+  reversed: 'secondary',
 }
