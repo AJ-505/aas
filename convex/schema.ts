@@ -5,7 +5,6 @@ import {
   JOB_STATUSES,
   JOB_ITEM_TYPES,
   LEAD_STAGES,
-  PARTS_REQUEST_STATUSES,
   ROLES,
   SALES_ORDER_STATUSES,
   STOCK_MOVEMENT_TYPES,
@@ -16,9 +15,6 @@ const roleValidator = v.union(...ROLES.map((r) => v.literal(r)))
 const jobStatusValidator = v.union(...JOB_STATUSES.map((s) => v.literal(s)))
 const jobItemTypeValidator = v.union(...JOB_ITEM_TYPES.map((s) => v.literal(s)))
 const vehicleStatusValidator = v.union(...VEHICLE_STATUSES.map((s) => v.literal(s)))
-const partsRequestStatusValidator = v.union(
-  ...PARTS_REQUEST_STATUSES.map((s) => v.literal(s)),
-)
 const stockMovementTypeValidator = v.union(
   ...STOCK_MOVEMENT_TYPES.map((s) => v.literal(s)),
 )
@@ -26,6 +22,7 @@ const leadStageValidator = v.union(...LEAD_STAGES.map((s) => v.literal(s)))
 const salesOrderStatusValidator = v.union(
   ...SALES_ORDER_STATUSES.map((s) => v.literal(s)),
 )
+
 
 export default defineSchema({
   ...authTables,
@@ -94,21 +91,18 @@ export default defineSchema({
     vehicleId: v.id('vehicles'),
     customerId: v.id('customers'),
     csrId: v.id('users'),
-    technicianId: v.optional(v.id('users')),
     status: jobStatusValidator,
     complaint: v.string(),
     diagnosis: v.optional(v.string()),
+    diagnosedById: v.optional(v.id('users')),
     checkInTs: v.number(),
-    assignedTs: v.optional(v.number()),
     diagnosedTs: v.optional(v.number()),
-    waitingReleaseTs: v.optional(v.number()),
     inProgressTs: v.optional(v.number()),
     readyForPickupTs: v.optional(v.number()),
     completedTs: v.optional(v.number()),
     paidTs: v.optional(v.number()),
   })
     .index('status', ['status'])
-    .index('technicianId', ['technicianId'])
     .index('customerId', ['customerId']),
 
   jobItems: defineTable({
@@ -121,22 +115,7 @@ export default defineSchema({
     lineTotal: v.number(),
   }).index('jobId', ['jobId']),
 
-  partsRequests: defineTable({
-    jobId: v.id('jobs'),
-    technicianId: v.id('users'),
-    items: v.array(
-      v.object({
-        partId: v.id('parts'),
-        qty: v.number(),
-      }),
-    ),
-    status: partsRequestStatusValidator,
-    reviewedByInventoryManagerId: v.optional(v.id('users')),
-    reviewedTs: v.optional(v.number()),
-    note: v.optional(v.string()),
-  })
-    .index('status', ['status'])
-    .index('jobId', ['jobId']),
+
 
   invoices: defineTable({
     jobId: v.id('jobs'),

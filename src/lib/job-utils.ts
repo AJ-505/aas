@@ -3,12 +3,10 @@ import type { JobStatus } from './enums'
 export type { JobStatus }
 
 const TRANSITIONS: Record<JobStatus, JobStatus[]> = {
-  checkedIn: ['assigned'],
-  assigned: ['diagnosed'],
-  diagnosed: ['waitingRelease', 'inProgress'],
-  waitingRelease: ['inProgress', 'diagnosed'],
-  inProgress: ['readyForPickup', 'waitingRelease'],
-  readyForPickup: ['completed', 'waitingRelease'],
+  checkedIn: ['diagnosed', 'inProgress'],
+  diagnosed: ['inProgress'],
+  inProgress: ['readyForPickup'],
+  readyForPickup: ['completed'],
   completed: ['paid'],
   paid: [],
 }
@@ -27,9 +25,7 @@ export function isTerminal(status: JobStatus): boolean {
 
 export const JOB_FLOW: JobStatus[] = [
   'checkedIn',
-  'assigned',
   'diagnosed',
-  'waitingRelease',
   'inProgress',
   'readyForPickup',
   'completed',

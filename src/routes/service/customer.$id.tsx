@@ -35,7 +35,7 @@ function CustomerDetailPage() {
   const navigate = useNavigate()
   const { data: jobHistory } = useQuery(jobQueries.byCustomer(customerId))
 
-  if (user && (user.role === 'technician' || user.role === 'salesRep')) {
+  if (user && user.role === 'salesRep') {
     return <Navigate to="/" />
   }
 

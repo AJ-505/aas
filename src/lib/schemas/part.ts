@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PARTS_REQUEST_STATUSES, STOCK_MOVEMENT_TYPES } from '../enums'
+import { STOCK_MOVEMENT_TYPES } from '../enums'
 import { moneyKobo } from './common'
 
 export const createPartSchema = z.object({
@@ -22,25 +22,5 @@ export const stockMovementSchema = z.object({
   jobId: z.string().min(1).optional(),
 })
 
-export const partsRequestStatusSchema = z.enum(PARTS_REQUEST_STATUSES)
-
-export const createPartsRequestSchema = z.object({
-  jobId: z.string().min(1),
-  items: z
-    .array(
-      z.object({
-        partId: z.string().min(1),
-        qty: z.number().int().min(1),
-      }),
-    )
-    .min(1, 'At least one part is required'),
-})
-
-export const reviewPartsRequestSchema = z.object({
-  partsRequestId: z.string().min(1),
-  status: z.enum(['approved', 'rejected']),
-  note: z.string().trim().optional().or(z.literal('')),
-})
-
 export type CreatePartInput = z.infer<typeof createPartSchema>
-export type CreatePartsRequestInput = z.infer<typeof createPartsRequestSchema>
+

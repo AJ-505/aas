@@ -10,7 +10,7 @@ const ACCOUNTS = [
   { name: 'Test Admin', email: 'test@t.com', role: 'admin' as const, password: 'password' },
   { name: 'Cedric Masters', email: 'cedric@cedricmastersautos.com', role: 'admin' as const },
   { name: 'Amara Obi', email: 'amara@cedricmastersautos.com', role: 'csr' as const },
-  { name: 'Tunde Bakare', email: 'tunde@cedricmastersautos.com', role: 'technician' as const },
+  { name: 'Tunde Bakare', email: 'tunde@cedricmastersautos.com', role: 'inventoryManager' as const },
   { name: 'Kunle Davies', email: 'kunle@cedricmastersautos.com', role: 'manager' as const },
   { name: 'Yetunde Salami', email: 'yetunde@cedricmastersautos.com', role: 'inventoryManager' as const },
   { name: 'Funmi Akinlade', email: 'funmi@cedricmastersautos.com', role: 'finance' as const },
@@ -108,21 +108,21 @@ const JOBS = [
     vehicleIdx: 0,
     complaint: 'Engine making strange knocking noise, check engine light is on. Oil change also overdue.',
     status: 'inProgress' as const,
-    offsetMinutes: { checkIn: 180, assigned: 150, diagnosed: 120, inProgress: 60 },
+    offsetMinutes: { checkIn: 180, diagnosed: 120, inProgress: 60 },
   },
   {
     customerIdx: 1,
     vehicleIdx: 1,
     complaint: 'AC blowing warm air. No cooling at all. Suspect gas leak or compressor issue.',
     status: 'diagnosed' as const,
-    offsetMinutes: { checkIn: 240, assigned: 210, diagnosed: 180 },
+    offsetMinutes: { checkIn: 240, diagnosed: 180 },
   },
   {
     customerIdx: 2,
     vehicleIdx: 2,
     complaint: 'Brake pedal feels soft and spongy. Squeaking noise when braking. Front brake service needed.',
-    status: 'assigned' as const,
-    offsetMinutes: { checkIn: 300, assigned: 270 },
+    status: 'checkedIn' as const,
+    offsetMinutes: { checkIn: 300 },
   },
   {
     customerIdx: 3,
@@ -136,7 +136,7 @@ const JOBS = [
     vehicleIdx: 8,
     complaint: 'Transmission jerking when shifting from 2nd to 3rd gear. Transmission fluid level seems low.',
     status: 'readyForPickup' as const,
-    offsetMinutes: { checkIn: 1440, assigned: 1380, diagnosed: 1320, inProgress: 1200, readyForPickup: 60 },
+    offsetMinutes: { checkIn: 1440, diagnosed: 1320, inProgress: 1200, readyForPickup: 60 },
   },
 ]
 
@@ -221,9 +221,8 @@ export const seedData = mutation({
     const existingJobs = await ctx.db.query('jobs').first()
     if (!existingJobs && customerIds.length > 0 && vehicleIds.length > 0) {
       const csr = await ctx.db.query('users').withIndex('email', (q) => q.eq('email', 'amara@cedricmastersautos.com')).first()
-      const tech = await ctx.db.query('users').withIndex('email', (q) => q.eq('email', 'tunde@cedricmastersautos.com')).first()
 
-      if (csr && tech) {
+      if (csr) {
         const now = Date.now()
         for (const job of JOBS) {
           const customer = customerIds[job.customerIdx]
@@ -231,9 +230,6 @@ export const seedData = mutation({
           if (!customer || !vehicle) continue
 
           const checkInTs = now - job.offsetMinutes.checkIn * 60 * 1000
-          const assignedTs = job.offsetMinutes.assigned
-            ? now - job.offsetMinutes.assigned * 60 * 1000
-            : undefined
           const diagnosedTs = job.offsetMinutes.diagnosed
             ? now - job.offsetMinutes.diagnosed * 60 * 1000
             : undefined
@@ -248,13 +244,9 @@ export const seedData = mutation({
             vehicleId: vehicle,
             customerId: customer,
             csrId: csr._id,
-            technicianId: ['diagnosed', 'inProgress', 'readyForPickup'].includes(job.status)
-              ? tech._id
-              : undefined,
             status: job.status,
             complaint: job.complaint,
             checkInTs,
-            assignedTs,
             diagnosedTs,
             inProgressTs,
             readyForPickupTs,
@@ -262,7 +254,7 @@ export const seedData = mutation({
         }
         results.push(`jobs: inserted ${JOBS.length} jobs with various statuses`)
       } else {
-        results.push('jobs: skipped (CSR or technician not found — run seed action first)')
+        results.push('jobs: skipped (CSR not found — run seed action first)')
       }
     } else if (existingJobs) {
       results.push('jobs: already exist (skipped)')
@@ -278,20 +270,21 @@ export const seed = action({
     const results: string[] = []
 
     // --- Accounts (users + authAccounts) ---
-    const existingUsers = await ctx.runQuery('seed:checkEmails' as any, {})
-    const existingEmails = new Set(existingUsers as string[])
+    const existingAuthAccounts = await ctx.runQuery('seed:checkAuthAccounts' as any, {})
+    const existingAccountsSet = new Set(existingAuthAccounts as string[])
 
     for (const acc of ACCOUNTS) {
-      if (existingEmails.has(acc.email)) {
-        results.push(`account: ${acc.email} already exists (skipped)`)
+      if (existingAccountsSet.has(acc.email)) {
+        results.push(`account: ${acc.email} already has credentials in authAccounts (skipped)`)
         continue
       }
       await createAccount(ctx, {
         provider: 'password',
         account: { id: acc.email, secret: (acc as any).password ?? 'password123' },
         profile: { name: acc.name, email: acc.email, role: acc.role, active: true },
+        shouldLinkViaEmail: true,
       })
-      results.push(`account: created ${acc.email} (${acc.role})`)
+      results.push(`account: created credentials for ${acc.email} (${acc.role})`)
     }
 
     // --- Seed remaining data ---
@@ -302,10 +295,11 @@ export const seed = action({
   },
 })
 
-export const checkEmails = query({
+export const checkAuthAccounts = query({
   args: {},
   handler: async (ctx) => {
-    const users = await ctx.db.query('users').collect()
-    return users.map((u) => u.email)
+    const accounts = await ctx.db.query('authAccounts').collect()
+    return accounts.filter((a) => a.provider === 'password').map((a) => a.providerAccountId)
   },
 })
+

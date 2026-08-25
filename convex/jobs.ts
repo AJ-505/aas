@@ -5,7 +5,7 @@ import { requireUser, requireRole } from './lib/auth'
 import { audit } from './lib/audit'
 import { canTransition } from '../src/lib/job-utils'
 import type { JobStatus } from '../src/lib/enums'
-import { checkInJobSchema, assignTechnicianSchema } from '../src/lib/schemas'
+import { checkInJobSchema } from '../src/lib/schemas'
 import { computeInvoiceTotals, type InvoiceLineItem } from '../src/lib/schemas/invoice'
 
 export const getDetail = query({
@@ -17,14 +17,10 @@ export const getDetail = query({
 
     const vehicle = await ctx.db.get(job.vehicleId)
     const customer = await ctx.db.get(job.customerId)
-    const technician = job.technicianId ? await ctx.db.get(job.technicianId) : null
     const csr = await ctx.db.get(job.csrId)
+    const diagnosedBy = job.diagnosedById ? await ctx.db.get(job.diagnosedById) : null
     const jobItems = await ctx.db
       .query('jobItems')
-      .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
-      .collect()
-    const partsRequests = await ctx.db
-      .query('partsRequests')
       .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
       .collect()
     const invoice = await ctx.db
@@ -42,12 +38,11 @@ export const getDetail = query({
       job,
       vehicle,
       customer,
-      technician: technician
-        ? { _id: technician._id, name: technician.name ?? null }
+      diagnosedBy: diagnosedBy
+        ? { _id: diagnosedBy._id, name: diagnosedBy.name ?? null }
         : null,
       csr: csr ? { _id: csr._id, name: csr.name ?? null } : null,
       jobItems,
-      partsRequests,
       invoice: invoice ?? null,
       payments,
     }
@@ -71,7 +66,6 @@ export const byStatus = query({
       jobs.map(async (job) => {
         const vehicle = await ctx.db.get(job.vehicleId)
         const customer = await ctx.db.get(job.customerId)
-        const technician = job.technicianId ? await ctx.db.get(job.technicianId) : null
         return {
           _id: job._id,
           status: job.status,
@@ -89,9 +83,6 @@ export const byStatus = query({
             : null,
           customer: customer
             ? { _id: customer._id, name: customer.name, phone: customer.phone }
-            : null,
-          technician: technician
-            ? { _id: technician._id, name: technician.name ?? null }
             : null,
         }
       }),
@@ -131,7 +122,6 @@ export const dashboardSummary = query({
     let ready = 0
     let checkedInThisWeek = 0
     const checkinTrend = new Array<number>(7).fill(0)
-    const technicianIds = new Set<string>()
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -139,10 +129,7 @@ export const dashboardSummary = query({
 
     for (const job of jobs) {
       if (job.status !== 'completed' && job.status !== 'paid') open++
-      if (job.status === 'inProgress') {
-        inProgress++
-        if (job.technicianId) technicianIds.add(job.technicianId)
-      }
+      if (job.status === 'inProgress') inProgress++
       if (job.status === 'readyForPickup') ready++
       if (job.checkInTs >= weekAgo) checkedInThisWeek++
 
@@ -197,7 +184,6 @@ export const dashboardSummary = query({
       customersTotal: customers.length,
       newThisMonth,
       customerTrend,
-      techsOnSite: technicianIds.size,
       recent,
     }
   },
@@ -235,17 +221,7 @@ export const byCustomer = query({
   },
 })
 
-export const myJobs = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireUser(ctx)
-    return await ctx.db
-      .query('jobs')
-      .withIndex('technicianId', (q) => q.eq('technicianId', user._id))
-      .order('desc')
-      .collect()
-  },
-})
+
 
 export const checkIn = mutation({
   args: {
@@ -277,47 +253,15 @@ export const checkIn = mutation({
   },
 })
 
-export const assign = mutation({
-  args: {
-    jobId: v.id('jobs'),
-    technicianId: v.id('users'),
-  },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'manager', 'admin'])
-    const parsed = assignTechnicianSchema.parse(args)
-    const job = await ctx.db.get(parsed.jobId as Id<'jobs'>)
-    if (!job) throw new ConvexError('Job not found.')
-    if (!canTransition(job.status, 'assigned')) {
-      throw new ConvexError(`Cannot assign a job that is "${job.status}".`)
-    }
-    const tech = await ctx.db.get(parsed.technicianId as Id<'users'>)
-    if (!tech) throw new ConvexError('Technician not found.')
-    if (tech.role !== 'technician' && tech.role !== 'admin' && tech.role !== 'manager') {
-      throw new ConvexError('Assigned user must be a technician.')
-    }
-
-    await ctx.db.patch(parsed.jobId as Id<'jobs'>, {
-      technicianId: parsed.technicianId as Id<'users'>,
-      status: 'assigned',
-      assignedTs: Date.now(),
-    })
-    await audit(ctx, 'job.assign', 'jobs', parsed.jobId)
-    return null
-  },
-})
-
 export const diagnose = mutation({
   args: {
     jobId: v.id('jobs'),
     diagnosis: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['technician', 'manager', 'admin'])
+    const user = await requireRole(ctx, ['inventoryManager', 'manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
-    if (job.technicianId && job.technicianId !== user._id && user.role !== 'admin' && user.role !== 'manager') {
-      throw new ConvexError('You are not the assigned technician for this job.')
-    }
     if (!canTransition(job.status, 'diagnosed')) {
       throw new ConvexError(`Cannot diagnose a job that is "${job.status}".`)
     }
@@ -326,54 +270,21 @@ export const diagnose = mutation({
       status: 'diagnosed',
       diagnosis: args.diagnosis,
       diagnosedTs: Date.now(),
+      diagnosedById: user._id,
     })
     await audit(ctx, 'job.diagnose', 'jobs', args.jobId)
     return null
   },
 })
 
-export const startWork = mutation({
-  args: { jobId: v.id('jobs') },
-  handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['technician', 'manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
-    if (!job) throw new ConvexError('Job not found.')
-    if (job.technicianId && job.technicianId !== user._id && user.role !== 'admin' && user.role !== 'manager') {
-      throw new ConvexError('You are not the assigned technician for this job.')
-    }
-    if (!canTransition(job.status, 'inProgress')) {
-      throw new ConvexError(`Cannot start work on a job that is "${job.status}".`)
-    }
-    // If coming from waitingRelease, verify all parts requests are dispatched
-    if (job.status === 'waitingRelease') {
-      const requests = await ctx.db
-        .query('partsRequests')
-        .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
-        .collect()
-      const undispatched = requests.filter((r) => r.status !== 'dispatched' && r.status !== 'rejected')
-      if (undispatched.length > 0) {
-        throw new ConvexError('All parts requests must be dispatched or rejected before starting work.')
-      }
-    }
 
-    await ctx.db.patch(args.jobId, {
-      status: 'inProgress',
-      inProgressTs: Date.now(),
-    })
-    await audit(ctx, 'job.startWork', 'jobs', args.jobId)
-    return null
-  },
-})
 
 export const markReady = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['technician', 'manager', 'admin'])
+    await requireRole(ctx, ['inventoryManager', 'manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
-    if (job.technicianId && job.technicianId !== user._id && user.role !== 'admin' && user.role !== 'manager') {
-      throw new ConvexError('You are not the assigned technician for this job.')
-    }
     if (!canTransition(job.status, 'readyForPickup')) {
       throw new ConvexError(`Cannot mark ready a job that is "${job.status}".`)
     }
@@ -492,40 +403,70 @@ export const addJobItem = mutation({
     unitPrice: v.number(),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['finance', 'csr', 'manager', 'admin'])
+    const user = await requireRole(ctx, ['inventoryManager', 'finance', 'csr', 'manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (job.status === 'completed' || job.status === 'paid') {
       throw new ConvexError('Cannot add items to a job that is completed or paid.')
     }
 
-    if (args.type === 'part') {
-      throw new ConvexError('Spare parts can only be added via Inventory Manager parts request approval.')
-    }
-    const type = args.type as 'labour'
-    if (type !== 'labour') {
-      throw new ConvexError('Item type must be "labour".')
+    const type = args.type as 'part' | 'labour'
+    if (type !== 'part' && type !== 'labour') {
+      throw new ConvexError('Item type must be "part" or "labour".')
     }
 
     let description = ''
-    if (type === 'labour' && args.labourTypeId) {
+    if (type === 'part') {
+      if (!args.partId) throw new ConvexError('Part items need a partId.')
+      // Only inventoryManager, manager, admin can add parts directly
+      if (user.role !== 'inventoryManager' && user.role !== 'manager' && user.role !== 'admin') {
+        throw new ConvexError('Only Inventory Manager, Manager, or Admin can add spare parts.')
+      }
+      const part = await ctx.db.get(args.partId)
+      if (!part) throw new ConvexError('Part not found.')
+      if (part.stockQty < args.qty) {
+        throw new ConvexError(`Insufficient stock for ${part.code}. Available: ${part.stockQty}, requested: ${args.qty}`)
+      }
+      description = `${part.code} - ${part.description}`
+
+      // Decrement stock
+      await ctx.db.patch(args.partId, { stockQty: part.stockQty - args.qty })
+      // Log stock movement
+      await ctx.db.insert('stockMovements', {
+        partId: args.partId,
+        qty: args.qty,
+        type: 'out',
+        jobId: args.jobId,
+        ts: Date.now(),
+        userId: user._id,
+      })
+    } else {
+      if (!args.labourTypeId) throw new ConvexError('Labour items need a labourTypeId.')
       const lt = await ctx.db.get(args.labourTypeId)
       if (!lt) throw new ConvexError('Labour type not found.')
       description = lt.name
-    } else {
-      throw new ConvexError('Labour items need a labourTypeId.')
     }
 
     const lineTotal = args.unitPrice * args.qty
     const itemId = await ctx.db.insert('jobItems', {
       jobId: args.jobId,
-      type: 'labour',
-      labourTypeId: args.labourTypeId,
+      type,
+      partId: type === 'part' ? args.partId : undefined,
+      labourTypeId: type === 'labour' ? args.labourTypeId : undefined,
       qty: args.qty,
       unitPrice: args.unitPrice,
       lineTotal,
     })
     await audit(ctx, 'job.addItem', 'jobItems', itemId)
+
+    // Auto-transition to inProgress when items are added
+    if (job.status === 'checkedIn' || job.status === 'diagnosed') {
+      await ctx.db.patch(args.jobId, {
+        status: 'inProgress',
+        inProgressTs: job.inProgressTs ?? Date.now(),
+      })
+    }
+
     await syncInvoiceForJob(ctx, args.jobId)
     return itemId
   },

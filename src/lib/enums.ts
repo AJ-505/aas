@@ -1,7 +1,6 @@
 export const ROLES = [
   'admin',
   'csr',
-  'technician',
   'inventoryManager',
   'finance',
   'manager',
@@ -11,9 +10,7 @@ export type Role = (typeof ROLES)[number]
 
 export const JOB_STATUSES = [
   'checkedIn',
-  'assigned',
   'diagnosed',
-  'waitingRelease',
   'inProgress',
   'readyForPickup',
   'completed',
@@ -29,14 +26,7 @@ export const VEHICLE_STATUSES = [
 ] as const
 export type VehicleStatus = (typeof VEHICLE_STATUSES)[number]
 
-export const PARTS_REQUEST_STATUSES = [
-  'pending',
-  'approved',
-  'rejected',
-  'dispatched',
-  'reversed',
-] as const
-export type PartsRequestStatus = (typeof PARTS_REQUEST_STATUSES)[number]
+
 
 export const LEAD_STAGES = ['new', 'contacted', 'qualified', 'lost', 'won'] as const
 export type LeadStage = (typeof LEAD_STAGES)[number]
@@ -57,7 +47,6 @@ export type JobItemType = (typeof JOB_ITEM_TYPES)[number]
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
   csr: 'Customer Service Rep',
-  technician: 'Technician',
   inventoryManager: 'Inventory Manager',
   finance: 'Finance Personnel',
   manager: 'Manager',
@@ -66,9 +55,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   checkedIn: 'Checked In',
-  assigned: 'Assigned',
   diagnosed: 'Diagnosed',
-  waitingRelease: 'Waiting Release',
   inProgress: 'In Progress',
   readyForPickup: 'Ready for Pickup',
   completed: 'Completed',
@@ -80,14 +67,6 @@ export const VEHICLE_STATUS_LABELS: Record<VehicleStatus, string> = {
   reserved: 'Reserved',
   sold: 'Sold',
   customerOwned: 'Customer Owned',
-}
-
-export const PARTS_REQUEST_STATUS_LABELS: Record<PartsRequestStatus, string> = {
-  pending: 'Pending',
-  approved: 'Approved',
-  rejected: 'Rejected',
-  dispatched: 'Dispatched',
-  reversed: 'Reversed',
 }
 
 export const JOB_ITEM_TYPE_LABELS: Record<JobItemType, string> = {

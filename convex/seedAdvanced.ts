@@ -114,7 +114,7 @@ export const seedAdvanced = mutation({
     // ---- Load existing reference data ----
     const allUsers = await ctx.db.query('users').collect()
     let csr = allUsers.find((u) => u.role === 'csr')
-    let tech = allUsers.find((u) => u.role === 'technician')
+    let inventoryManager = allUsers.find((u) => u.role === 'inventoryManager')
 
     // Create staff users if base seed didn't run fully
     if (!csr) {
@@ -129,17 +129,17 @@ export const seedAdvanced = mutation({
       csr = csrDoc
       results.push('users: created CSR (Amara Obi)')
     }
-    if (!tech) {
+    if (!inventoryManager) {
       const id = await ctx.db.insert('users', {
         name: 'Tunde Bakare',
         email: 'tunde@cedricmastersautos.com',
-        role: 'technician',
+        role: 'inventoryManager',
         active: true,
       })
-      const techDoc = await ctx.db.get(id)
-      if (!techDoc) throw new Error('Failed to create technician user')
-      tech = techDoc
-      results.push('users: created technician (Tunde Bakare)')
+      const inventoryManagerDoc = await ctx.db.get(id)
+      if (!inventoryManagerDoc) throw new Error('Failed to create inventory manager user')
+      inventoryManager = inventoryManagerDoc
+      results.push('users: created inventory manager (Tunde Bakare)')
     }
 
     // Ensure admin exists too
@@ -157,7 +157,7 @@ export const seedAdvanced = mutation({
       results.push('users: created admin (Cedric Masters)')
     }
 
-    if (!csr || !tech) throw new Error('Failed to create staff users.')
+    if (!csr || !inventoryManager) throw new Error('Failed to create staff users.')
 
     const existingCustomers = await ctx.db.query('customers').collect()
     const existingVehicles = await ctx.db.query('vehicles').collect()
@@ -221,7 +221,7 @@ export const seedAdvanced = mutation({
       customerName: string
       plate: string
       complaint: string
-      status: 'checkedIn' | 'assigned' | 'diagnosed' | 'waitingRelease' | 'inProgress' | 'readyForPickup' | 'completed' | 'paid'
+      status: 'checkedIn' | 'diagnosed' | 'inProgress' | 'readyForPickup' | 'completed' | 'paid'
       offsets: Record<string, number>
       jobItems: Array<{ type: 'part' | 'labour'; codeOrName: string; qty: number }>
     }
@@ -232,7 +232,7 @@ export const seedAdvanced = mutation({
         plate: 'lsd-123-hg',
         complaint: 'Periodic transmission service - ATF change, gearbox filter replacement, and general inspection. Customer noticed delayed engagement when shifting to Drive.',
         status: 'paid',
-        offsets: { checkedIn: 2880, assigned: 2760, diagnosed: 2640, waitingRelease: 2520, inProgress: 2400, readyForPickup: 1440, completed: 1200, paid: 600 },
+        offsets: { checkedIn: 2880, diagnosed: 2640, inProgress: 2400, readyForPickup: 1440, completed: 1200, paid: 600 },
         jobItems: [
           { type: 'labour', codeOrName: 'Transmission Service', qty: 1 },
           { type: 'part', codeOrName: 'ATF-001', qty: 4 },
@@ -246,7 +246,7 @@ export const seedAdvanced = mutation({
         plate: 'lsd-345-ty',
         complaint: 'Full service - oil change, new oil filter, air filter replacement. Customer also reported slight vibration at highway speeds.',
         status: 'completed',
-        offsets: { checkedIn: 1440, assigned: 1380, diagnosed: 1320, waitingRelease: 1260, inProgress: 1200, readyForPickup: 720, completed: 480 },
+        offsets: { checkedIn: 1440, diagnosed: 1320, inProgress: 1200, readyForPickup: 720, completed: 480 },
         jobItems: [
           { type: 'labour', codeOrName: 'Oil Change', qty: 1 },
           { type: 'part', codeOrName: 'OIL-001', qty: 1 },
@@ -260,7 +260,7 @@ export const seedAdvanced = mutation({
         plate: 'gge-678-fg',
         complaint: 'AC blowing warm air. No cooling at all. Customer says it started gradually over the past week.',
         status: 'readyForPickup',
-        offsets: { checkedIn: 2160, assigned: 2100, diagnosed: 1800, inProgress: 1440, readyForPickup: 240 },
+        offsets: { checkedIn: 2160, diagnosed: 1800, inProgress: 1440, readyForPickup: 240 },
         jobItems: [
           { type: 'labour', codeOrName: 'AC Repair & Recharge', qty: 1 },
           { type: 'part', codeOrName: 'ACG-001', qty: 2 },
@@ -272,8 +272,8 @@ export const seedAdvanced = mutation({
         customerName: 'Olumide Fasanya',
         plate: 'sma-901-xc',
         complaint: 'Check engine light on, rough idle, loss of power when accelerating. Possible spark plug or ignition coil issue.',
-        status: 'waitingRelease',
-        offsets: { checkedIn: 720, assigned: 660, diagnosed: 480, waitingRelease: 120 },
+        status: 'diagnosed',
+        offsets: { checkedIn: 720, diagnosed: 480 },
         jobItems: [
           { type: 'labour', codeOrName: 'Engine Diagnostics', qty: 1 },
         ],
@@ -283,7 +283,7 @@ export const seedAdvanced = mutation({
         plate: 'eko-234-vb',
         complaint: 'Squeaking noise from front brakes at low speed. Brake pedal feels spongy. Request full brake inspection.',
         status: 'diagnosed',
-        offsets: { checkedIn: 480, assigned: 420, diagnosed: 240 },
+        offsets: { checkedIn: 480, diagnosed: 240 },
         jobItems: [
           { type: 'labour', codeOrName: 'Brake Service', qty: 1 },
         ],
@@ -301,7 +301,7 @@ export const seedAdvanced = mutation({
         plate: 'eko-345-kl',
         complaint: 'Full brake service - front and rear pads, oil change, and general inspection. Customer noticed vibration when braking at high speed.',
         status: 'readyForPickup',
-        offsets: { checkedIn: 1800, assigned: 1740, diagnosed: 1680, inProgress: 1440, readyForPickup: 120 },
+        offsets: { checkedIn: 1800, diagnosed: 1680, inProgress: 1440, readyForPickup: 120 },
         jobItems: [
           { type: 'labour', codeOrName: 'Oil Change', qty: 1 },
           { type: 'part', codeOrName: 'OIL-002', qty: 1 },
@@ -333,9 +333,7 @@ export const seedAdvanced = mutation({
       }
 
       const checkInTs = minsAgo(job.offsets.checkedIn as number)
-      const assignedTs = job.offsets.assigned !== undefined ? minsAgo(job.offsets.assigned) : undefined
       const diagnosedTs = job.offsets.diagnosed !== undefined ? minsAgo(job.offsets.diagnosed) : undefined
-      const waitingReleaseTs = job.offsets.waitingRelease !== undefined ? minsAgo(job.offsets.waitingRelease) : undefined
       const inProgressTs = job.offsets.inProgress !== undefined ? minsAgo(job.offsets.inProgress) : undefined
       const readyForPickupTs = job.offsets.readyForPickup !== undefined ? minsAgo(job.offsets.readyForPickup) : undefined
       const completedTs = job.offsets.completed !== undefined ? minsAgo(job.offsets.completed) : undefined
@@ -345,15 +343,13 @@ export const seedAdvanced = mutation({
         vehicleId: vehicle._id,
         customerId: customer._id,
         csrId: csr._id,
-        technicianId: ['diagnosed', 'waitingRelease', 'inProgress', 'readyForPickup', 'completed', 'paid'].includes(job.status)
-          ? tech._id
-          : undefined,
         status: job.status,
         complaint: job.complaint,
+        diagnosedById: ['diagnosed', 'inProgress', 'readyForPickup', 'completed', 'paid'].includes(job.status)
+          ? inventoryManager._id
+          : undefined,
         checkInTs,
-        assignedTs,
         diagnosedTs,
-        waitingReleaseTs,
         inProgressTs,
         readyForPickupTs,
         completedTs,

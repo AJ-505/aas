@@ -8,9 +8,9 @@ All users share the password: `password123`
 |------|-------|------|-----------------|
 | Cedric Masters | cedric@cedricmastersautos.com | Admin | Everything |
 | Amara Obi | amara@cedricmastersautos.com | CSR | Dashboard, Appointments, Customers, Jobs, Check-in |
-| Tunde Bakare | tunde@cedricmastersautos.com | Technician | Dashboard, Jobs (assigned) |
+| Tunde Bakare | tunde@cedricmastersautos.com | Inventory Manager | Dashboard, Jobs, Parts, Diagnosis |
 | Kunle Davies | kunle@cedricmastersautos.com | Manager | Dashboard, Appointments, Customers, Jobs, Check-in, Parts, Finance, Sales, User Management |
-| Yetunde Salami | yetunde@cedricmastersautos.com | Inventory Manager | Dashboard, Parts |
+| Yetunde Salami | yetunde@cedricmastersautos.com | Inventory Manager | Dashboard, Jobs, Parts, Diagnosis |
 | Funmi Akinlade | funmi@cedricmastersautos.com | Finance | Dashboard, Finance |
 | Emeka Okafor | emeka@cedricmastersautos.com | Sales Rep | Dashboard, Sales (Inventory, Leads, Orders) |
 

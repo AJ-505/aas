@@ -49,7 +49,7 @@ function CustomersPage() {
     }
   }, [searchParams.q])
 
-  if (user && (user.role === 'technician' || user.role === 'salesRep')) {
+  if (user && user.role === 'salesRep') {
     return <Navigate to="/" />
   }
 

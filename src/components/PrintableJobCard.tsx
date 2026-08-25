@@ -7,14 +7,12 @@ interface PrintableJobCardProps {
   job: any
   vehicle?: any
   customer?: any
-  technician?: any
   csr?: any
 }
 
 export function PrintableJobCard({
   job,
   vehicle,
-  technician,
 }: PrintableJobCardProps) {
   useEffect(() => {
     const cleanup = () => {
@@ -79,29 +77,24 @@ export function PrintableJobCard({
           </div>
 
           <div className="rounded-lg border border-line p-4">
-            <p className="font-bold uppercase tracking-wider text-mute">Technician Inspection & Diagnosis</p>
+            <p className="font-bold uppercase tracking-wider text-mute">Workshop Inspection & Diagnosis</p>
             <p className="mt-2 text-sm leading-relaxed text-ink min-h-[60px]">
               {job.diagnosis || ''}
             </p>
           </div>
         </div>
 
-        {/* Personnel & Signatures */}
-        <div className="mt-8 grid grid-cols-2 gap-6 text-xs">
-          <div className="space-y-1">
-            <p className="text-mute">Assigned Technician: <span className="font-semibold text-ink">{technician?.name ?? 'Unassigned'}</span></p>
+        {/* Signatures */}
+        <div className="mt-8 flex justify-between gap-4 pt-6 border-t border-line text-xs">
+          <div className="text-center w-1/2">
+            <div className="border-b border-line-soft pb-1 text-mute text-[10px]">Inventory Manager Signature</div>
           </div>
-
-          <div className="mt-4 flex justify-between gap-4 pt-6 border-t border-line">
-            <div className="text-center w-1/2">
-              <div className="border-b border-line-soft pb-1 text-mute text-[10px]">Technician Signature</div>
-            </div>
-            <div className="text-center w-1/2">
-              <div className="border-b border-line-soft pb-1 text-mute text-[10px]">Workshop Manager Approval</div>
-            </div>
+          <div className="text-center w-1/2">
+            <div className="border-b border-line-soft pb-1 text-mute text-[10px]">Workshop Manager Approval</div>
           </div>
         </div>
       </div>
     </>
   )
 }
+

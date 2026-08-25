@@ -16,14 +16,12 @@ export const vehicleQueries = {
 
 export const userQueries = {
   list: () => convexQuery(api.users.list, {}),
-  listTechnicians: () => convexQuery(api.users.listTechnicians, {}),
   adminExists: () => convexQuery(api.users.adminExists, {}),
 }
 
 // ---- Phase 2: Jobs ----
 export const jobQueries = {
   all: (status?: string) => convexQuery(api.jobs.byStatus, { status }),
-  myJobs: () => convexQuery(api.jobs.myJobs, {}),
   detail: (jobId: string) => convexQuery(api.jobs.getDetail, { jobId: jobId as Id<'jobs'> }),
   openCount: () => convexQuery(api.jobs.openCount, {}),
   dashboardSummary: () => convexQuery(api.jobs.dashboardSummary, {}),
@@ -39,11 +37,6 @@ export const partQueries = {
 
 export const labourTypeQueries = {
   list: () => convexQuery(api.labourTypes.list, {}),
-}
-
-export const partsRequestQueries = {
-  pending: () => convexQuery(api.partsRequests.pending, {}),
-  byJob: (jobId: string) => convexQuery(api.partsRequests.byJob, { jobId: jobId as Id<'jobs'> }),
 }
 
 export const settingsQueries = {
@@ -87,16 +80,8 @@ export function useCheckInMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.jobs.checkIn) })
 }
 
-export function useAssignMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.jobs.assign) })
-}
-
 export function useDiagnoseMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.jobs.diagnose) })
-}
-
-export function useStartWorkMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.jobs.startWork) })
 }
 
 export function useMarkReadyMutation() {
@@ -117,23 +102,6 @@ export function useAddJobItemMutation() {
 
 export function useRemoveJobItemMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.jobs.removeJobItem) })
-}
-
-// Parts request mutations
-export function useCreatePartsRequestMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.partsRequests.create) })
-}
-
-export function useReviewPartsRequestMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.partsRequests.review) })
-}
-
-export function useDispatchPartsRequestMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.partsRequests.dispatch) })
-}
-
-export function useReversePartsRequestMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.partsRequests.reverse) })
 }
 
 // Invoice mutations

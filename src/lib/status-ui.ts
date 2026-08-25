@@ -1,6 +1,6 @@
 // Central mapping from domain statuses to badge visual variants.
 
-import type { JobStatus, PartsRequestStatus, VehicleStatus } from '~/lib/enums'
+import type { JobStatus, VehicleStatus } from '~/lib/enums'
 
 export type StatusVariant =
   | 'default'
@@ -13,9 +13,7 @@ export type StatusVariant =
 
 export const JOB_STATUS_VARIANTS: Record<JobStatus, StatusVariant> = {
   checkedIn: 'warning',
-  assigned: 'info',
   diagnosed: 'violet',
-  waitingRelease: 'destructive',
   inProgress: 'default',
   readyForPickup: 'success',
   completed: 'secondary',
@@ -27,12 +25,4 @@ export const VEHICLE_STATUS_VARIANTS: Record<VehicleStatus, StatusVariant> = {
   reserved: 'warning',
   sold: 'success',
   customerOwned: 'secondary',
-}
-
-export const PARTS_REQUEST_VARIANTS: Record<PartsRequestStatus, StatusVariant> = {
-  pending: 'warning',
-  approved: 'info',
-  rejected: 'destructive',
-  dispatched: 'success',
-  reversed: 'secondary',
 }

@@ -11,10 +11,7 @@ export const checkInJobSchema = z.object({
   complaint: z.string().trim().min(1, 'Complaint is required'),
 })
 
-export const assignTechnicianSchema = z.object({
-  jobId: z.string().min(1),
-  technicianId: z.string().min(1),
-})
+
 
 export const addJobItemSchema = z.object({
   jobId: z.string().min(1),

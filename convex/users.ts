@@ -48,22 +48,7 @@ export const list = query({
   },
 })
 
-export const listTechnicians = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireRole(ctx, ['csr', 'manager', 'admin'])
-    const users = await ctx.db
-      .query('users')
-      .filter((q) => q.eq(q.field('role'), 'technician'))
-      .collect()
-    return users
-      .filter((u) => u.active !== false)
-      .map((u) => ({
-        _id: u._id,
-        name: u.name ?? null,
-      }))
-  },
-})
+
 
 export const setRole = mutation({
   args: { userId: v.id('users'), role: v.string() },

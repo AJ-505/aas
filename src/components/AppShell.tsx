@@ -45,7 +45,7 @@ const NAV_GENERAL: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: IconGrid, roles: ALL_STAFF, match: ['/'] },
   { label: 'Appointments', to: '/service/appointments', icon: IconCalendar, roles: ['csr', 'manager', 'admin'], match: ['/service/appointments'] },
   { label: 'Customers', to: '/service/customers', icon: IconUsers, roles: ['csr', 'finance', 'manager', 'admin'], match: ['/service/customer'] },
-  { label: 'Jobs', to: '/service/jobs', icon: IconWrench, roles: ['csr', 'technician', 'inventoryManager', 'finance', 'manager', 'admin'], match: ['/service/job', '/service/checkin'] },
+  { label: 'Jobs', to: '/service/jobs', icon: IconWrench, roles: ['csr', 'inventoryManager', 'finance', 'manager', 'admin'], match: ['/service/job', '/service/checkin'] },
 ]
 
 const NAV_SALES: NavItem[] = [

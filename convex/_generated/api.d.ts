@@ -20,7 +20,6 @@ import type * as leads from "../leads.js";
 import type * as lib_audit from "../lib/audit.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as parts from "../parts.js";
-import type * as partsRequests from "../partsRequests.js";
 import type * as payments from "../payments.js";
 import type * as salesOrders from "../salesOrders.js";
 import type * as seed from "../seed.js";
@@ -48,7 +47,6 @@ declare const fullApi: ApiFromModules<{
   "lib/audit": typeof lib_audit;
   "lib/auth": typeof lib_auth;
   parts: typeof parts;
-  partsRequests: typeof partsRequests;
   payments: typeof payments;
   salesOrders: typeof salesOrders;
   seed: typeof seed;

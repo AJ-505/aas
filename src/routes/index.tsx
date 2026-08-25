@@ -65,8 +65,8 @@ function Dashboard() {
       value: String(summary?.inProgress ?? 0).padStart(2, '0'),
       icon: IconCar,
       foot:
-        (summary?.techsOnSite ?? 0) > 0
-          ? `${summary?.techsOnSite ?? 0} technician${summary?.techsOnSite === 1 ? '' : 's'} on the floor`
+        (summary?.inProgress ?? 0) > 0
+          ? `${summary?.inProgress ?? 0} active job${summary?.inProgress === 1 ? '' : 's'} in workshop`
           : 'No active work',
     },
     {

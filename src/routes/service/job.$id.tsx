@@ -24,18 +24,11 @@ import {
   jobQueries,
   partQueries,
   labourTypeQueries,
-  userQueries,
-  useAssignMutation,
   useDiagnoseMutation,
-  useStartWorkMutation,
   useMarkReadyMutation,
   useCompleteMutation,
   useAddJobItemMutation,
   useRemoveJobItemMutation,
-  useCreatePartsRequestMutation,
-  useReviewPartsRequestMutation,
-  useDispatchPartsRequestMutation,
-  useReversePartsRequestMutation,
   useGenerateInvoiceMutation,
   useRegenerateInvoiceMutation,
   useApproveInvoiceMutation,
@@ -47,12 +40,10 @@ import { PrintableInvoice } from '~/components/PrintableInvoice'
 import {
   JOB_STATUSES,
   JOB_STATUS_LABELS,
-  PARTS_REQUEST_STATUS_LABELS,
   JOB_ITEM_TYPE_LABELS,
   type JobStatus,
-  type PartsRequestStatus,
 } from '~/lib/enums'
-import { JOB_STATUS_VARIANTS, PARTS_REQUEST_VARIANTS } from '~/lib/status-ui'
+import { JOB_STATUS_VARIANTS } from '~/lib/status-ui'
 import { nextStatuses } from '~/lib/job-utils'
 import { formatNaira, formatDateTime } from '~/lib/format'
 import { useCurrentUser } from '~/lib/auth'
@@ -80,19 +71,17 @@ function JobDetailPage() {
     )
   }
 
-  const { job, vehicle, customer, technician, csr, jobItems, partsRequests, invoice, payments } = data
+  const { job, vehicle, customer, diagnosedBy, csr, jobItems, invoice, payments } = data
 
-  const canActOnJob =
+  const canDiagnose =
     me?.role === 'admin' ||
     me?.role === 'manager' ||
-    (me?.role === 'technician' && (!job.technicianId || job.technicianId === me._id))
+    me?.role === 'inventoryManager'
 
-  const canAssignTechnician = me?.role === 'manager' || me?.role === 'admin'
-  const canAddItems = ['finance', 'manager', 'admin'].includes(me?.role ?? '')
-  const canSeeInvoice = me?.role !== 'technician'
-  const canSeeJobItems = me?.role !== 'technician'
-  const canRequestParts = (me?.role === 'technician' || me?.role === 'admin') && (!job.technicianId || job.technicianId === me._id)
-  const canPrintJobCard = ['manager', 'technician', 'csr', 'admin'].includes(me?.role ?? '')
+  const canAddItems = ['inventoryManager', 'finance', 'manager', 'admin'].includes(me?.role ?? '')
+  const canAddParts = ['inventoryManager', 'manager', 'admin'].includes(me?.role ?? '')
+  const canSeeInvoice = true
+  const canPrintJobCard = ['manager', 'inventoryManager', 'csr', 'admin'].includes(me?.role ?? '')
 
   const allowedNext = nextStatuses(job.status as JobStatus)
 
@@ -118,7 +107,7 @@ function JobDetailPage() {
           </div>
           <p className="mt-1 text-[13px] text-mute">
             Checked in {formatDateTime(job.checkInTs)}
-            {technician ? ` · Technician: ${technician.name}` : ''}
+            {diagnosedBy ? ` · Diagnosed by: ${diagnosedBy.name}` : ''}
             {csr ? ` · Front desk: ${csr.name}` : ''}
           </p>
         </div>
@@ -128,7 +117,6 @@ function JobDetailPage() {
             job={job}
             vehicle={vehicle}
             customer={customer}
-            technician={technician}
             csr={csr}
           />
         )}
@@ -202,35 +190,25 @@ function JobDetailPage() {
         <StatusActions jobId={job._id} allowedNext={allowedNext} />
       )}
 
-      {/* assign technician */}
-      {job.status === 'checkedIn' && canAssignTechnician && (
-        <AssignTechnician jobId={job._id} />
-      )}
-
       {/* diagnosis form */}
-      {job.status === 'assigned' && canActOnJob && (
+      {job.status === 'checkedIn' && canDiagnose && (
         <DiagnosisForm jobId={job._id} />
       )}
 
-      {/* job items (parts + labour) - ONLY for Finance, CSR, Manager, Admin */}
-      {['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status) && canAddItems && (
+      {/* add spare parts form - only for inventoryManager/manager/admin */}
+      {['checkedIn', 'diagnosed', 'inProgress'].includes(job.status) && canAddParts && (
+        <AddPartForm jobId={job._id} />
+      )}
+
+      {/* job items (parts + labour) */}
+      {['diagnosed', 'inProgress'].includes(job.status) && canAddItems && (
         <AddJobItemForm jobId={job._id} />
       )}
 
-      {canSeeJobItems && (
-        <JobItemsTable jobItems={jobItems} canRemove={canAddItems && ['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status)} />
-      )}
+      <JobItemsTable jobItems={jobItems} canRemove={canAddItems && ['checkedIn', 'diagnosed', 'inProgress'].includes(job.status)} />
 
-      {/* parts requests - ONLY for Technician and Admin */}
-      {['diagnosed', 'waitingRelease', 'inProgress'].includes(job.status) && canRequestParts && (
-        <CreatePartsRequestForm jobId={job._id} />
-      )}
-      {partsRequests.length > 0 && (
-        <PartsRequestsList partsRequests={partsRequests} />
-      )}
-
-      {/* invoice - HIDDEN from Technicians */}
-      {job.status !== 'checkedIn' && job.status !== 'assigned' && canSeeInvoice && (
+      {/* invoice */}
+      {job.status !== 'checkedIn' && canSeeInvoice && (
         <InvoiceSection
           jobId={job._id}
           invoice={invoice}
@@ -292,7 +270,6 @@ function StatusStepper({ status }: { status: JobStatus }) {
 function StatusActions({ jobId, allowedNext }: { jobId: string; allowedNext: JobStatus[] }) {
   const queryClient = useQueryClient()
   const { data: me } = useCurrentUser()
-  const startWork = useStartWorkMutation()
   const markReady = useMarkReadyMutation()
   const complete = useCompleteMutation()
 
@@ -302,25 +279,18 @@ function StatusActions({ jobId, allowedNext }: { jobId: string; allowedNext: Job
 
   function handleTransition(target: JobStatus) {
     const opts = { onSuccess: () => { toast.success(`Job moved to ${JOB_STATUS_LABELS[target]}`); invalidate() } }
-    if (target === 'inProgress') startWork.mutate({ jobId: jobId as Id<'jobs'> }, opts)
-    else if (target === 'readyForPickup') markReady.mutate({ jobId: jobId as Id<'jobs'> }, opts)
+    if (target === 'readyForPickup') markReady.mutate({ jobId: jobId as Id<'jobs'> }, opts)
     else if (target === 'completed') complete.mutate({ jobId: jobId as Id<'jobs'> }, opts)
   }
 
   const role = me?.role
-  const canStartWork = role === 'technician' || role === 'manager' || role === 'admin'
-  const canMarkReady = role === 'technician' || role === 'manager' || role === 'admin'
+  const canMarkReady = role === 'inventoryManager' || role === 'manager' || role === 'admin'
   const canComplete = role === 'manager' || role === 'admin'
 
   return (
     <Card>
       <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        {allowedNext.includes('inProgress') && canStartWork && (
-          <Button onClick={() => handleTransition('inProgress')} disabled={startWork.isPending}>
-            {startWork.isPending ? 'Starting...' : 'Start Work'}
-          </Button>
-        )}
         {allowedNext.includes('readyForPickup') && canMarkReady && (
           <Button onClick={() => handleTransition('readyForPickup')} disabled={markReady.isPending}>
             {markReady.isPending ? 'Updating...' : 'Mark Ready for Pickup'}
@@ -336,50 +306,20 @@ function StatusActions({ jobId, allowedNext }: { jobId: string; allowedNext: Job
   )
 }
 
-function AssignTechnician({ jobId }: { jobId: string }) {
-  const queryClient = useQueryClient()
-  const { data: techs } = useQuery(userQueries.listTechnicians())
-  const assign = useAssignMutation()
-  const [techId, setTechId] = useState('')
 
-  function handleAssign() {
-    if (!techId) { toast.error('Select a technician.'); return }
-    assign.mutate({ jobId: jobId as Id<'jobs'>, technicianId: techId as Id<'users'> }, {
-      onSuccess: () => { toast.success('Technician assigned.'); void queryClient.invalidateQueries() },
-    })
-  }
-
-  return (
-    <Card>
-      <CardHeader><CardTitle>Assign technician</CardTitle></CardHeader>
-      <CardContent className="flex items-end gap-3">
-        <div className="w-64 space-y-2">
-          <Label htmlFor="tech">Technician</Label>
-          <Select id="tech" value={techId} onChange={(e) => setTechId(e.target.value)}>
-            <option value="" disabled>Select technician...</option>
-            {techs?.map((t: any) => (
-              <option key={t._id} value={t._id}>{t.name ?? 'Unnamed'}</option>
-            ))}
-          </Select>
-        </div>
-        <Button onClick={handleAssign} disabled={assign.isPending}>
-          {assign.isPending ? 'Assigning...' : 'Assign'}
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
 
 function DiagnosisForm({ jobId }: { jobId: string }) {
   const queryClient = useQueryClient()
   const diagnose = useDiagnoseMutation()
   const [diagnosis, setDiagnosis] = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.ChangeEvent) {
     e.preventDefault()
     if (!diagnosis.trim()) { toast.error('Diagnosis cannot be empty.'); return }
     diagnose.mutate({ jobId: jobId as Id<'jobs'>, diagnosis: diagnosis.trim() }, {
-      onSuccess: () => { toast.success('Diagnosis saved.'); setDiagnosis(''); void queryClient.invalidateQueries() },
+      onSuccess: () => { toast.success('Diagnosis saved.'); 
+      setDiagnosis('');
+      void queryClient.invalidateQueries() },
     })
   }
 
@@ -456,6 +396,66 @@ function AddJobItemForm({ jobId }: { jobId: string }) {
   )
 }
 
+function AddPartForm({ jobId }: { jobId: string }) {
+  const queryClient = useQueryClient()
+  const { data: parts } = useQuery(partQueries.list())
+  const addJobItem = useAddJobItemMutation()
+  const [partId, setPartId] = useState('')
+  const [qty, setQty] = useState(1)
+
+  const selectedPart = parts?.find((p: any) => p._id === partId)
+  const unitPrice = selectedPart?.sellingPrice ?? 0
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!partId) { toast.error('Select a part.'); return }
+    addJobItem.mutate({
+      jobId: jobId as Id<'jobs'>,
+      type: 'part',
+      partId: partId as Id<'parts'>,
+      qty,
+      unitPrice,
+    }, {
+      onSuccess: () => { toast.success('Part added to job.'); setPartId(''); setQty(1); void queryClient.invalidateQueries() },
+      onError: (err) => toast.error(err.message),
+    })
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Add spare part</CardTitle></CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="partSelect">Part</Label>
+              <Select id="partSelect" value={partId} onChange={(e) => setPartId(e.target.value)}>
+                <option value="" disabled>Select part...</option>
+                {parts?.map((p: any) => (
+                  <option key={p._id} value={p._id}>{p.code} - {p.description} (Stock: {p.stockQty})</option>
+                ))}
+              </Select>
+            </div>
+            <div className="w-24 space-y-2">
+              <Label htmlFor="partQty">Qty</Label>
+              <Input id="partQty" type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value))} />
+            </div>
+          </div>
+          {partId && (
+            <div className="text-[13px] text-mute">
+              Unit price: <span className="font-bold text-ink">{formatNaira(unitPrice)}</span>
+              {' · '}Total: <span className="font-bold text-ink">{formatNaira(unitPrice * qty)}</span>
+            </div>
+          )}
+          <Button type="submit" disabled={addJobItem.isPending}>
+            {addJobItem.isPending ? 'Adding...' : 'Add Part to Job'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
 function JobItemsTable({ jobItems, canRemove }: { jobItems: any[]; canRemove: boolean }) {
   const queryClient = useQueryClient()
   const removeItem = useRemoveJobItemMutation()
@@ -502,21 +502,17 @@ function JobItemsTable({ jobItems, canRemove }: { jobItems: any[]; canRemove: bo
                 <TableCell className="text-right font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(item.lineTotal)}</TableCell>
                 {canRemove && (
                   <TableCell className="text-right">
-                    {item.type === 'part' ? (
-                      <span className="text-[11px] font-semibold text-mute">Inventory Dispatched</span>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                        onClick={() => removeItem.mutate({ jobItemId: item._id }, {
-                          onSuccess: () => { toast.success('Labour item removed.'); void queryClient.invalidateQueries() },
-                          onError: (err) => toast.error(err.message),
-                        })}
-                      >
-                        Remove
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      onClick={() => removeItem.mutate({ jobItemId: item._id }, {
+                        onSuccess: () => { toast.success('Item removed.'); void queryClient.invalidateQueries() },
+                        onError: (err) => toast.error(err.message),
+                      })}
+                    >
+                      Remove
+                    </Button>
                   </TableCell>
                 )}
               </TableRow>
@@ -528,277 +524,7 @@ function JobItemsTable({ jobItems, canRemove }: { jobItems: any[]; canRemove: bo
   )
 }
 
-function CreatePartsRequestForm({ jobId }: { jobId: string }) {
-  const queryClient = useQueryClient()
-  const { data: parts } = useQuery(partQueries.list())
-  const createRequest = useCreatePartsRequestMutation()
-  const [items, setItems] = useState<{ partId: string; qty: number }[]>([])
-  const [partId, setPartId] = useState('')
-  const [qty, setQty] = useState(1)
 
-  function addItem() {
-    if (!partId) { toast.error('Select a part.'); return }
-    setItems([...items, { partId, qty }])
-    setPartId('')
-    setQty(1)
-  }
-
-  function removeItem(idx: number) {
-    setItems(items.filter((_, i) => i !== idx))
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (items.length === 0) { toast.error('Add at least one part.'); return }
-    createRequest.mutate({
-      jobId: jobId as Id<'jobs'>,
-      items: items.map(item => ({ partId: item.partId as Id<'parts'>, qty: item.qty }))
-    }, {
-      onSuccess: () => { toast.success('Parts request submitted.'); setItems([]); void queryClient.invalidateQueries() },
-    })
-  }
-
-  return (
-    <Card>
-      <CardHeader><CardTitle>Request parts from inventory</CardTitle></CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {items.length > 0 && (
-            <div className="space-y-1.5">
-              {items.map((item, idx) => {
-                const part = parts?.find((p: any) => p._id === item.partId)
-                return (
-                  <div key={idx} className="flex items-center justify-between rounded-[9px] bg-line-soft px-3 py-2 text-[13px]">
-                    <span className="text-body">{part?.code ?? 'Unknown'} - {part?.description ?? ''} ×{item.qty}</span>
-                    <Button type="button" variant="ghost" size="sm" className="text-rose-600 hover:bg-rose-50" onClick={() => removeItem(idx)}>Remove</Button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          <div className="flex items-end gap-3">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="reqPart">Part</Label>
-              <Select id="reqPart" value={partId} onChange={(e) => setPartId(e.target.value)}>
-                <option value="" disabled>Select part...</option>
-                {parts?.map((p: any) => (
-                  <option key={p._id} value={p._id}>{p.code} - {p.description} (Stock: {p.stockQty})</option>
-                ))}
-              </Select>
-            </div>
-            <div className="w-24 space-y-2">
-              <Label htmlFor="reqQty">Qty</Label>
-              <Input id="reqQty" type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value))} />
-            </div>
-            <Button type="button" variant="outline" onClick={addItem}>Add to request</Button>
-          </div>
-          <Button type="submit" disabled={createRequest.isPending}>
-            {createRequest.isPending ? 'Submitting...' : 'Submit Parts Request'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
-
-function PartsRequestsList({ partsRequests }: { partsRequests: any[] }) {
-  const queryClient = useQueryClient()
-  const { data: me } = useCurrentUser()
-  const { data: parts } = useQuery(partQueries.list())
-  const review = useReviewPartsRequestMutation()
-  const dispatch = useDispatchPartsRequestMutation()
-  const reverse = useReversePartsRequestMutation()
-
-  const [confirmingPr, setConfirmingPr] = useState<any | null>(null)
-  const [reversingPrId, setReversingPrId] = useState<string | null>(null)
-
-  const canReview = me?.role === 'inventoryManager' || me?.role === 'manager' || me?.role === 'admin'
-
-  function handleReverse(requestId: string) {
-    reverse.mutate(
-      { partsRequestId: requestId as Id<'partsRequests'>, note: 'Reversed from inventory management' },
-      {
-        onSuccess: () => {
-          toast.success('Parts request reversed and items returned to stock.')
-          setReversingPrId(null)
-          void queryClient.invalidateQueries()
-        },
-        onError: (err) => toast.error(err.message),
-      },
-    )
-  }
-
-  return (
-    <Card>
-      <CardHeader><CardTitle>Parts requests</CardTitle></CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {partsRequests.map((pr: any) => (
-            <div key={pr._id} className="rounded-[10px] border border-line p-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <Badge dot variant={PARTS_REQUEST_VARIANTS[pr.status as PartsRequestStatus] ?? 'secondary'}>
-                  {PARTS_REQUEST_STATUS_LABELS[pr.status as keyof typeof PARTS_REQUEST_STATUS_LABELS] ?? pr.status}
-                </Badge>
-                <div className="flex flex-wrap gap-2">
-                  {canReview && pr.status === 'pending' && (
-                    <>
-                      <Button size="sm" variant="outline" onClick={() =>
-                        review.mutate({ partsRequestId: pr._id, status: 'rejected' }, {
-                          onSuccess: () => { toast.success('Request rejected.'); void queryClient.invalidateQueries() },
-                        })
-                      }>Reject</Button>
-                      <Button size="sm" onClick={() => setConfirmingPr(pr)}>
-                        Review & Dispatch
-                      </Button>
-                    </>
-                  )}
-                  {canReview && pr.status === 'approved' && (
-                    <Button size="sm" onClick={() =>
-                      dispatch.mutate({ partsRequestId: pr._id }, {
-                        onSuccess: () => { toast.success('Parts dispatched.'); void queryClient.invalidateQueries() },
-                      })
-                    } disabled={dispatch.isPending}>
-                      {dispatch.isPending ? 'Dispatching...' : 'Dispatch'}
-                    </Button>
-                  )}
-                  {canReview && (pr.status === 'approved' || pr.status === 'dispatched') && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                      onClick={() => setReversingPrId(pr._id)}
-                    >
-                      Reverse Request
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Resolved Part Details */}
-              <div className="mt-3 space-y-1 text-[13px] text-body">
-                {pr.items.map((item: any, idx: number) => {
-                  const part = parts?.find((p: any) => p._id === item.partId)
-                  return (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="font-semibold text-ink">{part ? `${part.code} - ${part.description}` : 'Part'}</span>
-                      <span className="text-mute font-mono">×{item.qty}</span>
-                      {part && (
-                        <span className="text-[11px] text-mute">(Stock: {part.stockQty})</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              {pr.note && <p className="mt-2 text-xs text-mute">Note: {pr.note}</p>}
-
-              {/* Reverse Confirmation Modal */}
-              {reversingPrId === pr._id && (
-                <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
-                  <p className="font-semibold">Reverse this parts request?</p>
-                  <p className="mt-0.5">Stock quantities will be credited back to inventory.</p>
-                  <div className="mt-2 flex gap-2">
-                    <Button size="sm" variant="destructive" onClick={() => handleReverse(pr._id)} disabled={reverse.isPending}>
-                      {reverse.isPending ? 'Reversing...' : 'Confirm Reversal'}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setReversingPrId(null)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Dispatch Confirmation Modal */}
-        {confirmingPr && (
-          <DispatchConfirmationModal
-            request={confirmingPr}
-            parts={parts ?? []}
-            onClose={() => setConfirmingPr(null)}
-            onApproved={() => {
-              setConfirmingPr(null)
-              void queryClient.invalidateQueries()
-            }}
-          />
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-function DispatchConfirmationModal({
-  request,
-  parts,
-  onClose,
-  onApproved,
-}: {
-  request: any
-  parts: any[]
-  onClose: () => void
-  onApproved: () => void
-}) {
-  const review = useReviewPartsRequestMutation()
-  const dispatch = useDispatchPartsRequestMutation()
-  const [loading, setLoading] = useState(false)
-
-  async function handleConfirmAndDispatch() {
-    setLoading(true)
-    try {
-      await review.mutateAsync({ partsRequestId: request._id, status: 'approved' })
-      await dispatch.mutateAsync({ partsRequestId: request._id })
-      toast.success('Parts request approved and dispatched!')
-      onApproved()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Action failed.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <Card className="w-full max-w-lg shadow-xl">
-        <CardHeader><CardTitle>Confirm Parts Dispatch</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-mute">
-            Review the requested items and verify stock availability before confirming release from inventory.
-          </p>
-
-          <div className="space-y-2 rounded-lg border border-line p-3 text-xs">
-            {request.items.map((item: any, idx: number) => {
-              const part = parts.find((p) => p._id === item.partId)
-              const hasStock = part ? part.stockQty >= item.qty : false
-              return (
-                <div key={idx} className="flex items-center justify-between border-b border-line-soft pb-2 last:border-0 last:pb-0">
-                  <div>
-                    <p className="font-semibold text-ink">{part ? `${part.code} - ${part.description}` : 'Part'}</p>
-                    <p className="text-mute">Available in stock: <span className="font-semibold">{part?.stockQty ?? 0}</span></p>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-mono font-bold text-ink">×{item.qty}</span>
-                    <Badge variant={hasStock ? 'success' : 'destructive'} className="ml-2">
-                      {hasStock ? 'In Stock' : 'Low Stock'}
-                    </Badge>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmAndDispatch} disabled={loading}>
-              {loading ? 'Dispatching...' : 'Approve & Dispatch Parts'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
 
 function InvoiceSection({ jobId, invoice, job, customer, vehicle, payments, hasItems }: {
   jobId: string
