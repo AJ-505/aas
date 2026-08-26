@@ -153,9 +153,18 @@ export default defineSchema({
     sellingPrice: v.number(),
     stockQty: v.number(),
     reorderLevel: v.number(),
+    brand: v.optional(v.string()),
+    category: v.optional(v.string()),
   })
     .index('by_code', ['code'])
+    .index('by_brand', ['brand'])
+    .index('by_category', ['category'])
     .searchIndex('search_code', { searchField: 'code' }),
+
+  vehicleBrands: defineTable({
+    name: v.string(),
+    normalizedName: v.string(),
+  }).index('by_normalizedName', ['normalizedName']),
 
   stockMovements: defineTable({
     partId: v.id('parts'),

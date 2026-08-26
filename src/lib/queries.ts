@@ -32,8 +32,15 @@ export const jobQueries = {
 export const partQueries = {
   list: () => convexQuery(api.parts.list, {}),
   lowStock: () => convexQuery(api.parts.lowStock, {}),
-  search: (q: string) => convexQuery(api.parts.search, { q }),
+  search: (q: string, brand?: string, category?: string) =>
+    convexQuery(api.parts.search, { q, brand: brand || undefined, category: category || undefined }),
+  categories: () => convexQuery(api.parts.categories, {}),
+  partBrands: () => convexQuery(api.parts.brands, {}),
   movements: (partId: string) => convexQuery(api.parts.movements, { partId: partId as Id<'parts'> }),
+}
+
+export const vehicleBrandQueries = {
+  list: () => convexQuery(api.vehicleBrands.list, {}),
 }
 
 export const labourTypeQueries = {
@@ -218,6 +225,16 @@ export function useCreatePartMutation() {
 
 export function useUpdatePartMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.parts.updatePart) })
+}
+
+export function useCreateBrandMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.vehicleBrands.create) })
+}
+export function useUpdateBrandMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.vehicleBrands.update) })
+}
+export function useRemoveBrandMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.vehicleBrands.remove) })
 }
 
 export function useAdjustStockMutation() {

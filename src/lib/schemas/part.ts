@@ -3,12 +3,14 @@ import { STOCK_MOVEMENT_TYPES } from '../enums'
 import { moneyKobo } from './common'
 
 export const createPartSchema = z.object({
-  code: z.string().trim().min(1, 'Code is required'),
+  code: z.string().trim().min(1, 'Part Number is required'),
   description: z.string().trim().min(1, 'Description is required'),
   costPrice: moneyKobo,
   sellingPrice: moneyKobo,
   stockQty: z.number().int().min(0).default(0),
   reorderLevel: z.number().int().min(0).default(0),
+  brand: z.string().trim().min(1).max(60).optional().or(z.literal('')),
+  category: z.string().trim().min(1).max(60).optional().or(z.literal('')),
 })
 
 export const updatePartSchema = createPartSchema.partial()

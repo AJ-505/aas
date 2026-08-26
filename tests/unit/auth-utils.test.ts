@@ -31,6 +31,6 @@ describe('isAuthorized', () => {
   it('allows exact role matches and denies others', () => {
     expect(isAuthorized('csr', ['csr', 'manager'])).toBe(true)
     expect(isAuthorized('manager', ['csr', 'manager'])).toBe(true)
-    expect(isAuthorized('technician', ['csr', 'manager'])).toBe(false)
+    expect(isAuthorized('salesRep', ['csr', 'manager'])).toBe(false)
   })
 })

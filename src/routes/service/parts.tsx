@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useCurrentUser } from '~/lib/auth'
@@ -15,15 +15,17 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
-import { Badge } from '~/components/ui/badge'
 import { Loader } from '~/components/Loader'
 import { IconPlus, IconSearch, IconUpload } from '~/components/icons'
 import {
   partQueries,
+  vehicleBrandQueries,
   useCreatePartMutation,
   useUpdatePartMutation,
   useAdjustStockMutation,
   useImportPartsMutation,
+  useCreateBrandMutation,
+  useRemoveBrandMutation,
 } from '~/lib/queries'
 import { cn } from '~/lib/utils'
 import type { Id } from 'convex/_generated/dataModel'
@@ -35,27 +37,55 @@ export const Route = createFileRoute('/service/parts')({
   component: PartsPage,
 })
 
+const CATEGORY_OPTIONS = [
+  'Lubricants', 'Filters', 'Braking', 'Engine', 'Electrical', 'Cooling', 'AC', 'Suspension', 'Tyres', 'Transmission', 'Accessories', 'Uncategorized',
+]
+
 interface PartForm {
-  code: string
+  partNumber: string
   description: string
   costPrice: string
   sellingPrice: string
   stockQty: string
   reorderLevel: string
+  brand: string
+  category: string
 }
 
 const emptyForm: PartForm = {
-  code: '',
+  partNumber: '',
   description: '',
   costPrice: '',
   sellingPrice: '',
   stockQty: '0',
   reorderLevel: '0',
+  brand: 'Generic',
+  category: 'Uncategorized',
+}
+
+function BrandSuggestInput({ value, onChange, placeholder, id }: { value: string; onChange: (v: string) => void; placeholder?: string; id: string }) {
+  const { data: brands } = useQuery(vehicleBrandQueries.list())
+  const listId = `${id}-brands`
+  return (
+    <>
+      <Input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        list={listId}
+      />
+      <datalist id={listId}>
+        {(brands ?? []).map((b: any) => (
+          <option key={b._id} value={b.name} />
+        ))}
+      </datalist>
+    </>
+  )
 }
 
 function PartsPage() {
   const searchParams = Route.useSearch()
-  const navigate = useNavigate()
   const { data: user } = useCurrentUser()
 
   if (user?.role && !['inventoryManager', 'manager', 'admin'].includes(user.role)) {
@@ -63,9 +93,28 @@ function PartsPage() {
   }
 
   const canEdit = user?.role === 'inventoryManager' || user?.role === 'manager' || user?.role === 'admin'
+  const canManageBrands = user?.role === 'manager' || user?.role === 'admin'
 
   const [q, setQ] = useState(searchParams.q || '')
-  const { data: parts, isLoading } = useQuery(partQueries.search(q))
+  const [brandFilter, setBrandFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const { data: parts, isLoading } = useQuery(partQueries.search(q, brandFilter, categoryFilter))
+  const { data: allBrands } = useQuery(vehicleBrandQueries.list())
+  const { data: categories } = useQuery(partQueries.categories())
+
+  // Merge static categories + db categories for filter dropdown completeness
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>(CATEGORY_OPTIONS)
+    for (const c of categories ?? []) set.add(c)
+    return Array.from(set).sort()
+  }, [categories])
+
+  const brandOptions = useMemo(() => {
+    const fromParts = new Set<string>()
+    // also include vehicleBrands
+    for (const b of allBrands ?? []) fromParts.add(b.name)
+    return Array.from(fromParts).sort()
+  }, [allBrands])
 
   useEffect(() => {
     if (searchParams.q !== undefined) {
@@ -77,6 +126,7 @@ function PartsPage() {
   const [editId, setEditId] = useState<string | null>(null)
   const [adjustId, setAdjustId] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [showBrands, setShowBrands] = useState(false)
 
   return (
     <div className="space-y-5">
@@ -84,11 +134,16 @@ function PartsPage() {
         <div>
           <h1 className="text-[23px] font-extrabold tracking-tight text-ink">Parts Catalogue</h1>
           <p className="mt-1 text-[13px] text-mute">
-            {parts ? `${parts.length} parts` : 'Spare parts inventory management.'}
+            {parts ? `${parts.length} parts` : 'Spare parts inventory management.'} Storage field remains <span className="mono text-[11px] bg-line-soft px-1 py-0.5 rounded">code</span> (label: Part Number).
           </p>
         </div>
         {canEdit && (
           <div className="flex gap-2">
+            {canManageBrands && (
+              <Button variant="outline" onClick={() => setShowBrands((v) => !v)}>
+                {showBrands ? 'Hide brands' : 'Manage brands'}
+              </Button>
+            )}
             <Button onClick={() => setShowImport(true)} variant="outline">
               <IconUpload size={15} /> Import CSV
             </Button>
@@ -99,15 +154,55 @@ function PartsPage() {
         )}
       </div>
 
-      <div className="relative max-w-sm">
-        <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
-        <Input
-          placeholder="Search by code or description..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      {showBrands && canManageBrands && <BrandManager onClose={() => setShowBrands(false)} />}
+
+      <Card className="p-4">
+        <div className="grid gap-3 sm:grid-cols-4">
+          <div className="relative sm:col-span-2">
+            <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
+            <Input
+              placeholder="Search by part number or description..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div>
+            <select
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink"
+              aria-label="Filter by brand"
+            >
+              <option value="">All brands</option>
+              {brandOptions.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink"
+              aria-label="Filter by category"
+            >
+              <option value="">All categories</option>
+              {categoryOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {(brandFilter || categoryFilter) && (
+          <div className="mt-2 flex gap-2 text-xs text-mute">
+            <span>Active filters:</span>
+            {brandFilter && <span className="rounded bg-line-soft px-1.5 py-0.5 font-semibold text-ink">brand: {brandFilter}</span>}
+            {categoryFilter && <span className="rounded bg-line-soft px-1.5 py-0.5 font-semibold text-ink">category: {categoryFilter}</span>}
+            <button type="button" onClick={() => { setBrandFilter(''); setCategoryFilter('') }} className="underline">Clear</button>
+          </div>
+        )}
+      </Card>
 
       {showAdd && <PartForm onDone={() => setShowAdd(false)} />}
       {editId && <PartForm partId={editId} onDone={() => setEditId(null)} />}
@@ -118,8 +213,10 @@ function PartsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
+              <TableHead>Part Number</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Brand</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead className="text-right">Cost Price</TableHead>
               <TableHead className="text-right">Selling Price</TableHead>
               <TableHead className="text-right">Stock</TableHead>
@@ -130,14 +227,14 @@ function PartsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 7 : 6}>
+                <TableCell colSpan={canEdit ? 9 : 8}>
                   <Loader />
                 </TableCell>
               </TableRow>
             ) : !parts || parts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 7 : 6} className="py-10 text-center text-mute">
-                  {q ? 'No parts match your search.' : 'No parts in the catalogue yet.'}
+                <TableCell colSpan={canEdit ? 9 : 8} className="py-10 text-center text-mute">
+                  {q || brandFilter || categoryFilter ? 'No parts match your filters.' : 'No parts in the catalogue yet.'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -148,7 +245,9 @@ function PartsPage() {
                     <TableCell className="whitespace-nowrap font-semibold text-ink">
                       {p.code}
                     </TableCell>
-                    <TableCell className="max-w-[300px] truncate text-body">{p.description}</TableCell>
+                    <TableCell className="max-w-[240px] truncate text-body">{p.description}</TableCell>
+                    <TableCell className="text-body">{(p as any).brand ?? 'Generic'}</TableCell>
+                    <TableCell className="text-mute text-xs">{(p as any).category ?? 'Uncategorized'}</TableCell>
                     <TableCell className="text-right text-body">
                       &#8358;{(p.costPrice / 100).toLocaleString()}
                     </TableCell>
@@ -202,6 +301,61 @@ function PartsPage() {
   )
 }
 
+function BrandManager({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const { data: brands } = useQuery(vehicleBrandQueries.list())
+  const createBrand = useCreateBrandMutation()
+  const removeBrand = useRemoveBrandMutation()
+  const [name, setName] = useState('')
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) { toast.error('Brand name required'); return }
+    try {
+      await createBrand.mutateAsync({ name: name.trim() })
+      toast.success('Brand added')
+      setName('')
+      void queryClient.invalidateQueries()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add brand')
+    }
+  }
+  async function handleRemove(id: string) {
+    if (!confirm('Delete this brand? Existing parts/vehicles keep their brand string.')) return
+    try {
+      await removeBrand.mutateAsync({ brandId: id as Id<'vehicleBrands'> })
+      toast.success('Brand removed')
+      void queryClient.invalidateQueries()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove')
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Vehicle Brands</CardTitle>
+        <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-xs text-mute">Manage brand list used for suggestions in Parts and Vehicle Inventory. Free-text is always allowed — this list only powers the dropdown suggestions.</p>
+        <form onSubmit={handleCreate} className="flex gap-2">
+          <Input placeholder="New brand e.g. Toyota" value={name} onChange={(e) => setName(e.target.value)} className="max-w-sm" />
+          <Button type="submit" disabled={createBrand.isPending}>{createBrand.isPending ? 'Adding...' : 'Add brand'}</Button>
+        </form>
+        <div className="flex flex-wrap gap-1.5">
+          {(brands ?? []).length === 0 ? <span className="text-xs text-mute">No brands yet.</span> : (brands ?? []).map((b: any) => (
+            <span key={b._id} className="inline-flex items-center gap-1 rounded-full bg-line-soft px-2.5 py-1 text-xs font-semibold text-ink">
+              {b.name}
+              <button type="button" onClick={() => handleRemove(b._id)} className="ml-1 text-mute hover:text-rose-600" aria-label={`Remove ${b.name}`}>×</button>
+            </span>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
   const queryClient = useQueryClient()
   const createPart = useCreatePartMutation()
@@ -212,37 +366,41 @@ function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
     select: (all) => all.find((p) => p._id === partId),
   })
 
-  const [form, setForm] = useState<PartForm>(() => {
+  const [form, setForm] = useState<PartForm>(emptyForm)
+  useEffect(() => {
     if (existing) {
-      return {
-        code: existing.code,
+      setForm({
+        partNumber: existing.code,
         description: existing.description,
         costPrice: String(existing.costPrice),
         sellingPrice: String(existing.sellingPrice),
         stockQty: String(existing.stockQty),
         reorderLevel: String(existing.reorderLevel),
-      }
+        brand: (existing as any).brand ?? 'Generic',
+        category: (existing as any).category ?? 'Uncategorized',
+      })
     }
-    return emptyForm
-  })
+  }, [existing])
 
-  const handleChange = (field: keyof PartForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (field: keyof PartForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.code.trim() || !form.description.trim()) {
-      toast.error('Code and description are required.')
+    if (!form.partNumber.trim() || !form.description.trim()) {
+      toast.error('Part Number and description are required.')
       return
     }
     const data = {
-      code: form.code.trim(),
+      code: form.partNumber.trim(),
       description: form.description.trim(),
       costPrice: Math.round(Number(form.costPrice) * 100) || 0,
       sellingPrice: Math.round(Number(form.sellingPrice) * 100) || 0,
       stockQty: Math.max(0, Math.round(Number(form.stockQty) || 0)),
       reorderLevel: Math.max(0, Math.round(Number(form.reorderLevel) || 0)),
+      brand: form.brand.trim() || undefined,
+      category: form.category.trim() || undefined,
     }
 
     try {
@@ -270,12 +428,22 @@ function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
       <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="code">Code *</Label>
-            <Input id="code" value={form.code} onChange={handleChange('code')} required />
+            <Label htmlFor="partNumber">Part Number *</Label>
+            <Input id="partNumber" value={form.partNumber} onChange={handleChange('partNumber')} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
             <Input id="description" value={form.description} onChange={handleChange('description')} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="brand">Brand</Label>
+            <BrandSuggestInput id="brand" value={form.brand} onChange={(v) => setForm((p) => ({ ...p, brand: v }))} placeholder="Generic or Toyota" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <select id="category" value={form.category} onChange={handleChange('category')} className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm">
+              {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="costPrice">Cost Price (Naira)</Label>
@@ -310,7 +478,7 @@ function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
 function StockAdjustForm({ partId, onDone }: { partId: string; onDone: () => void }) {
   const queryClient = useQueryClient()
   const adjust = useAdjustStockMutation()
-  const { data: part } = useQuery(partQueries.search(''))
+  const { data: part } = useQuery(partQueries.search('', '', ''))
   const p = part?.find((x) => x._id === partId)
 
   const [type, setType] = useState<'in' | 'out' | 'adjust'>('in')
@@ -326,7 +494,7 @@ function StockAdjustForm({ partId, onDone }: { partId: string; onDone: () => voi
     try {
       await adjust.mutateAsync({
         partId: partId as Id<'parts'>,
-        qty: type === 'out' ? q : type === 'adjust' ? q : q,
+        qty: q,
         type,
       })
       toast.success('Stock adjusted.')
@@ -409,15 +577,20 @@ function CsvImport({ onDone }: { onDone: () => void }) {
     }
 
     const headers = lines[0]!.split(',').map((h) => h.trim().toLowerCase())
-    const codeIdx = headers.indexOf('code')
+    // Support both legacy 'code' and new 'part number' headers
+    let codeIdx = headers.indexOf('code')
+    if (codeIdx === -1) codeIdx = headers.findIndex((h) => h.includes('part') && h.includes('number'))
+    if (codeIdx === -1) codeIdx = headers.indexOf('part_number')
     const descIdx = headers.indexOf('description')
     const costIdx = headers.findIndex((h) => h.includes('cost'))
-    const sellIdx = headers.findIndex((h) => h.includes('selling') || h.includes('price'))
+    const sellIdx = headers.findIndex((h) => h.includes('selling') || (h.includes('price') && !h.includes('cost')))
     const stockIdx = headers.indexOf('stock')
     const reorderIdx = headers.indexOf('reorder')
+    const brandIdx = headers.indexOf('brand')
+    const categoryIdx = headers.indexOf('category')
 
     if (codeIdx === -1 || descIdx === -1) {
-      toast.error('CSV must have at least "code" and "description" columns.')
+      toast.error('CSV must have at least "part number" (or "code") and "description" columns.')
       return
     }
 
@@ -428,6 +601,8 @@ function CsvImport({ onDone }: { onDone: () => void }) {
       sellingPrice: number
       stockQty: number
       reorderLevel: number
+      brand?: string
+      category?: string
     }> = []
 
     for (let i = 1; i < lines.length; i++) {
@@ -443,6 +618,8 @@ function CsvImport({ onDone }: { onDone: () => void }) {
         sellingPrice: Math.round(Number(cols[sellIdx] ?? 0) * 100),
         stockQty: Math.max(0, Math.round(Number(cols[stockIdx] ?? 0))),
         reorderLevel: Math.max(0, Math.round(Number(cols[reorderIdx] ?? 0))),
+        brand: brandIdx !== -1 ? (cols[brandIdx] || undefined) : undefined,
+        category: categoryIdx !== -1 ? (cols[categoryIdx] || undefined) : undefined,
       })
     }
 
@@ -466,7 +643,7 @@ function CsvImport({ onDone }: { onDone: () => void }) {
       <CardHeader><CardTitle>Import parts from CSV</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <p className="text-[13px] text-mute">
-          CSV must have headers: <strong>code, description, cost, selling, stock, reorder</strong>
+          CSV headers: <strong>part number, description, cost, selling, stock, reorder</strong> — optional: <strong>brand, category</strong>. Legacy <strong>code</strong> header still accepted.
         </p>
         <input
           ref={fileRef}
