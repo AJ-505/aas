@@ -1,6 +1,7 @@
 import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { completeDeliverySchema } from '../src/lib/schemas'
 
@@ -34,7 +35,7 @@ export const complete = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const parsed = completeDeliverySchema.parse(args)
     const user = await requireUser(ctx)
     const id = await ctx.db.insert('deliveries', {

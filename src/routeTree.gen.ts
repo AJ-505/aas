@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AuthChangePasswordRouteImport } from './routes/auth/change-password'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
+import { Route as AuthVerify2faRouteImport } from './routes/auth/verify-2fa'
 import { Route as Landing1RouteImport } from './routes/landing/1'
 import { Route as Landing2RouteImport } from './routes/landing/2'
 import { Route as Landing3RouteImport } from './routes/landing/3'
@@ -28,6 +30,7 @@ import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
 import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
 import { Route as ServicePartsRouteImport } from './routes/service/parts'
 import { Route as ServiceVehiclesRouteImport } from './routes/service/vehicles'
+import { Route as SettingsSecurityRouteImport } from './routes/settings/security'
 import { Route as SalesLeadIdRouteImport } from './routes/sales/lead.$id'
 import { Route as SalesOrderIdRouteImport } from './routes/sales/order.$id'
 import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer.$id'
@@ -43,6 +46,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthChangePasswordRoute = AuthChangePasswordRouteImport.update({
+  id: '/auth/change-password',
+  path: '/auth/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
@@ -51,6 +59,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
   id: '/auth/reset-password',
   path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthVerify2faRoute = AuthVerify2faRouteImport.update({
+  id: '/auth/verify-2fa',
+  path: '/auth/verify-2fa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Landing1Route = Landing1RouteImport.update({
@@ -128,6 +141,11 @@ const ServiceVehiclesRoute = ServiceVehiclesRouteImport.update({
   path: '/service/vehicles',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
+  id: '/settings/security',
+  path: '/settings/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalesLeadIdRoute = SalesLeadIdRouteImport.update({
   id: '/sales/lead/$id',
   path: '/sales/lead/$id',
@@ -152,8 +170,10 @@ const ServiceJobIdRoute = ServiceJobIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
+  '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/verify-2fa': typeof AuthVerify2faRoute
   '/landing/1': typeof Landing1Route
   '/landing/2': typeof Landing2Route
   '/landing/3': typeof Landing3Route
@@ -169,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
   '/service/vehicles': typeof ServiceVehiclesRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
@@ -177,8 +198,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
+  '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/verify-2fa': typeof AuthVerify2faRoute
   '/landing/1': typeof Landing1Route
   '/landing/2': typeof Landing2Route
   '/landing/3': typeof Landing3Route
@@ -194,6 +217,7 @@ export interface FileRoutesByTo {
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
   '/service/vehicles': typeof ServiceVehiclesRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
@@ -203,8 +227,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin/users': typeof AdminUsersRoute
+  '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/verify-2fa': typeof AuthVerify2faRoute
   '/landing/1': typeof Landing1Route
   '/landing/2': typeof Landing2Route
   '/landing/3': typeof Landing3Route
@@ -220,6 +246,7 @@ export interface FileRoutesById {
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
   '/service/vehicles': typeof ServiceVehiclesRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
@@ -230,8 +257,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin/users'
+    | '/auth/change-password'
     | '/auth/login'
     | '/auth/reset-password'
+    | '/auth/verify-2fa'
     | '/landing/1'
     | '/landing/2'
     | '/landing/3'
@@ -247,6 +276,7 @@ export interface FileRouteTypes {
     | '/service/jobs'
     | '/service/parts'
     | '/service/vehicles'
+    | '/settings/security'
     | '/sales/lead/$id'
     | '/sales/order/$id'
     | '/service/customer/$id'
@@ -255,8 +285,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin/users'
+    | '/auth/change-password'
     | '/auth/login'
     | '/auth/reset-password'
+    | '/auth/verify-2fa'
     | '/landing/1'
     | '/landing/2'
     | '/landing/3'
@@ -272,6 +304,7 @@ export interface FileRouteTypes {
     | '/service/jobs'
     | '/service/parts'
     | '/service/vehicles'
+    | '/settings/security'
     | '/sales/lead/$id'
     | '/sales/order/$id'
     | '/service/customer/$id'
@@ -280,8 +313,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin/users'
+    | '/auth/change-password'
     | '/auth/login'
     | '/auth/reset-password'
+    | '/auth/verify-2fa'
     | '/landing/1'
     | '/landing/2'
     | '/landing/3'
@@ -297,6 +332,7 @@ export interface FileRouteTypes {
     | '/service/jobs'
     | '/service/parts'
     | '/service/vehicles'
+    | '/settings/security'
     | '/sales/lead/$id'
     | '/sales/order/$id'
     | '/service/customer/$id'
@@ -306,8 +342,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AuthChangePasswordRoute: typeof AuthChangePasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  AuthVerify2faRoute: typeof AuthVerify2faRoute
   Landing1Route: typeof Landing1Route
   Landing2Route: typeof Landing2Route
   Landing3Route: typeof Landing3Route
@@ -323,6 +361,7 @@ export interface RootRouteChildren {
   ServiceJobsRoute: typeof ServiceJobsRoute
   ServicePartsRoute: typeof ServicePartsRoute
   ServiceVehiclesRoute: typeof ServiceVehiclesRoute
+  SettingsSecurityRoute: typeof SettingsSecurityRoute
   SalesLeadIdRoute: typeof SalesLeadIdRoute
   SalesOrderIdRoute: typeof SalesOrderIdRoute
   ServiceCustomerIdRoute: typeof ServiceCustomerIdRoute
@@ -345,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/change-password': {
+      id: '/auth/change-password'
+      path: '/auth/change-password'
+      fullPath: '/auth/change-password'
+      preLoaderRoute: typeof AuthChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -357,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/reset-password'
       fullPath: '/auth/reset-password'
       preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/verify-2fa': {
+      id: '/auth/verify-2fa'
+      path: '/auth/verify-2fa'
+      fullPath: '/auth/verify-2fa'
+      preLoaderRoute: typeof AuthVerify2faRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/landing/1': {
@@ -464,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServiceVehiclesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/security': {
+      id: '/settings/security'
+      path: '/settings/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof SettingsSecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sales/lead/$id': {
       id: '/sales/lead/$id'
       path: '/sales/lead/$id'
@@ -498,8 +558,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AuthChangePasswordRoute: AuthChangePasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  AuthVerify2faRoute: AuthVerify2faRoute,
   Landing1Route: Landing1Route,
   Landing2Route: Landing2Route,
   Landing3Route: Landing3Route,
@@ -515,6 +577,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServiceJobsRoute: ServiceJobsRoute,
   ServicePartsRoute: ServicePartsRoute,
   ServiceVehiclesRoute: ServiceVehiclesRoute,
+  SettingsSecurityRoute: SettingsSecurityRoute,
   SalesLeadIdRoute: SalesLeadIdRoute,
   SalesOrderIdRoute: SalesOrderIdRoute,
   ServiceCustomerIdRoute: ServiceCustomerIdRoute,

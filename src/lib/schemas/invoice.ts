@@ -14,10 +14,13 @@ export const approveInvoiceSchema = z.object({
   invoiceId: z.string().min(1),
 })
 
+export const PAYMENT_METHODS = ["cash", "transfer", "card", "pos", "bank"] as const
+export const paymentMethodSchema = z.enum(PAYMENT_METHODS)
+
 export const recordPaymentSchema = z.object({
-  invoiceId: z.string().min(1),
+  invoiceId: z.string().min(1).max(64),
   amount: moneyKobo,
-  method: z.string().trim().min(1, 'Payment method is required'),
+  method: paymentMethodSchema,
 })
 
 // Pure helper used by both client previews and Convex invoice generation.

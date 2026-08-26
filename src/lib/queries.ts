@@ -18,6 +18,11 @@ export const vehicleQueries = {
 export const userQueries = {
   list: () => convexQuery(api.users.list, {}),
   adminExists: () => convexQuery(api.users.adminExists, {}),
+  me: () => convexQuery(api.users.me, {}),
+}
+
+export const twoFactorQueries = {
+  status: () => convexQuery((api as any).twoFactor.status, {}),
 }
 
 // ---- Phase 2: Jobs ----
@@ -79,8 +84,34 @@ export function useSetActiveMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.users.setActive) })
 }
 
+export function useAdminResetPasswordMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).users.adminResetPassword) as any })
+}
+
+export function useChangePasswordMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).users.changePassword) as any })
+}
+
+export function useAdminReset2FAMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).twoFactor.adminReset) as any })
+}
+
 export function useBootstrapFirstAdminMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.users.bootstrapFirstAdmin) })
+}
+
+export function useHeartbeatMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).users.heartbeat) as any })
+}
+
+export function useTwoFactorSetupMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).twoFactor.setup) as any })
+}
+export function useVerifySetupMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).twoFactor.verifySetup) as any })
+}
+export function useVerifyLoginMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).twoFactor.verifyLogin) as any })
 }
 
 // Job mutations

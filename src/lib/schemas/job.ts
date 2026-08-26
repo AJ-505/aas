@@ -13,14 +13,21 @@ export const checkInJobSchema = z.object({
 
 
 
-export const addJobItemSchema = z.object({
-  jobId: z.string().min(1),
-  type: jobItemTypeSchema,
-  partId: z.string().min(1).optional(),
-  labourTypeId: z.string().min(1).optional(),
-  qty: z.number().int().min(1).default(1),
-  unitPrice: z.number().int().nonnegative(),
-})
+export const addJobItemSchema = z
+  .object({
+    jobId: z.string().min(1).max(64),
+    type: jobItemTypeSchema,
+    partId: z.string().min(1).max(64).optional(),
+    labourTypeId: z.string().min(1).max(64).optional(),
+    qty: z.number().int().min(1).max(999).default(1),
+    unitPrice: z.number().int().min(0).max(10_000_000),
+  })
+  .superRefine((v, ctx) => {
+    if (v.type === "part" && !v.partId) ctx.addIssue({ code: "custom", message: "partId required for part items", path: ["partId"] })
+    if (v.type === "labour" && !v.labourTypeId) ctx.addIssue({ code: "custom", message: "labourTypeId required for labour items", path: ["labourTypeId"] })
+    if (v.type === "part" && v.labourTypeId) ctx.addIssue({ code: "custom", message: "labourTypeId must not be set for part items", path: ["labourTypeId"] })
+    if (v.type === "labour" && v.partId) ctx.addIssue({ code: "custom", message: "partId must not be set for labour items", path: ["partId"] })
+  })
 
 export const updateJobStatusSchema = z.object({
   jobId: z.string().min(1),

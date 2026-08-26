@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>t3 — Security & Compliance Hardening — Plan</title>
+<style>
+  :root{--ink:#0f172a;--body:#334155;--mute:#64748b;--accent:#0f766e;--accent2:#b45309;--line:#e2e8f0;--bg:#f8fafc;--card:#ffffff;--warn:#f59e0b;--rose:#e11d48;--teal-soft:#ccfbf1;--amber-soft:#fef3c7}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family: ui-sans-system, Inter, system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--body); line-height:1.6}
+  header{background:linear-gradient(135deg,#0f172a 0%,#134e4a 55%,#0f766e 100%); color:#e2e8f0; padding:32px 28px 26px; border-bottom:4px solid #f59e0b}
+  header .kicker{font-family: ui-monospace, Menlo, monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#5eead4}
+  header h1{font-size:30px; font-weight:900; letter-spacing:-.03em; margin-top:6px; color:#fff}
+  header h1 span{color:#fde68a}
+  header p{color:#cbd5e1; font-size:13.5px; margin-top:8px; max-width:860px}
+  .wrap{max-width:1160px; margin:0 auto; padding:22px 22px 40px}
+  .grid{display:grid; grid-template-columns: 1.35fr .75fr; gap:16px}
+  @media(max-width:940px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 18px; box-shadow: 0 1px 2px rgba(15,23,42,.06)}
+  .card h2{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:8px}
+  .card h2 i{width:8px;height:8px;border-radius:99px;background:var(--accent); display:inline-block}
+  .card h3{font-size:14px; font-weight:800; color:var(--ink); margin:16px 0 6px; letter-spacing:-.01em}
+  .mono{font-family: ui-monospace, Menlo, monospace; font-size:12px}
+  .pill{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:4px 9px; border-radius:999px; background:var(--teal-soft); color:#115e59; border:1px solid #99f6e4}
+  .pill.amber{background:var(--amber-soft); color:#92400e; border-color:#fde68a}
+  .pill.rose{background:#ffe4e6; color:var(--rose); border-color:#fecdd3}
+  ol,ul{padding-left:18px}
+  li{margin:5px 0; font-size:13.5px}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top}
+  th{background:#f1f5f9; font-weight:700; color:var(--ink); font-size:11.5px; letter-spacing:.04em; text-transform:uppercase}
+  .callout{border-left:3px solid var(--accent); background:#f0fdfa; padding:11px 13px; border-radius:10px; font-size:13px; margin-top:10px}
+  .callout.warn{border-color:var(--warn); background:#fffbeb}
+  .callout.rose{border-color:var(--rose); background:#fff1f2}
+  code{background:#f1f5f9; padding:2px 6px; border-radius:6px; font-family: ui-monospace, Menlo, monospace; font-size:12px; border:1px solid #e2e8f0}
+  details{border:1px solid var(--line); border-radius:12px; background:#fbfdff; padding:11px 13px; margin-top:10px}
+  summary{cursor:pointer; font-weight:750; color:var(--ink); font-size:13px}
+  .step{display:flex; gap:12px; padding:10px 0; border-bottom:1px solid #f1f5f9}
+  .step:last-child{border-bottom:none}
+  .step b{flex-shrink:0; width:26px; height:26px; border-radius:99px; background:var(--ink); color:#fff; display:grid; place-items:center; font-size:12px}
+  .step div{flex:1}
+  .step .title{font-weight:750; color:var(--ink); font-size:13.5px}
+  .step .desc{font-size:13px; color:var(--body); margin-top:2px}
+  .foot{margin-top:18px; font-size:12px; color:var(--mute)}
+  .twoCol{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media(max-width:700px){.twoCol{grid-template-columns:1fr}}
+  .badgeRow{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0}
+</style>
+<header>
+  <div class="kicker">Cedric Masters Autos — t3 · feat/security-hardening</div>
+  <h1>Security & Compliance <span>Hardening</span></h1>
+  <p>TOTP authenticator-only 2FA (QR + backup codes + login gate), admin password + 2FA reset, 30-min inactivity timeout with client warning + server <code>requireActiveSession</code> enforcement, and a full validation sweep across every mutation. No SMS/email/push, no custom JWT, no extra encryption beyond Convex at-rest.</p>
+  <div class="badgeRow" style="margin-top:12px">
+    <span class="pill">Convex + TanStack Router</span>
+    <span class="pill amber">Client-only is bypassable → server check REQUIRED</span>
+    <span class="pill rose">Never log secrets/tokens</span>
+  </div>
+</header>
+<div class="wrap">
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2><i></i> Design tree & settled decisions</h2>
+
+        <h3>1) 2FA via TOTP — authenticator apps only</h3>
+        <div class="badgeRow"><span class="pill">TOTP RFC6238 SHA1 30s 6-digit window ±1</span><span class="pill amber">QR: <code>qrcode</code> tiny (data URL)</span></div>
+        <ul>
+          <li><strong>Schema</strong> <code>users</code>: <code>totpSecret?: string</code> (base32 32-char, 20-byte), <code>totpEnabled?: boolean</code>, <code>backupCodes?: string[]</code> (10× 8-char A-Z0-9, single-use consumed on use), <code>lastTotpVerifiedTs?: number</code>, <code>lastActiveTs?: number</code>, <code>mustChangePassword?: boolean</code>. All optional for migration safety; new code treats missing as false/never.</li>
+          <li><strong>Crypto</strong> <code>convex/lib/totp.ts</code>: <code>base32Encode/decode</code>, <code>generateSecret()</code> via <code>crypto.getRandomValues</code>, <code>hotp(secret, counter)</code> → HMAC-SHA1 via <code>crypto.subtle</code> (fallback pure-JS if unavailable), <code>totpVerify(secret, code, window=1)</code>, <code>otpauthUri(secret, email, issuer)</code>, <code>generateBackupCodes()</code>. Constant-time compare for codes. Documented limit: secrets stored plaintext in Convex DB, encrypted at rest by Convex, no additional envelope encryption (scope cut, documented in code + report).</li>
+          <li><strong>Enrollment flow</strong> <code>convex/twoFactor.ts</code>:
+            <code>setup</code> (requireUser, generate secret, store as pending <code>totpSecret</code> but keep <code>totpEnabled=false</code>, return <code>{secret, uri}</code>) →
+            <code>verifySetup</code> (requireUser, verify code against stored secret, on success set <code>totpEnabled=true</code>, generate <code>backupCodes</code>, set <code>lastTotpVerifiedTs=now</code>, audit) →
+            client renders QR via <code>QRCode.toDataURL(uri)</code> + manual secret fallback + backup codes printable sheet.
+          </li>
+          <li><strong>Login gate (custom layer, no Password hook)</strong>: Convex Auth has no TOTP hook → gated post-login check. <code>users.me</code> now returns <code>totpEnabled, needsTotpVerify, mustChangePassword, lastActiveTs</code>. <code>AppShell</code> after auth: if <code>totpEnabled && now - lastTotpVerifiedTs > 5min</code> (initially >0) → <code>&lt;Navigate to="/auth/verify-2fa"&gt;</code> with no bypass. <code>/auth/verify-2fa</code> calls <code>twoFactor.verifyLogin {code}</code> (also accepts backup code). That mutation verifies (consumes backup code if used), sets <code>lastTotpVerifiedTs=now</code> + <code>lastActiveTs=now</code>. Success → redirect to <code>/</code>. Failure → remain on verify page, rate-limited by ConvexError message only (no secret leak).</li>
+          <li><strong>Server enforcement</strong>: <code>requireActiveSession()</code> (new <code>convex/lib/session.ts</code>) checks <code>lastActiveTs</code> freshness (30min) AND if <code>totpEnabled</code> then <code>lastTotpVerifiedTs</code> freshness (30min). All write mutations route through <code>requireActiveSession</code> (see §3). Even if client bypasses redirect, writes are rejected.</li>
+          <li><strong>Admin reset 2FA</strong>: <code>twoFactor.adminReset(userId)</code> with <code>requireRole(['admin'])</code> clears <code>totpSecret/totpEnabled/backupCodes/lastTotpVerifiedTs</code>, audit. User re-enrolls.</li>
+          <li><strong>Never log</strong>: no <code>console.log</code> of secrets/codes/backupCodes/tokens in any mutation; audit entries log <code>userId + action</code> only.</li>
+        </ul>
+        <div class="callout">
+          <strong>Why gated post-login, not sign-in callback?</strong> <code>@convex-dev/auth</code> Password provider offers <code>profile, authorize, reset</code> but no <code>onSignIn</code> TOTP hook; patching <code>store</code> would couple to auth internals and risk JWT drift. Post-login gate + server <code>requireActiveSession</code> is clean, reversible, and testable without forking auth. Documented in <code>convex/lib/totp.ts</code> header + report.
+        </div>
+
+        <h3>2) Admin password reset + force change</h3>
+        <ul>
+          <li><strong>Mutation</strong> <code>users.adminResetPassword {userId, tempPassword}</code>: <code>requireRole(['admin'])</code>, Zod <code>tempPassword: string min 8 max 128</code>, cannot reset self to avoid lockout footgun (allowed but warns). Implementation: update Convex Auth's <code>authAccounts</code> record for that user where <code>provider=="password"</code>. Hash with <code>crypto.subtle SHA-256 + bcrypt-like? —</code> actual path: delegate to Convex Auth internals by deleting old account and delegating hash to <code>Password</code> provider via internal <code>ctx.db.patch</code> of <code>secret</code> using <code>auth</code> helper if exposed; fallback documented: if hash API unavailable, store <code>users.mustChangePassword + tempPasswordHash (SHA-256)</code> and intercept at login via custom <code>verifyPassword</code> mutation. Either way, never log plaintext.</li>
+          <li>Sets <code>users.mustChangePassword=true</code> + <code>lastActiveTs=now</code>. Audit <code>user.adminResetPassword</code>.</li>
+          <li><strong>Force-change flow</strong>: <code>/auth/change-password</code> (or inline in verify gate) with <code>users.changePassword {currentPassword, newPassword}</code> (or <code>mustChangePassword</code> bypasses current check when admin-set). Zod validates strength, updates auth secret, clears <code>mustChangePassword</code>, audit.</li>
+          <li><strong>Admin UI</strong> <code>/admin/users</code>: per-row “Reset password” (modal: temp password input, generates random 12-char if blank) + “Reset 2FA” button. Both with confirm + toast. Disabled actions log only via audit.</li>
+          <li><strong>Fix CR-01</strong>: grep removal of any <code>console.log(token)</code> in <code>convex/auth.ts reset.sendVerificationRequest</code> → replace with audit-only or no-op in production; keep dev log gated behind <code>CONVEX_ENV != production</code> if needed, but never log tokens/passwords.</li>
+        </ul>
+
+        <h3>3) 30-min inactivity timeout — dual enforcement</h3>
+        <table>
+          <tr><th>Layer</th><th>Mechanism</th><th>Detail</th></tr>
+          <tr><td><strong>Server</strong></td><td><code>users.heartbeat {}</code> + <code>requireActiveSession</code></td><td>Heartbeat patches <code>lastActiveTs=Date.now()</code> throttled client-side ~60s (server accepts any call, minimal cost). <code>requireActiveSession(ctx, roles)</code> wraps <code>requireRole</code> + checks <code>now - lastActiveTs > 30*60*1000 → ConvexError("Session expired due to inactivity. Please sign in again.")</code>. All <em>write</em> mutations use it; reads stay <code>requireUser</code> to allow warning modal fetches without heartbeat loop.</td></tr>
+          <tr><td><strong>Client</strong></td><td><code>src/hooks/useInactivity.ts</code></td><td>Debounced listeners <code>mousemove/keydown/click/scroll/touchstart</code> (300ms), <code>lastActive</code> in ref + localStorage + <code>heartbeat()</code> every 60s via <code>useConvexMutation(api.users.heartbeat)</code>. Interval checks every 30s: if <code>now - lastActive > 25min</code> → show <code>InactivityWarningModal</code> with countdown + “Extend session” (calls heartbeat, resets timer). If <code>>30min</code> → <code>signOut() + navigate(/auth/login?expired=1)</code> + toast. Root guard in <code>AppShell</code> also watches <code>searchParams.expired</code> to show banner.</td></tr>
+        </table>
+        <div class="callout warn">
+          <strong>Client-only is bypassable</strong> — attacker replays Convex function call after 30min of inactivity. Server <code>requireActiveSession</code> is the real gate; client modal is UX only. Heartbeat throttling prevents spam: client ensures ≥60s between calls, server could also enforce <code>if (now - lastActiveTs &lt; 50s) return</code> to reduce writes.
+        </div>
+
+        <h3>4) Validation sweep — close every gap</h3>
+        <ul>
+          <li>Audit every <code>convex/*.ts</code> mutation's <code>args</code> with <code>v.*</code> strictness + length/format: <code>name/email/phone</code> trims, <code>plate</code> uppercase + regex, <code>moneyKobo</code> int ≥0, etc.</li>
+          <li>Add missing Zod schemas: <code>src/lib/schemas/job.ts</code> fix <code>addJobItemSchema</code> to enforce <code>type: enum['part','labour']</code> + conditional <code>partId/labourTypeId</code>, <code>qty/unitPrice</code> bounds; <code>src/lib/schemas/invoice.ts</code> narrow <code>method: enum['cash','transfer','card','pos','bank']</code> (currently free-form string) with fallback for legacy; <code>src/lib/schemas/sales.ts</code> validate <code>addPayment amount</code> against <code>moneyKobo</code>; <code>src/lib/schemas/part.ts</code> already ok but verify <code>stock adjust qty</code> integer range; appointments/customer/vehicle schemas already validated but re-check.</li>
+          <li>All mutations call <code>Schema.parse(args)</code> before DB work; Convex <code>v</code> validators remain as first line defense (defense in depth).</li>
+          <li>No mock frontend data — any demo data via <code>convex/seed.ts</code>.</li>
+        </ul>
+
+        <h3>Build order (small commits)</h3>
+        <div class="step"><b>1</b><div><div class="title">Schema + TOTP lib</div><div class="desc"><code>convex/schema.ts</code> add users fields + <code>convex/lib/totp.ts</code> + <code>convex/lib/session.ts</code>. Typecheck.</div></div></div>
+        <div class="step"><b>2</b><div><div class="title">Server: twoFactor + heartbeat + admin resets</div><div class="desc"><code>convex/twoFactor.ts</code>, <code>convex/users.ts</code> <code>heartbeat/changePassword/adminResetPassword/adminReset2FA</code>, enhance <code>me</code>, fix <code>auth.ts</code> logging. Audit wired.</div></div></div>
+        <div class="step"><b>3</b><div><div class="title">Session enforcement sweep</div><div class="desc"><code>convex/lib/auth.ts</code> add <code>requireActiveSession</code>, migrate all write mutations (jobs, parts, vehicles, invoices, payments, leads, salesOrders, appointments, etc.) to use it. Keep reads on <code>requireUser</code>.</div></div></div>
+        <div class="step"><b>4</b><div><div class="title">Validation sweep + Zod tightening</div><div class="desc">Add <code>recordPaymentSchema method enum</code>, <code>addJobItemSchema</code> conditional refinement, sales payment schema, vehicles/appointments string length guards. Wire <code>parse()</code> in payments/jobs/salesOrders.</div></div></div>
+        <div class="step"><b>5</b><div><div class="title">Client inactivity + TOTP UI</div><div class="desc"><code>src/hooks/useInactivity.ts</code>, <code>InactivityWarningModal</code>, <code>AppShell</code> guard, <code>/auth/verify-2fa.tsx</code>, <code>/settings/security.tsx</code> (QR via <code>qrcode</code>), admin users modal buttons, <code>src/lib/queries.ts</code> new hooks.</div></div></div>
+        <div class="step"><b>6</b><div><div class="title">Verify + report</div><div class="desc"><code>bun run typecheck && bun test && bun run build</code>, save proofs, write <code>reports/t3-security.html</code>, commit.</div></div></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2><i style="background:var(--warn)"></i> Risks & mitigations</h2>
+        <ul>
+          <li><strong>Convex Auth password hash internals undocumented</strong> → mitigation: probe <code>authAccounts</code> shape in dev, fallback to <code>mustChangePassword + tempHash</code> flow that doesn't need to know hash algo; document both in report.</li>
+          <li><strong>crypto.subtle unavailable in Convex isolates</strong> → fallback to pure-JS HMAC-SHA1 (tiny, no dep). Verify in build.</li>
+          <li><strong>Backup code replay</strong> → single-use: splice used code from array and patch.</li>
+          <li><strong>Timing attack on code compare</strong> → constant-time string compare.</li>
+          <li><strong>Heartbeat spam</strong> → client throttle 60s + server early-return if &lt;50s since last.</li>
+          <li><strong>CR-01 regression (logging tokens)</strong> → grep <code>console.log</code> in <code>convex/auth.ts</code> and remove; ES lint rule concept.</li>
+          <li><strong>Role bypass</strong> → every mutation retains <code>requireRole</code> (now via <code>requireActiveSession</code> which internally calls <code>requireRole</code>), no raw <code>ctx.db.get</code> without auth.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2><i></i> Break-it tests (must pass)</h2>
+        <ol>
+          <li><strong>2FA enroll</strong>: login as admin, open <code>/settings/security</code>, click Enable → QR appears (data URL), secret shown, copy works → enter wrong code → error → enter correct TOTP → success + 10 backup codes displayed → print.</li>
+          <li><strong>Login gate</strong>: sign out, sign in again with same account → redirected to <code>/auth/verify-2fa</code> (cannot navigate to <code>/</code> via URL). Enter wrong code → stays. Enter correct code → lands on dashboard. Enter backup code → succeeds and that code is consumed (reuse fails).</li>
+          <li><strong>Bypass attempt</strong>: with 2FA enabled, manually set localStorage totpVerified and try calling <code>jobs.checkIn</code> via Convex dashboard with stale <code>lastTotpVerifiedTs</code> (simulate by waiting or patching old timestamp) → mutation rejected with “2FA verification required”.</li>
+          <li><strong>Admin Reset 2FA</strong>: as admin, <code>/admin/users</code> → Reset 2FA on TOTP user → that user can now login without TOTP, re-enroll works, audit log entry exists.</li>
+          <li><strong>Admin Reset Password</strong>: admin sets temp password <code>Temp1234!</code> for user Amara → that user’s next login with old password fails, with temp succeeds → forced to <code>/auth/change-password?force=1</code> before any other page, cannot bypass by navigating to <code>/</code> → after change, login with new password works, <code>mustChangePassword</code> cleared, old temp fails.</li>
+          <li><strong>Never log</strong>: grep <code>convex/**</code> for <code>console.log</code> + <code>token/password/secret</code> → zero hits. Audit logs contain no secrets.</li>
+          <li><strong>Inactivity warning</strong>: login, set system clock +25min (or edit hook timeout to 10s for test) → warning modal appears with countdown + Extend button → click Extend → modal closes, heartbeat called, timer resets. If not extended and reaches 30min → auto signOut → redirect <code>/auth/login?expired=1</code> with “Session expired due to inactivity” banner.</li>
+          <li><strong>Server timeout</strong>: login, manually stop heartbeats (disable activity), wait 31min (or patch <code>lastActiveTs</code> to old), then attempt any write via Convex dashboard (e.g., <code>parts.createPart</code>) → rejected “Session expired”. Read queries still succeed.</li>
+          <li><strong>Heartbeat throttle</strong>: rapid activity (mousemove 10x/sec) → network tab shows at most 1 heartbeat per ~60s.</li>
+          <li><strong>Validation sweep</strong>: try <code>jobs.addJobItem {type:'weird', qty:-1, unitPrice:'abc'}</code> → Zod/ConvexError rejects. <code>payments.record {method: ''}</code> → rejects. <code>vehicles.create {plate:'ab'}</code> → regex rejects. <code>appointments.create {vehicleMake:''}</code> → rejects. All with boundary strings.</li>
+          <li><strong>Existing flows unbroken</strong>: check-in, parts dispatch, invoice generate, sale order create still work when session fresh & 2FA verified.</li>
+          <li><strong>Seed not mocked</strong>: no frontend mock data introduced; <code>rg "mock" src/</code> yields only test helpers.</li>
+        </ol>
+        <details>
+          <summary>Scope cuts acknowledged</summary>
+          <ul>
+            <li>No SMS/email/push 2FA (only TOTP).</li>
+            <li>No custom JWT/code beyond Convex Auth sessions.</li>
+            <li>No extra field-level encryption beyond Convex at-rest (documented; secret stored plaintext in DB).</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2><i></i> File map — what changes where</h2>
+        <table>
+          <tr><th>Path</th><th>Action</th></tr>
+          <tr><td><code>convex/schema.ts</code></td><td>Extend <code>users</code> with TOTP + session fields</td></tr>
+          <tr><td><code>convex/lib/totp.ts</code></td><td><strong>NEW</strong> — base32 + TOTP helpers</td></tr>
+          <tr><td><code>convex/lib/session.ts</code></td><td><strong>NEW</strong> — heartbeat + requireActiveSession</td></tr>
+          <tr><td><code>convex/twoFactor.ts</code></td><td><strong>NEW</strong> — setup/verify/disable/adminReset</td></tr>
+          <tr><td><code>convex/users.ts</code></td><td>heartbeat, me, adminResetPassword, changePassword</td></tr>
+          <tr><td><code>convex/lib/auth.ts</code></td><td>Add requireActiveSession wrapper</td></tr>
+          <tr><td><code>convex/jobs.ts etc.</code></td><td>Migrate writes to requireActiveSession</td></tr>
+          <tr><td><code>src/hooks/useInactivity.ts</code></td><td><strong>NEW</strong> client tracker</td></tr>
+          <tr><td><code>src/components/InactivityWarningModal.tsx</code></td><td><strong>NEW</strong></td></tr>
+          <tr><td><code>src/components/QrCode.tsx</code></td><td><strong>NEW</strong> tiny wrapper over qrcode</td></tr>
+          <tr><td><code>src/routes/auth/verify-2fa.tsx</code></td><td><strong>NEW</strong> login gate</td></tr>
+          <tr><td><code>src/routes/settings/security.tsx</code></td><td><strong>NEW</strong> enroll + backup codes</td></tr>
+          <tr><td><code>src/routes/admin/users.tsx</code></td><td>Add Reset Password / Reset 2FA modals</td></tr>
+          <tr><td><code>src/routes/auth/change-password.tsx</code></td><td><strong>NEW</strong> force-change</td></tr>
+          <tr><td><code>src/routes/__root.tsx</code></td><td>Maybe inactivity provider init</td></tr>
+          <tr><td><code>src/lib/queries.ts</code></td><td>New query/mutation hooks</td></tr>
+          <tr><td><code>src/lib/schemas/*</code></td><td>Tighten addJobItem, payment method, etc.</td></tr>
+          <tr><td><code>ROADMAP.md</code></td><td>Mark t3 row [x]</td></tr>
+        </table>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2><i></i> Proof to capture</h2>
+        <ul>
+          <li><code>bun run typecheck</code> → no errors</li>
+          <li><code>bun test</code> → all green (new totp unit tests)</li>
+          <li><code>bun run build</code> → emits <code>.output/</code></li>
+          <li>Saved under <code>proofs/t3/</code> as text logs + screenshots of QR + warning modal if feasible without dev server (else note plainly)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <p class="foot">Plan rendered as self-contained HTML — open via <code>file://…/plans/t3.html</code>. Distinct palette (slate/teal/amber) vs t2 forest green. Every implementation choice is reversible; smallest-change principle preserved (optional fields, no migration script needed).</p>
+</div>
+</html>

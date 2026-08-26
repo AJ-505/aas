@@ -24,9 +24,14 @@ export const logFollowUpSchema = z.object({
   nextFollowUpTs: z.number().int().optional(),
 })
 
+export const addSalesOrderPaymentSchema = z.object({
+  salesOrderId: z.string().min(1).max(64),
+  amount: moneyKobo,
+})
+
 export const createSalesOrderSchema = z.object({
-  vehicleId: z.string().min(1),
-  leadId: z.string().min(1),
+  vehicleId: z.string().min(1).max(64),
+  leadId: z.string().min(1).max(64),
   agreedPrice: moneyKobo,
   deposit: moneyKobo.default(0),
 })

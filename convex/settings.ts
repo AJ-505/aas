@@ -1,6 +1,7 @@
 import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { invoiceSettingsSchema } from '../src/lib/schemas/invoice'
 
@@ -18,7 +19,7 @@ export const get = query({
 export const setVatRate = mutation({
   args: { vatRate: v.number() },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['finance', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
     const parsed = invoiceSettingsSchema.parse(args)
     const existing = await ctx.db.query('settings').first()
     if (existing) {

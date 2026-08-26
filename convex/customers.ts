@@ -2,6 +2,7 @@ import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import {
   createCustomerSchema,
@@ -95,7 +96,7 @@ export const create = mutation({
     address: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const parsed = createCustomerSchema.parse(args)
     const trimmedPhone = parsed.phone.trim()
     const trimmedName = parsed.name.trim()
@@ -142,7 +143,7 @@ export const update = mutation({
     address: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const { customerId, ...patch } = args
     const parsed = updateCustomerSchema.parse(patch)
     // Duplicate guard on phone change: prevent update from creating a phone collision.

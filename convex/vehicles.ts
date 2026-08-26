@@ -3,6 +3,7 @@ import type { Id } from './_generated/dataModel'
 import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { VEHICLE_STATUSES, type VehicleStatus } from '../src/lib/enums'
 import { createVehicleSchema, updateVehicleSchema } from '../src/lib/schemas'
@@ -80,7 +81,7 @@ export const create = mutation({
     reorderLevel: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
     const parsed = createVehicleSchema.parse({
       ...args,
       status: (args.status as VehicleStatus | undefined) ?? 'customerOwned',
@@ -124,7 +125,7 @@ export const adjustStock = mutation({
     reorderLevel: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
     const vehicle = await ctx.db.get(args.vehicleId)
     if (!vehicle) throw new ConvexError('Vehicle not found.')
     const currentQty = vehicle.stockQty ?? 0
@@ -161,7 +162,7 @@ export const update = mutation({
     reorderLevel: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
     const { vehicleId, ...patch } = args
     const parsed = updateVehicleSchema.parse({
       ...patch,

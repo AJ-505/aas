@@ -266,6 +266,15 @@
 | Wire parts.brand & vehicles.make to brand suggestions (dropdown + free-text fallback) | [x] | `/service/parts` BrandSuggestInput datalist + `/sales/inventory` make datalist; free-text always allowed |
 | Parts filtering by category, brand, part number (backend + UI) | [x] | `parts.search` now takes `{q, brand, category}` AND-combined; UI has text search + brand/category dropdowns + clear |
 
+## Security & Compliance Hardening (t3 — Client Review PDF)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| TOTP 2FA via authenticator apps (QR otpauth URI, verify, backup codes, login gate) | [x] | `users.totpSecret/totpEnabled/backupCodes/lastTotpVerifiedTs` + `convex/lib/totp.ts` (base32/HMAC-SHA1) + `convex/twoFactor.ts` (setup/verifySetup/verifyLogin/disable/adminReset) + gated post-login check via `users.me` flags + `/auth/verify-2fa` + `/settings/security` QR via `api.qrserver.com` (no heavy dep). Backup codes single-use. `requireActiveSession` enforces 2FA on writes. |
+| Admin password reset + force change + Reset 2FA | [x] | `users.adminResetPassword` (Scrypt via `modifyAccountCredentials`) + `mustChangePassword` flag + `/auth/change-password` force gate + `/admin/users` Reset PW / Reset 2FA buttons + audit. Never logs tokens/passwords (fixes CR-01, `convex/auth.ts` silent `sendVerificationRequest`). |
+| 30-min inactivity timeout (client + server) | [x] | Client `useInactivity` (debounced listeners, 60s heartbeat, warning at 25min with Extend, redirect `?expired=1`) + `InactivityWarningModal` + `AppShell` guard + server `users.heartbeat` (throttled 50s) + `requireActiveSession` rejecting writes >30min. Client-only bypassable → server is source of truth. |
+| Data validation sweep (every mutation arg) | [x] | Zod tightening: `addJobItem` type enum + conditional `partId/labourTypeId` + qty/unitPrice bounds; `recordPayment` method enum `cash/transfer/card/pos/bank`; `addSalesOrderPayment` moneyKobo; `vehicles/appointments` plate regex; Convex `v` validators mirror Zod + `Schema.parse()` in all write mutations. |
+
 ## Future (Post-MVP)
 
 - Customer portal (view history, download invoices, book appointments)
