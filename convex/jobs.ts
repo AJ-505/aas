@@ -8,6 +8,7 @@ import { canTransition } from '../src/lib/job-utils'
 import type { JobStatus } from '../src/lib/enums'
 import { addJobItemSchema, checkInJobSchema } from '../src/lib/schemas'
 import { computeInvoiceTotals, type InvoiceLineItem } from '../src/lib/schemas/invoice'
+import { findApprovedFinalForJob } from './lib/invoiceHelpers'
 
 export const getDetail = query({
   args: { jobId: v.id('jobs') },
@@ -353,6 +354,7 @@ export async function syncInvoiceForJob(ctx: any, jobId: Id<'jobs'>) {
     .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
     .first()
   if (!existing || existing.paid) return
+  if ((existing as any).locked) return
 
   const jobItems = await ctx.db
     .query('jobItems')
@@ -394,6 +396,29 @@ export async function syncInvoiceForJob(ctx: any, jobId: Id<'jobs'>) {
   })
 }
 
+export const reverseReady = mutation({
+  args: { jobId: v.id('jobs') },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ['manager', 'admin'])
+    const job = await ctx.db.get(args.jobId)
+    if (!job) throw new ConvexError('Job not found.')
+    if (job.status !== 'readyForPickup') {
+      throw new ConvexError('Only jobs in readyForPickup can be reversed.')
+    }
+    const approvedFinal = await findApprovedFinalForJob(ctx, args.jobId)
+    if (approvedFinal) {
+      throw new ConvexError('Cannot reverse ready-for-pickup after final invoice is approved/locked.')
+    }
+    await ctx.db.patch(args.jobId, {
+      status: 'inProgress',
+      readyForPickupTs: undefined,
+      reversedReadyTs: Date.now(),
+    })
+    await audit(ctx, 'job.reverseReady', 'jobs', args.jobId)
+    return null
+  },
+})
+
 export const addJobItem = mutation({
   args: {
     jobId: v.id('jobs'),
@@ -410,6 +435,13 @@ export const addJobItem = mutation({
     if (!job) throw new ConvexError('Job not found.')
     if (job.status === 'completed' || job.status === 'paid') {
       throw new ConvexError('Cannot add items to a job that is completed or paid.')
+    }
+    // Locked guard: no writes if approved final exists/locked
+    {
+      const approvedFinal = await findApprovedFinalForJob(ctx, args.jobId)
+      if (approvedFinal) throw new ConvexError('Cannot add items: final invoice is locked.')
+      const allInvoices = await ctx.db.query('invoices').withIndex('jobId', (q: any) => q.eq('jobId', args.jobId)).collect()
+      if (allInvoices.some((i: any) => i.locked)) throw new ConvexError('Cannot add items: invoice is locked — unlock by Admin required.')
     }
 
     const type = parsed.type as 'part' | 'labour'
@@ -480,6 +512,13 @@ export const removeJobItem = mutation({
     if (!job) throw new ConvexError('Job not found.')
     if (job.status === 'completed' || job.status === 'paid') {
       throw new ConvexError('Cannot remove items from a job that is completed or paid.')
+    }
+    // Locked guard
+    {
+      const approvedFinal = await findApprovedFinalForJob(ctx, item.jobId)
+      if (approvedFinal) throw new ConvexError('Cannot remove items: final invoice is locked.')
+      const allInvoices = await ctx.db.query('invoices').withIndex('jobId', (q: any) => q.eq('jobId', item.jobId)).collect()
+      if (allInvoices.some((i: any) => i.locked)) throw new ConvexError('Cannot remove items: invoice is locked — unlock by Admin required.')
     }
     if (item.type === 'part') {
       throw new ConvexError('Dispatched parts items cannot be manually removed. Reversal must be done through Inventory Parts Request.')

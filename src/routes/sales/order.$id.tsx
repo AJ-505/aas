@@ -12,10 +12,15 @@ import { IconChevronRight } from '~/components/icons'
 import {
   salesOrderQueries,
   deliveryQueries,
+  invoiceQueries,
   useCompleteSalesOrderMutation,
   useCancelSalesOrderMutation,
   useAddSalesOrderPaymentMutation,
   useCompleteDeliveryMutation,
+  useCreateEstimateMutation,
+  useGenerateSalesInvoiceMutation,
+  useApproveInvoiceMutation,
+  useAdminUnlockMutation,
 } from '~/lib/queries'
 import type { Id } from 'convex/_generated/dataModel'
 
@@ -122,6 +127,8 @@ function SalesOrderDetailPage() {
           </dl>
         </CardContent>
       </Card>
+
+      <SalesInvoiceSection salesOrderId={id} agreedPrice={order.agreedPrice} />
 
       {/* Actions */}
       {order.status === 'pending' && (
@@ -272,6 +279,52 @@ function SalesOrderDetailPage() {
         </Card>
       )}
     </div>
+  )
+}
+
+function SalesInvoiceSection({ salesOrderId, agreedPrice }: { salesOrderId: string; agreedPrice: number }) {
+  const queryClient = useQueryClient()
+  const { data: invoices } = useQuery(invoiceQueries.listBySalesOrder(salesOrderId))
+  const { data: me } = useCurrentUser()
+  const createEstimate = useCreateEstimateMutation()
+  const generateSales = useGenerateSalesInvoiceMutation()
+  const approve = useApproveInvoiceMutation()
+  const isFinance = me?.role === 'finance' || me?.role === 'manager' || me?.role === 'admin'
+  const canEstimate = !!me?.role && ['salesRep','manager','admin','csr'].includes(me.role)
+  if (!invoices || invoices.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardHeader><CardTitle>Sales Invoices</CardTitle></CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          {canEstimate && <Button size="sm" onClick={() => createEstimate.mutate({ salesOrderId: salesOrderId as Id<'salesOrders'>, domain: 'sales' }, { onSuccess: () => { toast.success('Sales estimate created'); void queryClient.invalidateQueries() }, onError: (e:any)=>toast.error(e.message) })}>Create Sales Estimate</Button>}
+          {isFinance && <Button size="sm" variant="outline" onClick={() => generateSales.mutate({ salesOrderId: salesOrderId as Id<'salesOrders'> }, { onSuccess: () => { toast.success('Sales invoice generated'); void queryClient.invalidateQueries() }, onError: (e:any)=>toast.error(e.message) })}>Generate Sales Invoice</Button>}
+          <span className="text-[12px] text-mute self-center">No invoices yet.</span>
+        </CardContent>
+      </Card>
+    )
+  }
+  return (
+    <Card>
+      <CardHeader><CardTitle>Sales Invoices</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        {invoices.map((inv: any) => (
+          <div key={inv._id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line-soft p-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold">{inv.invoiceNumber ?? inv._id.slice(-6)}</span>
+                <Badge variant={inv.kind==='estimate'?'warning':'secondary'}>{inv.kind}</Badge>
+                {inv.locked && <Badge variant="success">LOCKED</Badge>}
+                {inv.approved && <Badge variant="success">Approved</Badge>}
+              </div>
+              <div className="text-[12px] text-mute">Grand {new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN'}).format(inv.grandTotal/100)}</div>
+            </div>
+            {isFinance && !inv.approved && inv.kind==='final' && (
+              <Button size="sm" onClick={() => approve.mutate({ invoiceId: inv._id }, { onSuccess: ()=>{toast.success('Approved & locked'); void queryClient.invalidateQueries()}, onError:(e:any)=>toast.error(e.message) })}>Approve & Lock</Button>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   )
 }
 

@@ -56,8 +56,10 @@ export function PrintableInvoice({
           </div>
           <div className="text-right">
             <h2 className="text-xl font-black tracking-tight text-ink">INVOICE</h2>
-            <p className="text-xs font-semibold text-accent">#INV-{invoice._id.slice(-6).toUpperCase()}</p>
+            <p className="text-xs font-semibold text-accent">#{invoice.invoiceNumber ?? `INV-${invoice._id.slice(-6).toUpperCase()}`}</p>
             <p className="mt-1 text-xs text-mute">Job #{job?._id?.slice(-6) ?? '-'}</p>
+            {invoice.kind === 'estimate' && <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-amber-600">Estimate — Not a tax invoice</p>}
+            {invoice.locked && <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">Locked</p>}
           </div>
         </div>
 

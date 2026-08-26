@@ -28,7 +28,15 @@ export const record = mutation({
     const parsed = recordPaymentSchema.parse(args)
     const invoice = await ctx.db.get(parsed.invoiceId as Id<'invoices'>)
     if (!invoice) throw new ConvexError('Invoice not found.')
+    if ((invoice as any).kind === 'estimate') throw new ConvexError('Cannot record payments against an estimate.')
     if (!invoice.approved) throw new ConvexError('Invoice must be approved before recording payments.')
+    if ((invoice as any).locked && invoice.paid) throw new ConvexError('Invoice is locked and already paid.')
+    // cap beyond balance
+    const remaining = invoice.grandTotal - invoice.amountPaid
+    if (parsed.amount > remaining) {
+      throw new ConvexError(`Payment amount exceeds remaining balance (${remaining} kobo).`)
+    }
+    if (parsed.amount <= 0) throw new ConvexError('Payment amount must be greater than 0.')
 
     const paymentId = await ctx.db.insert('payments', {
       invoiceId: parsed.invoiceId as Id<'invoices'>,

@@ -44,6 +44,15 @@ export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number]
 export const JOB_ITEM_TYPES = ['part', 'labour'] as const
 export type JobItemType = (typeof JOB_ITEM_TYPES)[number]
 
+export const INVOICE_DOMAINS = ['service', 'sales'] as const
+export type InvoiceDomain = (typeof INVOICE_DOMAINS)[number]
+
+export const INVOICE_KINDS = ['estimate', 'final'] as const
+export type InvoiceKind = (typeof INVOICE_KINDS)[number]
+
+export const INVOICE_STATUSES = ['draft', 'approved', 'rejected', 'converted'] as const
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number]
+
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
   csr: 'Customer Service Rep',

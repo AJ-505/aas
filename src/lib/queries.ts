@@ -148,12 +148,45 @@ export function useGenerateInvoiceMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.generate) })
 }
 
+export function useGenerateSalesInvoiceMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.generateSales) })
+}
+
 export function useRegenerateInvoiceMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.regenerate) })
 }
 
 export function useApproveInvoiceMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.approve) })
+}
+
+export function useCreateEstimateMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.createEstimate) })
+}
+export function useUpdateEstimateMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.updateEstimate) })
+}
+export function useApproveEstimateMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.approveEstimate) })
+}
+export function useRejectEstimateMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.rejectEstimate) })
+}
+export function useConvertEstimateMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.convertEstimateToFinal) })
+}
+export function useAdminUnlockMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.invoices.adminUnlock) })
+}
+
+export function useReverseReadyMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.jobs.reverseReady) })
+}
+
+export const invoiceQueries = {
+  listByJob: (jobId: string) => convexQuery(api.invoices.listByJob, { jobId: jobId as Id<'jobs'> }),
+  listBySalesOrder: (salesOrderId: string) => convexQuery(api.invoices.listBySalesOrder, { salesOrderId: salesOrderId as Id<'salesOrders'> }),
+  getById: (invoiceId: string) => convexQuery(api.invoices.getById, { invoiceId: invoiceId as Id<'invoices'> }),
 }
 
 // Payment mutations
