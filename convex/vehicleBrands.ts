@@ -4,6 +4,7 @@ import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 function normalizeName(name: string): string {
   return name.trim().toLowerCase()
@@ -24,7 +25,8 @@ export const create = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, BRAND_MUTATION_ROLES)
-    const name = args.name.trim()
+    
+    await enforce(ctx, "admin");const name = args.name.trim()
     if (!name) throw new ConvexError('Brand name is required.')
     if (name.length > 60) throw new ConvexError('Brand name must be 60 characters or fewer.')
     const normalized = normalizeName(name)
@@ -43,7 +45,8 @@ export const update = mutation({
   args: { brandId: v.id('vehicleBrands'), name: v.string() },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, BRAND_MUTATION_ROLES)
-    const name = args.name.trim()
+    
+    await enforce(ctx, "admin");const name = args.name.trim()
     if (!name) throw new ConvexError('Brand name is required.')
     if (name.length > 60) throw new ConvexError('Brand name must be 60 characters or fewer.')
     const normalized = normalizeName(name)
@@ -64,7 +67,8 @@ export const remove = mutation({
   args: { brandId: v.id('vehicleBrands') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, BRAND_MUTATION_ROLES)
-    await ctx.db.delete(args.brandId)
+    
+    await enforce(ctx, "admin");await ctx.db.delete(args.brandId)
     await audit(ctx, 'vehicleBrands.remove', 'vehicleBrands', args.brandId)
     return null
   },

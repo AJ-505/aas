@@ -8,6 +8,7 @@ import {
   createCustomerSchema,
   updateCustomerSchema,
 } from '../src/lib/schemas'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const search = query({
   args: { q: v.string() },
@@ -97,7 +98,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const parsed = createCustomerSchema.parse(args)
+    
+    await enforce(ctx, "standard");const parsed = createCustomerSchema.parse(args)
     const trimmedPhone = parsed.phone.trim()
     const trimmedName = parsed.name.trim()
 
@@ -144,7 +146,8 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const { customerId, ...patch } = args
+    
+    await enforce(ctx, "standard");const { customerId, ...patch } = args
     const parsed = updateCustomerSchema.parse(patch)
     // Duplicate guard on phone change: prevent update from creating a phone collision.
     if (parsed.phone !== undefined && parsed.phone.trim().length > 0) {

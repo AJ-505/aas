@@ -4,6 +4,7 @@ import { requireRole, requireUser, getCurrentUser, isValidRole } from "./lib/aut
 import { audit } from "./lib/audit";
 import { heartbeat as sessionHeartbeat } from "./lib/session";
 import { ROLES, type Role } from "../src/lib/enums";
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const me = query({
   args: {},
@@ -73,6 +74,7 @@ export const setRole = mutation({
   args: { userId: v.id("users"), role: v.string() },
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
+    await enforce(ctx, "admin");
     if (!isValidRole(args.role)) {
       throw new ConvexError(`Invalid role. Expected one of: ${ROLES.join(", ")}`);
     }
@@ -88,6 +90,7 @@ export const setActive = mutation({
   args: { userId: v.id("users"), active: v.boolean() },
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
+    await enforce(ctx, "admin");
     await ctx.db.patch(args.userId, { active: args.active });
     await audit(ctx, args.active ? "user.activate" : "user.deactivate", "users", args.userId);
     return null;
@@ -103,6 +106,7 @@ export const bootstrapFirstAdmin = mutation({
     if (!user) {
       throw new ConvexError("You must be signed in to claim the first admin role.");
     }
+    await enforce(ctx, "admin");
     const existingAdmin = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("role"), "admin"))
@@ -129,6 +133,7 @@ export const adminResetPassword = mutation({
   args: { userId: v.id("users"), tempPassword: v.string() },
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
+    await enforce(ctx, "admin");
     if (args.tempPassword.length < 8) throw new ConvexError("Temporary password must be at least 8 characters.");
     if (args.tempPassword.length > 128) throw new ConvexError("Temporary password too long (max 128).");
     const target = await ctx.db.get(args.userId);
@@ -176,6 +181,7 @@ export const changePassword = mutation({
   args: { currentPassword: v.optional(v.string()), newPassword: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    await enforce(ctx, "admin");
     if (args.newPassword.length < 8) throw new ConvexError("New password must be at least 8 characters.");
     if (args.newPassword.length > 128) throw new ConvexError("New password too long (max 128).");
     const mustChange = !!(user as any).mustChangePassword;
@@ -221,6 +227,7 @@ export const clearMustChangePassword = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
+    await enforce(ctx, "standard");
     await ctx.db.patch(user._id, { mustChangePassword: undefined } as any);
     return null;
   },

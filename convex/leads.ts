@@ -9,6 +9,7 @@ import {
   updateLeadStageSchema,
   logFollowUpSchema,
 } from '../src/lib/schemas'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const list = query({
   args: {},
@@ -64,7 +65,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const parsed = createLeadSchema.parse(args)
+    
+    await enforce(ctx, "standard");const parsed = createLeadSchema.parse(args)
     const id = await ctx.db.insert('leads', {
       name: parsed.name,
       phone: parsed.phone,
@@ -86,7 +88,8 @@ export const updateStage = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const parsed = updateLeadStageSchema.parse(args)
+    
+    await enforce(ctx, "standard");const parsed = updateLeadStageSchema.parse(args)
     await ctx.db.patch(args.leadId, { stage: parsed.stage })
     await audit(ctx, 'lead.updateStage', 'leads', args.leadId)
   },
@@ -100,7 +103,8 @@ export const logFollowUp = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const parsed = logFollowUpSchema.parse(args)
+    
+    await enforce(ctx, "standard");const parsed = logFollowUpSchema.parse(args)
     const lead = await ctx.db.get(args.leadId)
     if (!lead) throw new ConvexError('Lead not found.')
     const notes = [...lead.notes, { text: parsed.note, ts: Date.now() }]

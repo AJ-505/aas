@@ -4,6 +4,7 @@ import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { completeDeliverySchema } from '../src/lib/schemas'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const get = query({
   args: { deliveryId: v.id('deliveries') },
@@ -36,7 +37,8 @@ export const complete = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const parsed = completeDeliverySchema.parse(args)
+    
+    await enforce(ctx, "financial");const parsed = completeDeliverySchema.parse(args)
     const user = await requireUser(ctx)
     const id = await ctx.db.insert('deliveries', {
       salesOrderId: args.salesOrderId,

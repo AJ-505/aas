@@ -4,6 +4,7 @@ import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { invoiceSettingsSchema } from '../src/lib/schemas/invoice'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const get = query({
   args: {},
@@ -20,7 +21,8 @@ export const setVatRate = mutation({
   args: { vatRate: v.number() },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const parsed = invoiceSettingsSchema.parse(args)
+    
+    await enforce(ctx, "financial");const parsed = invoiceSettingsSchema.parse(args)
     const existing = await ctx.db.query('settings').first()
     if (existing) {
       await ctx.db.patch(existing._id, { vatRate: parsed.vatRate })

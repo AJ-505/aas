@@ -8,6 +8,7 @@ import {
   buildOtpauthUri,
   totpVerify,
 } from "./lib/totp";
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const status = query({
   args: {},
@@ -27,6 +28,7 @@ export const setup = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx);
+    await enforce(ctx, "admin");
     // If already enabled, require disable first to prevent secret overwrite confusion
     if ((user as any).totpEnabled) {
       throw new ConvexError("Two-factor is already enabled. Disable it first to re-enroll.");
@@ -45,6 +47,7 @@ export const verifySetup = mutation({
   args: { code: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    await enforce(ctx, "standard");
     const secret = (user as any).totpSecret as string | undefined;
     if (!secret) throw new ConvexError("No pending 2FA setup. Call setup first.");
     if ((user as any).totpEnabled) throw new ConvexError("Two-factor is already enabled.");
@@ -69,6 +72,7 @@ export const verifyLogin = mutation({
   args: { code: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    await enforce(ctx, "standard");
     if (!(user as any).totpEnabled) {
       throw new ConvexError("Two-factor is not enabled for this account.");
     }
@@ -109,6 +113,7 @@ export const disable = mutation({
   args: { code: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    await enforce(ctx, "admin");
     if (!(user as any).totpEnabled) throw new ConvexError("Two-factor is not enabled.");
     // Require current code to disable (prevents session hijack from disabling)
     const secret = (user as any).totpSecret as string | undefined;
@@ -140,6 +145,7 @@ export const regenerateBackupCodes = mutation({
   args: { code: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    await enforce(ctx, "admin");
     if (!(user as any).totpEnabled) throw new ConvexError("Two-factor is not enabled.");
     const secret = (user as any).totpSecret as string | undefined;
     if (!secret) throw new ConvexError("Secret missing.");
@@ -157,6 +163,7 @@ export const adminReset = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
+    await enforce(ctx, "admin");
     const target = await ctx.db.get(args.userId);
     if (!target) throw new ConvexError("User not found.");
     await ctx.db.patch(args.userId, {
