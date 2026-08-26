@@ -88,7 +88,7 @@ function PartsPage() {
   const searchParams = Route.useSearch()
   const { data: user } = useCurrentUser()
 
-  if (user?.role && !['inventoryManager', 'manager', 'admin'].includes(user.role)) {
+  if (user?.role && user.role !== 'audit' && !['inventoryManager', 'manager', 'admin'].includes(user.role)) {
     return <Navigate to="/" />
   }
 

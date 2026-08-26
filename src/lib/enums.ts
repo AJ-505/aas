@@ -5,6 +5,7 @@ export const ROLES = [
   'finance',
   'manager',
   'salesRep',
+  'audit',
 ] as const
 export type Role = (typeof ROLES)[number]
 
@@ -60,6 +61,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   finance: 'Finance Personnel',
   manager: 'Manager',
   salesRep: 'Sales Representative',
+  audit: 'Auditor',
 }
 
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {

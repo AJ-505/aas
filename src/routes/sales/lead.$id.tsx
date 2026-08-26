@@ -42,7 +42,7 @@ function LeadDetailPage() {
   const navigate = useNavigate()
   const { data: lead, isLoading, isError, error } = useQuery(leadQueries.get(id))
 
-  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+  if (user?.role && user.role !== 'audit' && !['salesRep', 'manager', 'admin'].includes(user.role)) {
     return <Navigate to="/" />
   }
   const updateStage = useUpdateLeadStageMutation()

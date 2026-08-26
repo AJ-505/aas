@@ -42,7 +42,8 @@ export const adminExists = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, ["admin"]);
+    // Audit role has read-only access to user directory (needed for audit filters).
+    await requireRole(ctx, ['admin', 'audit'])
     const users = await ctx.db.query("users").collect();
     return users.map((u) => {
       const uu = u as any;

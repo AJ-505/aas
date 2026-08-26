@@ -44,7 +44,7 @@ function SalesOrdersPage() {
   const navigate = useNavigate()
   const { data: user } = useCurrentUser()
 
-  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+  if (user?.role && user.role !== 'audit' && !['salesRep', 'manager', 'admin'].includes(user.role)) {
     return <Navigate to="/" />
   }
 

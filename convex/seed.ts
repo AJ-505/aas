@@ -15,6 +15,7 @@ const ACCOUNTS = [
   { name: 'Yetunde Salami', email: 'yetunde@cedricmastersautos.com', role: 'inventoryManager' as const },
   { name: 'Funmi Akinlade', email: 'funmi@cedricmastersautos.com', role: 'finance' as const },
   { name: 'Emeka Okafor', email: 'emeka@cedricmastersautos.com', role: 'salesRep' as const },
+  { name: 'Ada Audit', email: 'audit@cedricmastersautos.com', role: 'audit' as const },
 ]
 
 const PARTS: Array<{ code: string; description: string; costPrice: number; sellingPrice: number; stockQty: number; reorderLevel: number; brand: string; category: string }> = [

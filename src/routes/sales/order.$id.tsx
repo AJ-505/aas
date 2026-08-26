@@ -36,11 +36,12 @@ function SalesOrderDetailPage() {
   const { data: user } = useCurrentUser()
   const queryClient = useQueryClient()
   const { data: order, isLoading, isError, error } = useQuery(salesOrderQueries.get(id))
+  const { data: delivery } = useQuery(deliveryQueries.getBySalesOrder(id))
 
-  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+  if (user?.role && user.role !== 'audit' && !['salesRep', 'manager', 'admin'].includes(user.role)) {
     return <Navigate to="/" />
   }
-  const { data: delivery } = useQuery(deliveryQueries.getBySalesOrder(id))
+  const isAudit = user?.role === 'audit'
   const completeOrder = useCompleteSalesOrderMutation()
   const cancelOrder = useCancelSalesOrderMutation()
   const completeDelivery = useCompleteDeliveryMutation()
@@ -131,7 +132,7 @@ function SalesOrderDetailPage() {
       <SalesInvoiceSection salesOrderId={id} agreedPrice={order.agreedPrice} />
 
       {/* Actions */}
-      {order.status === 'pending' && (
+      {!isAudit && order.status === 'pending' && (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             {order.balance > 0 && (
@@ -231,7 +232,7 @@ function SalesOrderDetailPage() {
 
 
       {/* Delivery */}
-      {order.status === 'completed' && !delivery && (
+      {!isAudit && order.status === 'completed' && !delivery && (
         <div className="flex gap-2">
           <Button onClick={() => setShowDelivery(true)}>
             Record delivery

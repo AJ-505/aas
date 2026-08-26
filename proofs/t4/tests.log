@@ -1,0 +1,55 @@
+
+ RUN  v3.2.7 /tmp/opencode/wt/t4
+
+ ✓ tests/unit/format.test.ts > money > converts kobo to naira 6ms
+ ✓ tests/unit/format.test.ts > money > converts naira to kobo rounding correctly 4ms
+ ✓ tests/unit/format.test.ts > money > formats naira with the naira symbol 64ms
+ ✓ tests/unit/format.test.ts > dates > formats a timestamp 12ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > allows the linear flow 4ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > allows checkedIn directly to inProgress 1ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > disallows invalid transitions 1ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > disallows skipping stages 0ms
+ ✓ tests/unit/job-utils.test.ts > nextStatuses > returns valid next statuses for each stage 2ms
+ ✓ tests/unit/job-utils.test.ts > isTerminal > only paid is terminal 2ms
+ ✓ tests/unit/job-utils.test.ts > statusIndex > returns the position in the flow 0ms
+ ✓ tests/unit/job-utils.test.ts > isBefore / isAtOrBefore > compares status positions 1ms
+ ✓ tests/unit/job-utils.test.ts > JOB_FLOW > has 6 stages in order 4ms
+ ✓ tests/unit/schemas.test.ts > createCustomerSchema > validates a valid customer 12ms
+ ✓ tests/unit/schemas.test.ts > createCustomerSchema > trims and rejects empty name/phone 5ms
+ ✓ tests/unit/schemas.test.ts > createCustomerSchema > rejects invalid email 2ms
+ ✓ tests/unit/schemas.test.ts > updateCustomerSchema > allows partial updates 2ms
+ ✓ tests/unit/schemas.test.ts > createVehicleSchema > validates a valid vehicle and defaults status 7ms
+ ✓ tests/unit/schemas.test.ts > createVehicleSchema > rejects out-of-range year 2ms
+ ✓ tests/unit/schemas.test.ts > createVehicleSchema > rejects negative money fields 3ms
+ ✓ tests/unit/schemas.test.ts > roleSchema > accepts every defined role 2ms
+ ✓ tests/unit/schemas.test.ts > roleSchema > rejects an unknown role 1ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > validates a complete future appointment 5ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects missing customerId 2ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects past appointment date 2ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects missing vehicle details or complaint 1ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects invalid plate format 1ms
+ ✓ tests/unit/auth-utils.test.ts > isValidRole > accepts known roles 6ms
+ ✓ tests/unit/auth-utils.test.ts > isValidRole > rejects unknown values 1ms
+ ✓ tests/unit/auth-utils.test.ts > isAuthorized > admin bypasses all role checks 1ms
+ ✓ tests/unit/auth-utils.test.ts > isAuthorized > denies when no role is assigned 0ms
+ ✓ tests/unit/auth-utils.test.ts > isAuthorized > allows exact role matches and denies others 2ms
+ ✓ tests/unit/invoice.test.ts > computeInvoiceTotals > sums parts and labour separately 8ms
+ ✓ tests/unit/invoice.test.ts > computeInvoiceTotals > handles empty line items 4ms
+ ✓ tests/unit/invoice.test.ts > computeInvoiceTotals > rounds VAT to the nearest kobo 1ms
+ ↓ tests/convex/authz.test.ts > authorization guards (anonymous) > rejects listing users without auth
+ ↓ tests/convex/authz.test.ts > authorization guards (anonymous) > rejects creating a customer without auth
+ ↓ tests/convex/authz.test.ts > authorization guards (anonymous) > rejects creating a vehicle without auth
+ ↓ tests/convex/phase2-authz.test.ts > Phase 2 authorization guards (anonymous) > rejects checking in a job without auth
+ ↓ tests/convex/phase2-authz.test.ts > Phase 2 authorization guards (anonymous) > rejects generating an invoice without auth
+ ↓ tests/convex/phase2-authz.test.ts > Phase 2 authorization guards (anonymous) > rejects creating a parts request without auth
+ ↓ tests/convex/phase2-authz.test.ts > Phase 2 authorization guards (anonymous) > rejects recording a payment without auth
+ ↓ tests/convex/phase2-authz.test.ts > Phase 2 authorization guards (anonymous) > rejects creating a labour type without auth
+ ↓ tests/convex/phase2-authz.test.ts > Phase 2 authorization guards (anonymous) > rejects setting VAT rate without auth
+ ↓ tests/convex/phase2-authz.test.ts > Phase 2 authorization guards (anonymous) > rejects adding a sales order payment without auth
+
+ Test Files  5 passed | 2 skipped (7)
+      Tests  35 passed | 10 skipped (45)
+   Start at  11:15:29
+   Duration  2.06s (transform 463ms, setup 0ms, collect 1.11s, tests 200ms, environment 3ms, prepare 1.20s)
+
+vitest exit:0

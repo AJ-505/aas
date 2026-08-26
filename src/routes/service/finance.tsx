@@ -36,25 +36,26 @@ export const Route = createFileRoute('/service/finance')({
 function FinancePage() {
   const { data: user } = useCurrentUser()
 
-  if (user?.role && !['finance', 'manager', 'admin'].includes(user.role)) {
+  if (user?.role && user.role !== 'audit' && !['finance', 'manager', 'admin'].includes(user.role)) {
     return <Navigate to="/" />
   }
+  const isAudit = user?.role === 'audit'
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-[23px] font-extrabold tracking-tight text-ink">Finance settings</h1>
-        <p className="mt-1 text-[13px] text-mute">Manage labour rates and VAT configuration.</p>
+        <p className="mt-1 text-[13px] text-mute">Manage labour rates and VAT configuration.{isAudit && ' Read-only.'}</p>
       </div>
       <div className="grid items-start gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <VatConfigCard />
-        <LabourTypesCard />
+        <VatConfigCard readOnly={isAudit} />
+        <LabourTypesCard readOnly={isAudit} />
       </div>
     </div>
   )
 }
 
-function VatConfigCard() {
+function VatConfigCard({ readOnly }: { readOnly?: boolean }) {
   const queryClient = useQueryClient()
   const { data: settings, isLoading } = useQuery(settingsQueries.get())
   const updateVatRate = useSetVatRateMutation()
@@ -65,6 +66,7 @@ function VatConfigCard() {
   const current = vatRate ?? settings?.vatRate ?? 7.5
 
   function handleSave() {
+    if (readOnly) return
     if (current < 0 || current > 100) { toast.error('VAT rate must be between 0 and 100.'); return }
     updateVatRate.mutate({ vatRate: current }, {
       onSuccess: () => { toast.success('VAT rate updated.'); setVatRate(null); void queryClient.invalidateQueries() },
@@ -86,21 +88,24 @@ function VatConfigCard() {
               step={0.5}
               value={current}
               onChange={(e) => setVatRate(Number(e.target.value))}
+              disabled={readOnly}
             />
           </div>
-          <Button onClick={handleSave} disabled={updateVatRate.isPending}>
-            {updateVatRate.isPending ? 'Saving...' : 'Save'}
-          </Button>
+          {!readOnly && (
+            <Button onClick={handleSave} disabled={updateVatRate.isPending}>
+              {updateVatRate.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          )}
         </div>
         <p className="mt-3 text-[12.5px] text-mute">
-          This rate is applied when generating invoices.
+          This rate is applied when generating invoices.{readOnly && ' Read-only for audit role.'}
         </p>
       </CardContent>
     </Card>
   )
 }
 
-function LabourTypesCard() {
+function LabourTypesCard({ readOnly }: { readOnly?: boolean }) {
   const queryClient = useQueryClient()
   const { data: labourTypes, isLoading } = useQuery(labourTypeQueries.list())
   const create = useCreateLabourTypeMutation()
@@ -143,17 +148,19 @@ function LabourTypesCard() {
       <CardHeader><CardTitle>Labour types</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         {/* create form */}
-        <form onSubmit={handleCreate} className="flex items-end gap-3">
-          <div className="flex-1 space-y-2">
-            <Label htmlFor="ltName">Name</Label>
-            <Input id="ltName" placeholder="e.g. Oil Change" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="w-32 space-y-2">
-            <Label htmlFor="ltPrice">Fixed price (&#8358;)</Label>
-            <Input id="ltPrice" type="number" min={0} placeholder="5000" value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} />
-          </div>
-          <Button type="submit" disabled={create.isPending}>Add</Button>
-        </form>
+        {!readOnly && (
+          <form onSubmit={handleCreate} className="flex items-end gap-3">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="ltName">Name</Label>
+              <Input id="ltName" placeholder="e.g. Oil Change" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="w-32 space-y-2">
+              <Label htmlFor="ltPrice">Fixed price (&#8358;)</Label>
+              <Input id="ltPrice" type="number" min={0} placeholder="5000" value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} />
+            </div>
+            <Button type="submit" disabled={create.isPending}>Add</Button>
+          </form>
+        )}
 
         {/* list */}
         {isLoading ? (
@@ -193,14 +200,18 @@ function LabourTypesCard() {
                         <TableCell className="font-semibold text-ink">{lt.name}</TableCell>
                         <TableCell className="text-right font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(lt.fixedPrice)}</TableCell>
                         <TableCell>
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={() => {
-                              setEditingId(lt._id)
-                              setEditName(lt.name)
-                              setEditPrice(String(lt.fixedPrice / 100))
-                            }}>Edit</Button>
-                            <Button size="sm" variant="ghost" className="text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => handleRemove(lt._id)}>Delete</Button>
-                          </div>
+                          {readOnly ? (
+                            <span className="text-xs text-mute">Read-only</span>
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              <Button size="sm" variant="outline" onClick={() => {
+                                setEditingId(lt._id)
+                                setEditName(lt.name)
+                                setEditPrice(String(lt.fixedPrice / 100))
+                              }}>Edit</Button>
+                              <Button size="sm" variant="ghost" className="text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => handleRemove(lt._id)}>Delete</Button>
+                            </div>
+                          )}
                         </TableCell>
                       </>
                     )}

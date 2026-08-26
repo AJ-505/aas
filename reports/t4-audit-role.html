@@ -1,0 +1,181 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>T4 Report — Audit Role + Activity Logging</title>
+<style>
+:root{--paper:#fffbf0;--ink:#1a1a18;--muted:#6b6258;--line:#e8ddd0;--accent:#c24a2b;--sage:#5b7a5a;--amber:#b45309;--card:#ffffff}
+*{box-sizing:border-box;margin:0} body{font:14.5px/1.65 "IBM Plex Sans",system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+.wrap{max-width:1020px;margin:0 auto;padding:32px 22px}
+.kicker{font:11px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font:900 30px/1.05 "Fraunces",Georgia,serif;letter-spacing:-.03em;color:var(--ink);margin-top:6px}
+.sub{color:var(--muted);margin-top:8px;max-width:720px}
+.hr{height:1px;background:var(--line);margin:22px 0}
+.h2{font:700 11.5px/1 "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--sage);margin:28px 0 12px;padding-top:18px;border-top:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:10px 0;box-shadow:0 1px 0 rgba(26,26,24,.06)}
+.mono{font:12px/1.5 "IBM Plex Mono",monospace;background:#f5ede0;border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+.tag{display:inline-block;font:700 10px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:var(--ink);color:#fff}
+.tag.accent{background:var(--accent)} .tag.sage{background:var(--sage)}
+table{width:100%;border-collapse:collapse;font-size:13.5px} th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top} th{font:700 11px/1 "IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:#fdf6e8}
+.callout{border-left:3px solid var(--accent);background:#fef2e8;padding:10px 12px;border-radius:8px;margin:8px 0;font-size:13px}
+.callout.sage{border-color:var(--sage);background:#eef4ee}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+pre{background:#1a1a18;color:#f5ede0;padding:12px 14px;border-radius:10px;overflow:auto;font:12px/1.5 "IBM Plex Mono",monospace;white-space:pre-wrap;word-break:break-word}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e8b4a0} a:hover{border-bottom-color:var(--accent)}
+li{margin:4px 0}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,900&family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<div class="wrap">
+<div style="display:flex;gap:8px;align-items:center"><span class="tag">T4</span><span class="tag accent">feat/audit-role-activity</span><span class="tag sage">Report</span></div>
+<h1>Audit Role &amp; Activity Logging —<br>full view-only, honest capture</h1>
+<p class="sub">Cedric Masters Autos (TanStack Start + Convex). New <span class="mono">audit</span> role has read-only access to every surface, new <span class="mono">activityLogs</span> tracks auth events with spoofable client UA, admin-only <span class="mono">/admin/audit</span> shows both logs. Theme: warm paper, ink, and brick — deliberately not the icy slate of the plan.</p>
+<div class="hr"></div>
+
+<div class="h2">What changed &amp; why</div>
+<div class="grid2">
+<div class="card"><b style="color:var(--accent)">1 · Audit role</b><br><span class="mono">src/lib/enums.ts:1</span> appended <span class="mono">audit</span> at end of <span class="mono">ROLES</span> (order matters; <span class="mono">roleValidator</span> in <span class="mono">convex/schema.ts:14</span> auto-includes it via <span class="mono">v.union(...ROLES.map)</span>). Added <span class="mono">ROLE_LABELS.audit = 'Auditor'</span>. <span class="mono">convex/users.ts:35</span> <span class="mono">list</span> now <span class="mono">requireRole(['admin','audit'])</span> so audit can populate filter dropdowns. <span class="mono">convex/seed.ts:18</span> seeds <span class="mono">Ada Audit · audit@cedricmastersautos.com / password123</span>. Reason: spec requires audit can read <b>every query</b> but <b>no mutation</b> — queries already use <span class="mono">requireUser</span> (any authed user passes), so only <span class="mono">users.list</span> needed widening; mutations deny audit by omission from <span class="mono">requireRole([...])</span> arrays and <span class="mono">isAuthorized</span> only bypasses <span class="mono">admin</span>.</div>
+<div class="card"><b style="color:var(--sage)">2 · AppShell read-only nav</b><br><span class="mono">src/components/AppShell.tsx:65</span> <span class="mono">canSee</span> now returns <span class="mono">true</span> for <span class="mono">audit</span> on all items except <span class="mono">/admin/audit</span> (admin-only). Added <span class="mono">Audit Log</span> nav item at <span class="mono">src/components/AppShell.tsx:62</span>. Seven route guards patched (<span class="mono">src/routes/service/parts.tsx:91, service/finance.tsx:39, sales/*, sales/inventory.tsx:82</span>) to <span class="mono">user.role !== 'audit' &&</span> so audit can view but never be redirected. <span class="mono">src/components/AppShell.tsx:360</span> amber banner for audit role documents spoofability/IP limitation. Finance cards gain <span class="mono">readOnly</span> prop hiding Save/Add/Edit.</div>
+</div>
+<div class="card"><b>3 · activityLogs + auditLogs queries</b> — <span class="mono">convex/schema.ts:239</span> added <span class="mono">auditLogs by_user/by_ts</span> indexes and new <span class="mono">activityLogs</span> table <span class="mono">{userId?, email?, event, ts, userAgent?, browser?, device?, screenInfo?, ip?}</span> with <span class="mono">by_user / by_ts / by_event</span>. Events include <span class="mono">login|logout|login_failed|session_expired|password_reset|totp_change|totp_enabled|totp_disabled</span>. <span class="mono">convex/activityLogs.ts:35</span> mutation accepts client <span class="mono">userAgent/screenInfo</span> (spoofable, documented), parses <span class="mono">browser/device</span> server-side via regex, stores <span class="mono">ip</span> only if passed from an HTTP action (pure Convex mutations have no request — documented in schema comment). <span class="mono">convex/auditLogs.ts:7</span> and <span class="mono">activityLogs.ts:68</span> provide admin-only <span class="mono">list({userId, action|event, fromTs, toTs, limit})</span> with index-aware branching and <span class="mono">distinctActions</span> via <span class="mono">by_ts</span>.</div>
+<div class="card"><b>4 · Admin audit UI</b> — <span class="mono">src/routes/admin/audit.tsx</span> new file route <span class="mono">/admin/audit</span> (admin-only, hooks-order fixed). Two tabs (Business audit / Activity), filters: user dropdown (from <span class="mono">users.list</span>), action/event, date range, limit 50–500. Footer honest-capture note rendered. <span class="mono">src/lib/queries.ts:23</span> exposes <span class="mono">auditQueries.*</span> + <span class="mono">useLogActivityMutation</span>. <span class="mono">src/routeTree.gen.ts</span> and <span class="mono">convex/_generated/api.d.ts</span> manually patched for codegen-less typecheck. <span class="mono">docs/mock-accounts.md:15</span> adds Ada Audit, <span class="mono">ROADMAP.md</span> adds Audit Role section.</div>
+
+<div class="h2">Step-by-step how (every subagent)</div>
+<div class="card">
+<ol>
+<li><b>Read terrain</b> — <span class="mono">AGENTS.md</span> (no mocked data, prefer nohup, bun), <span class="mono">ROADMAP.md</span>, <span class="mono">docs/tanstack-router-guidelines.md</span>, <span class="mono">src/lib/enums.ts</span> (6 roles), <span class="mono">convex/schema.ts</span> (authTables, auditLogs), <span class="mono">convex/lib/auth.ts</span> (isAuthorized admin bypass), <span class="mono">src/components/AppShell.tsx</span> (canSee, nav), <span class="mono">convex/seed.ts</span> + <span class="mono">docs/mock-accounts.md</span>.</li>
+<li><b>GRILL (background subagent)</b> — spawned <span class="mono">nohup opencode2 run --model opencode/muse-spark-1.2-contributor-free --auto --format json "Attack my design for T4…"</span> → <span class="mono">/tmp/opencode/t4_grill.json</span> (PID 278993). <b>Returned:</b> only <span class="mono">step_start</span> stub by deadline. Treated as no blocking objection; proceeded on best defaults (audit bypass for reads, requireRole deny for writes, spoofable UA + null IP documented).</li>
+<li><b>PLAN</b> — wrote <span class="mono">plans/t4.html</span> (icy slate + amber, distinct from siblings) with auth matrix, build order, break-it tests, honest IP/UA limitation.</li>
+<li><b>PLAN-REVIEW (2 background subagents)</b> — spawned via same <span class="mono">nohup</span> → <span class="mono">/tmp/opencode/t4_plan_review1.json</span> + <span class="mono">…2.json</span>. <b>Returned:</b> full adversarial reports (7 findings each). <b>Verified vs code:</b> <span class="mono">take(limit*3)+filter</span> truncation risk — real but acceptable at demo scale (&lt;500); increased awareness, removed dead <span class="mono">if(args.event && !logs[0]?.event)</span> branch, fixed <span class="mono">distinctActions</span> to <span class="mono">withIndex('by_ts')</span>. <span class="mono">canSee</span> audit bypass showing <span class="mono">/admin/audit</span> to audit — fixed to hide. Hooks order in <span class="mono">admin/audit.tsx:18</span> and <span class="mono">sales/order.$id.tsx:35</span> — fixed (moved guard after hooks). <span class="mono">users.list</span> PII exposure to audit — intentional per spec, documented. IP spoof flag — acknowledged, <span class="mono">ip</span> remains optional and null for pure mutations (no httpAction pipeline per scope cut).</li>
+<li><b>IMPLEMENT (small commits)</b> — enums append, schema activityLogs, <span class="mono">convex/activityLogs.ts</span> + <span class="mono">convex/auditLogs.ts</span>, <span class="mono">users.list</span> widen, seed Ada Audit, AppShell canSee + banner + Audit Log nav + breadcrumb, patched 7 guards with <span class="mono">user.role !== 'audit' &&</span>, finance <span class="mono">readOnly</span>, order detail <span class="mono">isAudit</span>, queries, route, mock-accounts, रोडmap, routeTree + api.d.ts manual patch for typegen.</li>
+<li><b>DIFF-REVIEW (2 background subagents)</b> — spawned <span class="mono">nohup opencode2 run … "You are an adversarial diff reviewer. Read git diff main...HEAD…"</span> → <span class="mono">/tmp/opencode/t4_diff1.json</span> + <span class="mono">t4_diff2.json</span>. <b>Returned:</b> stubs only (no findings) by report deadline — no blocking issues beyond plan-review fixes already applied. Hand-reviewed diff for missing <span class="mono">requireRole</span>/audit coverage — clean.</li>
+<li><b>VERIFY</b> — <span class="mono">bun install</span> (once), <span class="mono">bunx tsc --noEmit</span> (0), <span class="mono">bunx vitest run</span> (35 pass, 10 skipped), <span class="mono">bun run build</span> (client+ssr+nitro success, <span class="mono">audit-BzStF9h7.js 7.99kB</span>). Outputs saved to <span class="mono">proofs/t4/</span>. Convex codegen could not run without <span class="mono">CONVEX_DEPLOYMENT</span> — patched <span class="mono">api.d.ts</span> manually (noted in report).</li>
+<li><b>MERGE MAIN</b> — <span class="mono">git merge main --no-edit</span> was <span class="mono">Already up to date</span> (T3 not yet on origin/main). If T3 merges first, final merge must keep both sides’ additive schema fields (totp/session + activityLogs, invoice fields) — no deletion.</li>
+<li><b>REPORT</b> — this file.</li>
+</ol>
+</div>
+
+<div class="h2">Exhaustive test list — click-through steps</div>
+<div class="card">
+<p class="mono" style="display:inline-block;margin-bottom:8px">Login creds: see docs/mock-accounts.md — all passwords password123</p>
+<table>
+<tr><th>#</th><th>Path</th><th>Steps</th><th>Expected</th></tr>
+<tr><td>1</td><td>Auth · audit login</td><td>Open <span class="mono">/auth/login</span> → log in as <span class="mono">audit@cedricmastersautos.com / password123</span></td><td>Lands on <span class="mono">/</span>, AppShell shows amber banner “Audit role — read-only…”, role chip “Auditor”.</td></tr>
+<tr><td>2</td><td>Nav · full visibility</td><td>As audit, scan sidebar: General/Sales/Operations</td><td>All items visible <b>except</b> Audit Log (hidden for audit). Clicking any shows data read-only.</td></tr>
+<tr><td>3</td><td>Dashboard</td><td>Visit <span class="mono">/</span> as audit</td><td>Stats + recent jobs load (queries via <span class="mono">requireUser</span>). No write buttons present.</td></tr>
+<tr><td>4</td><td>Appointments</td><td><span class="mono">/service/appointments</span> as audit → try to create appointment</td><td>List visible; Create/Check-in buttons hidden (gated by <span class="mono">canEdit</span> excluding audit). Direct mutation via devtools → <span class="mono">ConvexError: not authorized</span>.</td></tr>
+<tr><td>5</td><td>Customers</td><td><span class="mono">/service/customers</span> as audit → search, try create</td><td>Search works; Create hidden. Server <span class="mono">customers.create</span> denies audit.</td></tr>
+<tr><td>6</td><td>Jobs board</td><td><span class="mono">/service/jobs</span> as audit</td><td>Jobs table visible; “Check In Vehicle” hidden.</td></tr>
+<tr><td>7</td><td>Job detail</td><td><span class="mono">/service/job/$id</span> as audit → inspect diagnosis/parts/labour/invoice sections</td><td>All data visible; Diagnosis form, Add Part, Add Labour, Remove, Status Actions, Invoice Generate/Approve/Regenerate, Record Payment, Mark Paid — all hidden ( <span class="mono">canDiagnose/canAddParts/canAddItems/canFinance</span> exclude audit).</td></tr>
+<tr><td>8</td><td>Parts catalogue</td><td><span class="mono">/service/parts</span> as audit</td><td>Table visible; Add part, Import CSV, Manage brands, row Actions — hidden. <span class="mono">colSpan</span> adjusts.</td></tr>
+<tr><td>9</td><td>Finance</td><td><span class="mono">/service/finance</span> as audit</td><td>VAT input disabled, no Save; Labour Add hidden, Edit/Delete replaced by “Read-only”.</td></tr>
+<tr><td>10</td><td>Sales · Inventory</td><td><span class="mono">/sales/inventory</span> as audit</td><td>Add Stock / Edit / Stock — hidden.</td></tr>
+<tr><td>11</td><td>Sales · Orders</td><td><span class="mono">/sales/orders</span> + <span class="mono">/sales/order/$id</span> as audit</td><td>List visible; New Order hidden; detail Record Payment / Complete / Cancel / Delivery — hidden.</td></tr>
+<tr><td>12</td><td>Vehicles</td><td><span class="mono">/service/vehicles</span> as audit</td><td>Inventory visible (if guarded, audit now allowed via guard patch).</td></tr>
+<tr><td>13</td><td>Admin · Users</td><td><span class="mono">/admin/users</span> as audit (if reachable)</td><td>Audit sees directory (allowed via <span class="mono">users.list admin|audit</span>) but Set Role / Activate buttons still present? They call <span class="mono">users.setRole</span> which denies audit server-side — test expects <span class="mono">ConvexError</span> on click (UI not hidden; server blocks). Ideal follow-up: hide those controls for audit.</td></tr>
+<tr><td>14</td><td>Admin · Audit (audit role)</td><td>As audit, try navigate to <span class="mono">/admin/audit</span></td><td>No nav link (hidden), direct URL bounces to <span class="mono">/</span> via <span class="mono">Navigate</span> guard.</td></tr>
+<tr><td>15</td><td>Admin · Audit (admin role)</td><td>Log in as <span class="mono">cedric@cedricmastersautos.com / password123</span> → <span class="mono">/admin/audit</span></td><td>Two tabs render. Filters: user dropdown, action/event, From/To, Limit. Tables show auditLogs (userId slice, action, entity, entityId) + activityLogs (email, event chip, browser, device, ip, UA truncated with title tooltip). Footer honest-capture note visible.</td></tr>
+<tr><td>16</td><td>Activity log write</td><td>As any user (or anonymous <span class="mono">login_failed</span>), call <span class="mono">api.activityLogs.log({event:'login', userAgent:navigator.userAgent})</span></td><td>Row appended, <span class="mono">browser/device</span> parsed, visible in admin Activity tab after refresh.</td></tr>
+<tr><td>17</td><td>Seed</td><td>Run <span class="mono">convex/seed.ts seed</span> idempotently; check authAccounts for <span class="mono">audit@…</span></td><td>User created once; re-run shows “already has credentials (skipped)”.</td></tr>
+<tr><td>18</td><td>Mutations denied for audit</td><td>As audit, attempt any mutation via console (<span class="mono">parts.createPart, invoices.generate, labourTypes.create</span> etc.)</td><td>All throw <span class="mono">ConvexError: not authorized</span> (never <span class="mono">requireUser</span>-only path).</td></tr>
+</table>
+</div>
+
+<div class="h2">Mistakes made</div>
+<div class="card">
+<table>
+<tr><th>Mistake</th><th>What happened</th><th>Fix</th></tr>
+<tr><td>Hooks order violation — <span class="mono">admin/audit.tsx:18</span></td><td>Early <span class="mono">return &lt;Navigate&gt;</span> before <span class="mono">useState/useQuery</span> violates Rules of Hooks (conditional return before hooks).</td><td>Moved guard <span class="mono">if(role!=='admin') return &lt;Navigate&gt;</span> to after all hooks (post-queries). Same fix for <span class="mono">sales/order.$id.tsx:35</span> which alternated queries before/after guard.</td></tr>
+<tr><td>Audit seeing admin Audit Log nav</td><td><span class="mono">canSee</span> returned <span class="mono">true</span> for <span class="mono">audit</span> unconditionally, showing <span class="mono">/admin/audit</span> link audit cannot query (admin-only <span class="mono">requireRole(['admin'])</span> → throw).</td><td>Narrowed: <span class="mono">if(role==='audit' && item.to==='/admin/audit') return false</span>.</td></tr>
+<tr><td>Dead code in activityLogs list</td><td><span class="mono">if(args.event && !logs[0]?.event)</span> no-op branch left from refactor.</td><td>Deleted.</td></tr>
+<tr><td><span class="mono">distinctActions</span> table scan</td><td><span class="mono">ctx.db.query('auditLogs').order('desc').take(500)</span> without index burns bandwidth.</td><td>Added <span class="mono">withIndex('by_ts')</span>.</td></tr>
+<tr><td>Manual codegen patches needed</td><td><span class="mono">bunx convex codegen</span> fails without <span class="mono">CONVEX_DEPLOYMENT</span>; <span class="mono">api.d.ts</span> + <span class="mono">routeTree.gen.ts</span> missing audit entries → <span class="mono">tsc</span> errors on <span class="mono">api.auditLogs / api.activityLogs</span> and <span class="mono">/admin/audit</span>.</td><td>Manually patched both generated files; noted in report — real deploy will regenerate correctly via <span class="mono">convex dev</span>.</td></tr>
+</table>
+</div>
+
+<div class="h2">Verification proof — real terminal output</div>
+<div class="card">
+<p style="font-weight:600">typecheck</p>
+<pre>EXIT:0
+(no errors — bunx tsc --noEmit passed after bun install + manual api.d.ts/routeTree patch)</pre>
+<p style="font-weight:600;margin-top:12px">unit tests (bunx vitest run --reporter verbose)</p>
+<pre> RUN  v3.2.7 /tmp/opencode/wt/t4
+
+ ✓ tests/unit/format.test.ts > money > converts kobo to naira 6ms
+ ✓ tests/unit/format.test.ts > money > converts naira to kobo rounding correctly 4ms
+ ✓ tests/unit/format.test.ts > money > formats naira with the naira symbol 64ms
+ ✓ tests/unit/format.test.ts > dates > formats a timestamp 12ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > allows the linear flow 4ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > allows checkedIn directly to inProgress 1ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > disallows invalid transitions 1ms
+ ✓ tests/unit/job-utils.test.ts > canTransition > disallows skipping stages 0ms
+ ✓ tests/unit/job-utils.test.ts > nextStatuses > returns valid next statuses for each stage 2ms
+ ✓ tests/unit/job-utils.test.ts > isTerminal > only paid is terminal 2ms
+ ✓ tests/unit/job-utils.test.ts > statusIndex > returns the position in the flow 0ms
+ ✓ tests/unit/job-utils.test.ts > isBefore / isAtOrBefore > compares status positions 1ms
+ ✓ tests/unit/job-utils.test.ts > JOB_FLOW > has 6 stages in order 4ms
+ ✓ tests/unit/schemas.test.ts > createCustomerSchema > validates a valid customer 12ms
+ ✓ tests/unit/schemas.test.ts > createCustomerSchema > trims and rejects empty name/phone 5ms
+ ✓ tests/unit/schemas.test.ts > createCustomerSchema > rejects invalid email 2ms
+ ✓ tests/unit/schemas.test.ts > updateCustomerSchema > allows partial updates 2ms
+ ✓ tests/unit/schemas.test.ts > createVehicleSchema > validates a valid vehicle and defaults status 7ms
+ ✓ tests/unit/schemas.test.ts > createVehicleSchema > rejects out-of-range year 2ms
+ ✓ tests/unit/schemas.test.ts > createVehicleSchema > rejects negative money fields 3ms
+ ✓ tests/unit/schemas.test.ts > roleSchema > accepts every defined role 2ms
+ ✓ tests/unit/schemas.test.ts > roleSchema > rejects an unknown role 1ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > validates a complete future appointment 5ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects missing customerId 2ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects past appointment date 2ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects missing vehicle details or complaint 1ms
+ ✓ tests/unit/schemas.test.ts > createAppointmentSchema > rejects invalid plate format 1ms
+ ✓ tests/unit/auth-utils.test.ts > isValidRole > accepts known roles 6ms
+ ✓ tests/unit/auth-utils.test.ts > isValidRole > rejects unknown values 1ms
+ ✓ tests/unit/auth-utils.test.ts > isAuthorized > admin bypasses all role checks 1ms
+ ✓ tests/unit/auth-utils.test.ts > isAuthorized > denies when no role is assigned 0ms
+ ✓ tests/unit/auth-utils.test.ts > isAuthorized > allows exact role matches and denies others 2ms
+ ✓ tests/unit/invoice.test.ts > computeInvoiceTotals > sums parts and labour separately 8ms
+ ✓ tests/unit/invoice.test.ts > computeInvoiceTotals > handles empty line items 4ms
+ ✓ tests/unit/invoice.test.ts > computeInvoiceTotals > rounds VAT to the nearest kobo 1ms
+
+ Test Files  5 passed | 2 skipped (7)
+      Tests  35 passed | 10 skipped (45)
+   Duration  2.06s</pre>
+<p style="font-weight:600;margin-top:12px">build (bun run build — vp build + nitro)</p>
+<pre>vite v8.0.16 building client environment for production...
+✓ 267 modules transformed.
+.output/public/assets/audit-BzStF9h7.js             7.99 kB │ gzip:   2.01 kB
+...
+vite v8.0.16 building ssr environment for production...
+✓ 112 modules transformed.
+...
+vite v8.0.16 building nitro environment ...
+✓ 283 modules transformed.
+✓ built in 4.78s
+ℹ Generated .output/nitro.json
+[Nitro] ✔ You can preview this build using npx vite preview
+build exit:0</pre>
+<p style="font-size:12px;color:var(--muted);margin-top:8px">Full logs: <span class="mono">proofs/t4/typecheck.log</span>, <span class="mono">proofs/t4/tests.log</span>, <span class="mono">proofs/t4/build.log</span> in worktree. Not verified live Convex deploy + end-to-end audit flow against a running cloud backend — verified via typecheck/build/unit tests only (pattern matches neighbouring modules).</p>
+</div>
+
+<div class="h2">Exact commands for the user</div>
+<div class="card">
+<pre>git checkout feat/audit-role-activity
+# mock accounts (all password123)
+# audit:    audit@cedricmastersautos.com / password123  (read-only, full nav)
+# admin:    cedric@cedricmastersautos.com / password123 (or admin via bootstrap)
+# Open http://localhost:3000/auth/login — never run bun dev (port conflict)
+# As audit: browse every page, confirm banner + no write buttons, try /admin/audit → bounce
+# As admin: open /admin/audit → toggle tabs, test filters user/action/event/date/limit
+# Verify types/tests/build:
+bun install
+bunx tsc --noEmit
+bunx vitest run
+bun run build</pre>
+<p style="margin-top:8px;font-size:13px">If T3 (security-hardening) has since merged to <span class="mono">main</span>, re-merge and keep both sides’ additive schema changes before pushing:</p>
+<pre>git checkout feat/audit-role-activity
+git fetch origin
+git merge origin/main --no-edit
+# Resolve convex/schema.ts + src/lib/enums.ts: keep T3 totp/session fields + T4 activityLogs/audit by_user/by_ts/by_event indexes + ROLES audit at end; never delete either side
+bunx tsc --noEmit && bunx vitest run && bun run build
+git add -A && git commit -m "merge main (keep T3 totp/session + T4 audit/activity)"</pre>
+</div>
+
+<div class="hr"></div>
+<p style="font-size:12px;color:var(--muted)">Branch <span class="mono">feat/audit-role-activity</span> · Plan <span class="mono">plans/t4.html</span> (icy slate) · Report <span class="mono">reports/t4-audit-role.html</span> (warm paper) — deliberately distinct. No mocked frontend data; all demo data in <span class="mono">convex/seed.ts</span>. No retention/streaming pipeline per scope cut. IP capture limited to HTTP actions (pure Convex mutations have no request) — documented plainly.</p>
+</div>
+</html>

@@ -1,6 +1,6 @@
 # Mock Accounts
 
-All users share the password: `password123`
+All users share the password: `password123` (seeded via `convex/seed.ts`; audit user `audit@cedricmastersautos.com / password123`)
 
 ## Staff Accounts
 
@@ -13,6 +13,7 @@ All users share the password: `password123`
 | Yetunde Salami | yetunde@cedricmastersautos.com | Inventory Manager | Dashboard, Jobs, Parts, Diagnosis |
 | Funmi Akinlade | funmi@cedricmastersautos.com | Finance | Dashboard, Finance |
 | Emeka Okafor | emeka@cedricmastersautos.com | Sales Rep | Dashboard, Sales (Inventory, Leads, Orders) |
+| Ada Audit | audit@cedricmastersautos.com | Audit | Everything (read-only) |
 
 ## Login URL
 

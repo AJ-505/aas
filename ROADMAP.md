@@ -285,6 +285,15 @@
 | Reverse mark-ready-for-pickup before final invoice: jobs.reverseReady gated Manager/Admin, allowed only while no approved final invoice exists; writes status + audit + timestamp | [x] | `convex/jobs.ts` reverseReady (requireRole manager|admin, guard findApprovedFinalForJob, clears readyForPickupTs, sets reversedReadyTs, audit job.reverseReady). UI button in Actions when readyForPickup. |
 | LOCK after final invoice generation: invoices.locked=true when final approved, generatedById set, enforce throw-on-write in add/remove job item, payments cap, regenerate; immutable except adminUnlock w/ audit reason | [x] | `convex/invoices.ts` approve sets locked=true+generatedById; assertNotLocked guard in generate/regenerate/addJobItem/removeJobItem/payments.record/syncInvoiceForJob; adminUnlock mutation admin-only reason 10..300 + audit. |
 | generatedById visible to Admin in UI (+ banners for estimate/locked in printable invoice) | [x] | `convex/invoices.ts` getByJob/listByJob/getById project generatedBy to admin only (strip for others); `src/routes/service/job.$id.tsx` shows generatedById for admin, LOCKED banner, ESTIMATE watermark; `src/components/PrintableInvoice.tsx` banners; sales order invoices section added. |
+## Audit Role & Activity Logging
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Audit role (read-only, full nav, no mutations) | [x] | `audit` appended to `ROLES` (end), `ROLE_LABELS`, `users.list` allows `admin|audit`, `AppShell` shows all nav read-only with banner, seed `audit@cedricmastersautos.com / password123` |
+| activityLogs table + indexes by_user/by_ts/by_event | [x] | `convex/schema.ts` activityLogs {userId?, email?, event, ts, userAgent, browser, device, screenInfo, ip?} with 3 indexes; honest capture documented (UA spoofable, IP null for pure mutations) |
+| activityLogs.log + list + auditLogs.list queries | [x] | `convex/activityLogs.ts` + `convex/auditLogs.ts` (admin-only list with filters, UA→browser/device parsing, limit 500, dead-code removed, distinctActions withIndex) |
+| Admin audit-log UI /admin/audit | [x] | `/admin/audit` admin-only, tabs auditLogs/activityLogs, filters user/action/event/date/limit, honest capture note footer, hooks-order fixed |
+| Disable/hide write buttons for audit | [x] | 7 route guards `user.role !== 'audit' &&`, finance readOnly, order detail isAudit hides actions, job detail can* excludes audit, parts/inventory canEdit excludes audit |
 
 ## Future (Post-MVP)
 

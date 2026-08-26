@@ -61,11 +61,17 @@ const NAV_OPS: NavItem[] = [
   { label: 'Parts', to: '/service/parts', icon: IconBox, roles: ['inventoryManager', 'manager', 'admin'], match: ['/service/parts'] },
   { label: 'Finance', to: '/service/finance', icon: IconBanknote, roles: ['finance', 'manager', 'admin'], match: ['/service/finance'] },
   { label: 'User Management', to: '/admin/users', icon: IconSliders, roles: ['admin'], match: ['/admin/users'] },
+  { label: 'Audit Log', to: '/admin/audit', icon: IconSliders, roles: ['admin'], match: ['/admin/audit'] },
 ]
 
 function canSee(item: NavItem, role: Role | null): boolean {
   if (!role) return false
   if (role === 'admin') return true
+  if (role === 'audit') {
+    // Audit sees everything read-only except admin-only Audit Log (admin-only UI per spec)
+    if (item.to === '/admin/audit') return false
+    return true
+  }
   return item.roles.includes(role)
 }
 
@@ -91,6 +97,7 @@ function breadcrumb(pathname: string): string[] {
   if (pathname.startsWith('/sales/orders')) return ['Sales', 'Orders']
   if (pathname.startsWith('/sales/order/')) return ['Sales', 'Orders', 'Detail']
   if (pathname.startsWith('/admin/users')) return ['Operations', 'User Management']
+  if (pathname.startsWith('/admin/audit')) return ['Operations', 'Audit Log']
   return ['Workshop']
 }
 
@@ -380,6 +387,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 Session expired due to inactivity. Please sign in again.
               </div>
+            </div>
+          )}
+          {role === 'audit' && (
+            <div className="border-b border-amber-200 bg-amber-50 px-10 py-2 text-center text-[12.5px] font-semibold text-amber-800">
+              Audit role — read-only access. All write actions are disabled. Activity data is client-supplied and spoofable; IP is unavailable in pure Convex mutations.
             </div>
           )}
           <div className="mx-auto w-full max-w-[1360px] px-10 pb-20 pt-8">{children}</div>
