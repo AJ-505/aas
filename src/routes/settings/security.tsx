@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "convex/_generated/api";
@@ -94,13 +95,7 @@ function SecurityPage() {
             <div className="rounded-xl border border-line p-4 space-y-3">
               <div className="font-medium text-ink">Scan with your authenticator app</div>
               <div className="flex flex-col items-center gap-3">
-                <img
-                  alt="QR"
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pending.uri)}`}
-                  width={180}
-                  height={180}
-                  className="border border-line rounded-lg"
-                />
+                <LocalQr uri={pending.uri} />
                 <div className="text-xs text-mute break-all max-w-full">Secret: <span className="font-mono text-ink">{pending.secret}</span></div>
                 <div className="text-xs text-mute break-all">URI: <span className="font-mono">{pending.uri}</span></div>
               </div>
@@ -143,4 +138,12 @@ function SecurityPage() {
       </Card>
     </div>
   );
+}
+
+function LocalQr({ uri }: { uri: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (ref.current) void QRCode.toCanvas(ref.current, uri, { width: 180, margin: 1 });
+  }, [uri]);
+  return <canvas ref={ref} className="border border-line rounded-lg" />;
 }
