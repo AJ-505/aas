@@ -430,6 +430,7 @@ export const seedAdvanced = mutation({
       return { partsTotal, labourTotal, subtotal, vat, grandTotal }
     }
 
+    const y = new Date().getFullYear()
     // Invoice for Job 1 (Chinedu - paid)
     if (jobIds[0]) {
       const lineItems: LineItem[] = [
@@ -442,6 +443,10 @@ export const seedAdvanced = mutation({
       const totals = computeInvoiceTotals(lineItems)
       const invoiceId = await ctx.db.insert('invoices', {
         jobId: jobIds[0],
+        domain: 'service',
+        kind: 'final',
+        invoiceNumber: `INV-${y}-0001`,
+        status: 'approved',
         lineItems,
         partsTotal: totals.partsTotal,
         labourTotal: totals.labourTotal,
@@ -452,6 +457,8 @@ export const seedAdvanced = mutation({
         approvedTs: minsAgo(500),
         paid: true,
         amountPaid: totals.grandTotal,
+        locked: true,
+        generatedById: csr._id,
       })
       invoiceIds.push(invoiceId)
       results.push(`invoice #1: ${formatMoney(totals.grandTotal)} (paid)`)
@@ -469,6 +476,10 @@ export const seedAdvanced = mutation({
       const totals = computeInvoiceTotals(lineItems)
       const invoiceId = await ctx.db.insert('invoices', {
         jobId: jobIds[1],
+        domain: 'service',
+        kind: 'final',
+        invoiceNumber: `INV-${y}-0002`,
+        status: 'approved',
         lineItems,
         partsTotal: totals.partsTotal,
         labourTotal: totals.labourTotal,
@@ -479,6 +490,8 @@ export const seedAdvanced = mutation({
         approvedTs: minsAgo(380),
         paid: false,
         amountPaid: 0,
+        locked: true,
+        generatedById: csr._id,
       })
       invoiceIds.push(invoiceId)
       results.push(`invoice #2: ${formatMoney(totals.grandTotal)} (unpaid)`)
@@ -498,6 +511,10 @@ export const seedAdvanced = mutation({
       const totals = computeInvoiceTotals(lineItems)
       const invoiceId = await ctx.db.insert('invoices', {
         jobId: jobIds[6],
+        domain: 'service',
+        kind: 'final',
+        invoiceNumber: `INV-${y}-0003`,
+        status: 'approved',
         lineItems,
         partsTotal: totals.partsTotal,
         labourTotal: totals.labourTotal,
@@ -508,9 +525,16 @@ export const seedAdvanced = mutation({
         approvedTs: minsAgo(60),
         paid: false,
         amountPaid: 0,
+        locked: true,
+        generatedById: csr._id,
       })
       invoiceIds.push(invoiceId)
       results.push(`invoice #3: ${formatMoney(totals.grandTotal)} (awaiting payment)`)
+    }
+    // Bump settings counters past seeded numbers
+    {
+      const s = await ctx.db.query('settings').first()
+      if (s) await ctx.db.patch(s._id, { nextInvSeq: 4, invYear: y, nextEstSeq: 1, estYear: y } as any)
     }
 
     // ---- Payments ----
