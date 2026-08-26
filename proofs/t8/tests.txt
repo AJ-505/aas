@@ -1,0 +1,17 @@
+
+ RUN  v3.2.7 /tmp/opencode/wt/t8
+
+ ✓ tests/unit/job-utils.test.ts (9 tests) 62ms
+ ↓ tests/convex/phase2-authz.test.ts (7 tests | 7 skipped)
+ ✓ tests/unit/schemas.test.ts (14 tests) 110ms
+ ✓ tests/unit/invoice.test.ts (3 tests) 21ms
+ ✓ tests/unit/auth-utils.test.ts (5 tests) 19ms
+ ↓ tests/convex/authz.test.ts (3 tests | 3 skipped)
+ ✓ tests/unit/format.test.ts (4 tests) 115ms
+
+ Test Files  5 passed | 2 skipped (7)
+      Tests  35 passed | 10 skipped (45)
+   Start at  12:07:53
+   Duration  3.90s (transform 667ms, setup 0ms, collect 2.13s, tests 328ms, environment 6ms, prepare 2.34s)
+
+tests exit:0

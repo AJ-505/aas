@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>T8 — Code Review Report v2 Plan · Cedric Masters</title>
+<style>
+  :root{--ink:#1a1a18;--mut:#6b6b62;--line:#e8e2d6;--paper:#fdfaf3;--accent:#b45309;--accent-soft:#fff7ed;--ok:#166534;--ok-bg:#f0fdf4}
+  *{box-sizing:border-box}body{margin:0;font-family: "IBM Plex Sans", ui-sans-system, -apple-system, Segoe UI, Inter, Helvetica, Arial;color:var(--ink);background:var(--paper);line-height:1.55}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 44px}
+  .kicker{font:700 11px/1 "IBM Plex Mono", ui-monospace, monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  h1{font:900 30px/1.02 "Fragment Mono", ui-monospace, monospace;letter-spacing:-.03em;margin:8px 0 8px}
+  .sub{color:var(--mut);font-size:14px;max-width:760px}
+  .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-top:18px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px 16px}
+  .card h3{margin:0 0 6px;font:800 12px/1 "IBM Plex Mono", monospace;letter-spacing:.08em;text-transform:uppercase}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, Menlo, monospace;font-size:11.5px;background:var(--accent-soft);border:1px solid #ffedd5;border-radius:8px;padding:9px 11px;overflow:auto;white-space:pre-wrap}
+  .badge{font:700 10px/1 "IBM Plex Mono", monospace;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 8px;border:1px solid var(--line);background:#fefce8}
+  .badge.ok{background:var(--ok-bg);border-color:#bbf7d0;color:var(--ok)}
+  .badge.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+  table{width:100%;border-collapse:collapse;font-size:13px} th{font:700 11px/1 "IBM Plex Mono", monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);text-align:left;border-bottom:1px solid var(--line);padding:8px 6px} td{padding:8px 6px;border-bottom:1px solid #f5f2e8;vertical-align:top}
+  .step{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;display:flex;gap:11px;margin-top:10px}
+  .step b{background:var(--ink);color:#fff;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;font:800 12px/1 "IBM Plex Mono", monospace;flex:none;margin-top:1px}
+  .step .t{font:700 13px/1.2 "IBM Plex Sans", sans-serif} .step .d{font-size:13px;color:var(--mut);margin-top:4px}
+  details{border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px} summary{cursor:pointer;padding:12px 14px;font:700 13px "IBM Plex Sans", sans-serif;list-style:none} summary::-webkit-details-marker{display:none} details .inner{padding:0 14px 14px;font-size:13px;color:var(--mut)}
+  .callout{border-left:4px solid var(--accent);background:#fffbeb;padding:10px 12px;border-radius:8px;font-size:13px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:860px){.two{grid-template-columns:1fr}}
+  a{color:#92400e}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Fragment+Mono&family=IBM+Plex+Mono:wght@500;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head><body><div class="wrap">
+  <div class="kicker">CMA · T8 · docs/code-review-report-v2 — read & document only</div>
+  <h1>Paper, not patches: census the final codebase and write the report the client can hand to an auditor.</h1>
+  <p class="sub">Final merged codebase <code>main@fb45ae6</code> (t1 customer intake, t2 brands/parts, t3 2FA + 30-min timeout, t4 audit role/activity, t5 invoicing lock, t7 throttling). Zero behaviour changes — so the report proves itself with <code>git diff --stat = docs+plans+reports+ROADMAP only</code>. Distinctive paper-ledger look so it never reads as “another AI slop gradient”.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Build order — 7 steps, small commits</h3>
+      <div style="font-size:13px;color:var(--mut)">Each step is one commit after t8b grill settles. No app-code edits anywhere — if a <code>convex/</code> file appears in <code>git diff --stat</code> the branch is invalid.</div>
+      <div class="step"><b>1</b><div><div class="t">Grill — attack the design</div><div class="d"><code>nohup opencode2 run --model "opencode/muse-spark-1.2-contributor-free" --auto --format json "attack my design for T8…"</code> → <code>/tmp/opencode/t8_grill.json</code>. Attack vectors: “you missed a table”, “inheritance claim is dishonest”, “v validator table incomplete”, “lock story hand-waves”, “how-convex hand-waves OCC”, “throttling truncated”.</div></div></div>
+      <div class="step"><b>2</b><div><div class="t">Draft <code>docs/code-review-report-v2.md</code></div><div class="d">Sections a–f required + §7 findings disposition + §8 verification. Every <code>file:symbol</code> grep-verified (see Break-it). Census: 34 throttled mutations, 4 rate classes, 7 tables with lock/append-only rules. Honest <code>encapsulation vs inheritance</code> stated plainly.</div></div></div>
+      <div class="step"><b>3</b><div><div class="t">Plan page <code>plans/t8.html</code></div><div class="d">This file — paper/ink/ochre palette, builds + break-it matrix. Self-contained, no external deps beyond Google Fonts. Fix subagent findings against real code before acting.</div></div></div>
+      <div class="step"><b>4</b><div><div class="t">Two adversarial plan-review subagents</div><div class="d"><code>/tmp/opencode/t8_plan_review_1.json</code> + <code>_2.json</code> — one reads as if <em>distrusts the writer</em>. Check missing role-gates, missing <code>v</code> shims, brand/category unknown assumption, “Convex explains IP” honesty.</div></div></div>
+      <div class="step"><b>5</b><div><div class="t">Two adversarial diff-review subagents</div><div class="d"><code>/tmp/opencode/t8_diff_review_1.json</code> + <code>_2.json</code> — <code>git diff main...HEAD</code>. Hunt leaked <code>convex/*.ts</code> edits, overwritten untracked <code>docs/code-review-report.html/.pdf</code>, incomplete file:symbol anchors.</div></div></div>
+      <div class="step"><b>6</b><div><div class="t">Verify — prove zero behaviour change</div><div class="d"><code>git diff --stat</code> + markdown link grep + <code>bun run typecheck/build</code> proof into <code>proofs/t8/</code>.</div></div></div>
+      <div class="step"><b>7</b><div><div class="t">Report <code>reports/t8-code-review.html</code></div><div class="d">Visually DISTINCTIVE from all siblings (no amber/purple gradient reprise) — ledger-dark + chartreuse + mono. Carries What changed / How / Tests / Mistakes / Proof / Exact commands. Includes <code>git checkout docs/code-review-report-v2</code>.</div></div></div>
+    </div>
+    <div class="card">
+      <h3>Risk before → after</h3>
+      <div style="font-size:13px"><b>Before:</b> stale v1 report (07 Aug 2026, commit 0a26911). Client cannot show t3–t7 controls to reviewer; CR-03 “no throttling” reads as unfixed; invoice locking + estimates story lives only in dispersed commit messages.</div>
+      <div style="height:6px;background:#f5f2e8;border-radius:999px;overflow:hidden;margin-top:8px"><div style="height:100%;width:34%;background:var(--accent)"></div></div>
+      <div style="font-size:13px;margin-top:10px"><b>After:</b> one Markdown file carries the full technical narrative a reviewer can hand to procurement: every <code>convex/</code> symbol, every gate, every index, the composition-instead-of-inheritance story told honestly, and lock triggers quoted with line anchors.</div>
+      <div style="height:6px;background:#f5f2e8;border-radius:999px;overflow:hidden;margin-top:8px"><div style="height:100%;width:93%;background:var(--ok)"></div></div>
+      <div class="mono" style="margin-top:10px">Rule: <code>git diff main...HEAD --stat</code> must show ONLY docs/code-review-report-v2.md + plans/t8.html + reports/t8-code-review.html + ROADMAP.md (+ proofs/t8/*.txt) — otherwise REJECT.</div>
+      <div class="callout" style="margin-top:10px"><b>Never touch:</b> untracked <code>docs/code-review-report.html</code> + <code>.pdf</code> in repo root — reviewer’s live files. New files are suffixed <code>-v2</code>.</div>
+    </div>
+  </div>
+
+  <h3 style="margin:18px 0 6px;font:800 12px 'IBM Plex Mono', monospace;letter-spacing:.08em;text-transform:uppercase">Coverage map — what the report must prove (a–f) + where it lives</h3>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><tr><th>Clause</th><th>What the reviewer sees</th><th>Source anchors</th></tr>
+      <tr><td><span class="badge">a</span> Architecture</td><td>TanStack Start → file routes → Convex; lifecycle 9-step diagram; full <code>convex/</code> module map (+ Zod schemas)</td><td><code>src/routes/*</code>, <code>convex/lib/*</code>, <code>convex/schema.ts</code>, <code>src/app.css</code></td></tr>
+      <tr><td><span class="badge">b</span> Functions</td><td>Every <code>export const = query/mutation</code> per file + lib helpers + where each helper is called</td><td><code>convex/users.ts:me</code> … <code>convex/rateLimit.ts:cleanup</code></td></tr>
+      <tr><td><span class="badge">c</span> Encapsulation</td><td>Honest: no classical inheritance — module boundaries, default-deny wrapper, composition of <code>requireActiveSession∘requireRole</code> + <code>enforce</code></td><td><code>convex/lib/session.ts:requireActiveSession</code>, <code>convex/lib/rateLimit.ts:enforce</code></td></tr>
+      <tr><td><span class="badge">d</span> Tables</td><td>Every table: indexes + searchIndexes, write rule (gate), immutability (<code>locked</code> lifecycle), relations</td><td><code>convex/schema.ts</code> 18 tables + authTables, <code>convex/invoices.ts:approve/adminUnlock</code></td></tr>
+      <tr><td><span class="badge">e</span> Convex</td><td>Documents, ACID/OCC, queries vs mutations vs actions, subscriptions, scheduler/crons, auth</td><td><code>convex/crons.ts</code>, <code>convex/http.ts</code>, <code>convex/auth.ts</code></td></tr>
+      <tr><td><span class="badge warn">f</span> Validators &amp; locks</td><td><code>v</code> runs before handler + Zod inside; exact trigger for <code>locked=true</code> (approve) + every <code>assertNotLocked/findApprovedFinalForJob</code> reader; rate-limit window + dedup + inactivity throw</td><td><code>convex/invoices.ts:approve:locked</code>, <code>convex/lib/invoiceHelpers.ts:assertNotLocked</code>, <code>convex/lib/rateLimit.ts:windowStartFor</code></td></tr>
+    </table>
+    <div style="padding:10px 12px;font-size:12px;color:var(--mut);border-top:1px solid var(--line)">No mocked frontend data — all demo counts come from <code>convex/seed.ts</code> + <code>seedAdvanced.ts</code>; the report cites them, not a copy.</div>
+  </div>
+
+  <h3 style="margin:18px 0 6px;font:800 12px 'IBM Plex Mono', monospace;letter-spacing:.08em;text-transform:uppercase">Break-it tests — exhaustive, click-through</h3>
+  <div class="two">
+    <div class="card"><b style="font-size:13px">a) Zero-change & link proof (repo)</b>
+      <ul style="font-size:13px;color:var(--mut);margin:6px 0 0;padding-left:18px">
+        <li><code>git diff main...HEAD --stat</code> → only <code>docs/code-review-report-v2.md</code> + <code>plans/t8.html</code> + <code>reports/t8-code-review.html</code> + <code>ROADMAP.md</code> (+ <code>proofs/t8</code>).</li>
+        <li><code>grep -n "export const generate|approve|adminUnlock"</code> in <code>convex/invoices.ts</code> returns 3 — anchors in §6 are real.</li>
+        <li><code>grep -n "locked" convex/schema.ts</code> returns the <code>locked?: boolean</code> line cited in §4.</li>
+        <li><code>grep -n "assertNotLocked|findApprovedFinalForJob"</code> hits 7 call sites cited in the trigger table — no orphan.</li>
+        <li>Markdown link targets (<code>#1</code>.. <code>#8</code>) resolve in previewer.</li>
+        <li>Untracked <code>docs/code-review-report.html/.pdf</code> byte-identical to pre-task <code>git diff</code> outside worktree (never written).</li>
+      </ul>
+    </div>
+    <div class="card"><b style="font-size:13px">b) No regression — typecheck/build (optional but green)</b>
+      <ul style="font-size:13px;color:var(--mut);margin:6px 0 0;padding-left:18px">
+        <li><code>bun run typecheck</code> exit 0 (same as t7 proofs) — prove in <code>proofs/t8/typecheck.txt</code>.</li>
+        <li><code>bun run build</code> → SSR + client chunks (proofs/t8/build.txt).</li>
+        <li><code>bun x vitest run --exclude="tests/e2e/**"</code> unchanged (35 pass).</li>
+        <li><b>Do NOT run <code>bun dev</code></b> — hard rule; verify only via typecheck/build/unit.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="two" style="margin-top:10px">
+    <div class="card"><b style="font-size:13px">c) Report readability — reviewer hand-test</b>
+      <ul style="font-size:13px;color:var(--mut);margin:6px 0 0;padding-left:18px">
+        <li>Open <code>docs/code-review-report-v2.md</code> in previewer → TOC links jump to §1..§8.</li>
+        <li>Search <code>convex/lib/session.ts:requireActiveSession</code> → lands on §2.1 helper row and §3.1 composition example.</li>
+        <li>Search <code>locked</code> → trigger table in §6.2 lists 9 guard sites with file:symbol + error string.</li>
+        <li>Search <code>encapsulation</code> → honest paragraph + 3 concrete composition examples (session, rateLimit, invoice helpers).</li>
+        <li>Print/export — code fences render as mono blocks without overflow.</li>
+      </ul>
+    </div>
+    <div class="card"><b style="font-size:13px">d) ROADMAP / traceability</b>
+      <ul style="font-size:13px;color:var(--mut);margin:6px 0 0;padding-left:18px">
+        <li><code>ROADMAP.md</code> has exactly one new row: <span class="badge ok"> [x] Code review report v2</span> under Documentation & Enablement.</li>
+        <li><code>plans/t8.html</code> is committed (this file) — distinct look from t1..t7 siblings.</li>
+        <li><code>reports/t8-code-review.html</code> is committed — distinct look; carries proof + exact <code>git checkout docs/code-review-report-v2</code> + <code>password123</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <details><summary>Grill & plan-review plan (subagents, not native)</summary><div class="inner">
+    Grill: <code>nohup opencode2 run --model "opencode/muse-spark-1.2-contributor-free" --auto --format json "attack my design for T8 — read-and-document: missing function? false inheritance claim? v validator leak? locked hand-wave? Convex OCC gloss? throttling overclaim?" &gt; /tmp/opencode/t8_grill.json 2>&1 &</code><br/>
+    Plan reviews (two): same mechanism → <code>/tmp/opencode/t8_plan_review_1.json</code> + <code>_2.json</code>; diff reviews → <code>/tmp/opencode/t8_diff_review_1.json</code> + <code>_2.json</code>. Main thread never blocks — read output files when complete and verify each claim against code before fixing (treat findings as claims, not facts).
+  </div></details>
+  <details><summary>Why this palette / why paper</summary><div class="inner">Every sibling plan/report uses dark-slate or indigo gradients; this task’s artefacts must be <em>visually distinctive</em>. Paper-ledger (warm paper + ink + ochre + mono headings) reads as a document, not an app screen, and is provably different. Content density over whitespace.</div></details>
+
+  <div class="callout" style="margin-top:14px"><b>Final line after commit:</b> <code>RESULT: taskid=t8 branch=docs/code-review-report-v2 report=reports/t8-code-review.html status=done|blocked notes=one line</code> — branch never merged to <code>main</code>.</div>
+</div></body></html>
