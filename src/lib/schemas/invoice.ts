@@ -20,6 +20,26 @@ export const recordPaymentSchema = z.object({
   method: z.string().trim().min(1, 'Payment method is required'),
 })
 
+export const createEstimateSchema = z.object({
+  jobId: z.string().optional(),
+  salesOrderId: z.string().optional(),
+  domain: z.enum(['service', 'sales']).default('service'),
+})
+
+export const updateEstimateSchema = z.object({
+  invoiceId: z.string().min(1),
+})
+
+export const rejectEstimateSchema = z.object({
+  invoiceId: z.string().min(1),
+  reason: z.string().trim().min(3).max(300),
+})
+
+export const adminUnlockSchema = z.object({
+  invoiceId: z.string().min(1),
+  reason: z.string().trim().min(10).max(300),
+})
+
 // Pure helper used by both client previews and Convex invoice generation.
 export const invoiceLineItemSchema = z.object({
   type: z.enum(['part', 'labour']),

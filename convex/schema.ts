@@ -103,6 +103,7 @@ export default defineSchema({
     readyForPickupTs: v.optional(v.number()),
     completedTs: v.optional(v.number()),
     paidTs: v.optional(v.number()),
+    reversedReadyTs: v.optional(v.number()),
   })
     .index('status', ['status'])
     .index('customerId', ['customerId']),
@@ -120,7 +121,20 @@ export default defineSchema({
 
 
   invoices: defineTable({
-    jobId: v.id('jobs'),
+    jobId: v.optional(v.id('jobs')),
+    salesOrderId: v.optional(v.id('salesOrders')),
+    domain: v.optional(v.union(v.literal('service'), v.literal('sales'))),
+    kind: v.optional(v.union(v.literal('estimate'), v.literal('final'))),
+    invoiceNumber: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal('draft'),
+        v.literal('approved'),
+        v.literal('rejected'),
+        v.literal('converted'),
+      ),
+    ),
+    rejectedReason: v.optional(v.string()),
     lineItems: v.array(
       v.object({
         type: jobItemTypeValidator,
@@ -139,7 +153,12 @@ export default defineSchema({
     approvedTs: v.optional(v.number()),
     paid: v.boolean(),
     amountPaid: v.number(),
-  }).index('jobId', ['jobId']),
+    locked: v.optional(v.boolean()),
+    generatedById: v.optional(v.id('users')),
+  })
+    .index('jobId', ['jobId'])
+    .index('salesOrderId', ['salesOrderId'])
+    .index('invoiceNumber', ['invoiceNumber']),
 
   labourTypes: defineTable({
     name: v.string(),
@@ -246,5 +265,9 @@ export default defineSchema({
 
   settings: defineTable({
     vatRate: v.number(),
+    nextEstSeq: v.optional(v.number()),
+    nextInvSeq: v.optional(v.number()),
+    estYear: v.optional(v.number()),
+    invYear: v.optional(v.number()),
   }),
 })
