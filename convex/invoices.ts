@@ -10,6 +10,7 @@ import {
   nextInvoiceNumber,
   assertNotLocked,
 } from './lib/invoiceHelpers'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 // Queries
 
@@ -106,7 +107,8 @@ export const generate = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
     const user = await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
+    
+    await enforce(ctx, "financial");const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
 
     const existing = await ctx.db
@@ -166,7 +168,8 @@ export const generateSales = mutation({
   args: { salesOrderId: v.id('salesOrders') },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ['finance', 'manager', 'admin', 'salesRep'])
-    const order = await ctx.db.get(args.salesOrderId)
+    
+    await enforce(ctx, "financial");const order = await ctx.db.get(args.salesOrderId)
     if (!order) throw new ConvexError('Sales order not found.')
     const existing = await ctx.db
       .query('invoices')
@@ -222,7 +225,8 @@ export const regenerate = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
+    
+    await enforce(ctx, "financial");const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
 
     const existingList = await ctx.db
@@ -282,7 +286,8 @@ export const approve = mutation({
   args: { invoiceId: v.id('invoices') },
   handler: async (ctx, args) => {
     const user = await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const invoice = await ctx.db.get(args.invoiceId)
+    
+    await enforce(ctx, "financial");const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')
     if (invoice.approved) throw new ConvexError('Invoice is already approved.')
     // Only final invoices lock; estimates use approveEstimate
@@ -310,7 +315,8 @@ export const createEstimate = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ['csr', 'manager', 'admin', 'salesRep'])
-    const domain = args.domain ?? 'service'
+    
+    await enforce(ctx, "financial");const domain = args.domain ?? 'service'
     if (domain === 'service') {
       if (!args.jobId) throw new ConvexError('jobId required for service estimates.')
       const job = await ctx.db.get(args.jobId)
@@ -374,7 +380,8 @@ export const updateEstimate = mutation({
   args: { invoiceId: v.id('invoices') },
   handler: async (ctx, args) => {
     await requireRole(ctx, ['csr', 'manager', 'admin', 'salesRep'])
-    const invoice = await ctx.db.get(args.invoiceId)
+    
+    await enforce(ctx, "financial");const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')
     if ((invoice as any).kind !== 'estimate') throw new ConvexError('Only estimates can be updated via this path.')
     if ((invoice as any).status !== 'draft') throw new ConvexError('Estimate is not in editable window (must be draft).')
@@ -411,7 +418,8 @@ export const approveEstimate = mutation({
   args: { invoiceId: v.id('invoices') },
   handler: async (ctx, args) => {
     await requireRole(ctx, ['finance', 'manager', 'admin'])
-    const invoice = await ctx.db.get(args.invoiceId)
+    
+    await enforce(ctx, "financial");const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')
     if ((invoice as any).kind !== 'estimate') throw new ConvexError('Only estimates can be approved via this path.')
     if ((invoice as any).status !== 'draft') throw new ConvexError('Estimate is not draft.')
@@ -429,7 +437,8 @@ export const rejectEstimate = mutation({
   args: { invoiceId: v.id('invoices'), reason: v.string() },
   handler: async (ctx, args) => {
     await requireRole(ctx, ['finance', 'manager', 'admin'])
-    if (!args.reason.trim() || args.reason.trim().length < 3) throw new ConvexError('Rejection reason must be at least 3 characters.')
+    
+    await enforce(ctx, "financial");if (!args.reason.trim() || args.reason.trim().length < 3) throw new ConvexError('Rejection reason must be at least 3 characters.')
     if (args.reason.trim().length > 300) throw new ConvexError('Reason too long.')
     const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')
@@ -448,7 +457,8 @@ export const convertEstimateToFinal = mutation({
   args: { invoiceId: v.id('invoices') },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ['finance', 'manager', 'admin'])
-    const estimate = await ctx.db.get(args.invoiceId)
+    
+    await enforce(ctx, "financial");const estimate = await ctx.db.get(args.invoiceId)
     if (!estimate) throw new ConvexError('Estimate not found.')
     if ((estimate as any).kind !== 'estimate') throw new ConvexError('Only estimates can be converted.')
     if ((estimate as any).status !== 'approved') throw new ConvexError('Only approved estimates can be converted to final invoice.')
@@ -505,7 +515,8 @@ export const adminUnlock = mutation({
   args: { invoiceId: v.id('invoices'), reason: v.string() },
   handler: async (ctx, args) => {
     await requireRole(ctx, ['admin'])
-    if (!args.reason.trim() || args.reason.trim().length < 10) throw new ConvexError('Unlock reason must be at least 10 characters.')
+    
+    await enforce(ctx, "financial");if (!args.reason.trim() || args.reason.trim().length < 10) throw new ConvexError('Unlock reason must be at least 10 characters.')
     if (args.reason.trim().length > 300) throw new ConvexError('Reason too long.')
     const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')

@@ -4,6 +4,7 @@ import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { labourTypeSchema } from '../src/lib/schemas'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const list = query({
   args: {},
@@ -20,7 +21,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const parsed = labourTypeSchema.parse(args)
+    
+    await enforce(ctx, "financial");const parsed = labourTypeSchema.parse(args)
     const id = await ctx.db.insert('labourTypes', {
       name: parsed.name,
       fixedPrice: parsed.fixedPrice,
@@ -38,7 +40,8 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const { labourTypeId, ...patch } = args
+    
+    await enforce(ctx, "financial");const { labourTypeId, ...patch } = args
     const clean: Record<string, unknown> = {}
     if (patch.name !== undefined) clean.name = patch.name
     if (patch.fixedPrice !== undefined) clean.fixedPrice = patch.fixedPrice
@@ -52,7 +55,8 @@ export const remove = mutation({
   args: { labourTypeId: v.id('labourTypes') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const existing = await ctx.db.get(args.labourTypeId)
+    
+    await enforce(ctx, "financial");const existing = await ctx.db.get(args.labourTypeId)
     if (!existing) throw new ConvexError('Labour type not found.')
     await ctx.db.delete(args.labourTypeId)
     await audit(ctx, 'labourType.remove', 'labourTypes', args.labourTypeId)

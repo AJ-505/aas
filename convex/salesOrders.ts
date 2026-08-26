@@ -5,6 +5,7 @@ import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { createSalesOrderSchema, addSalesOrderPaymentSchema } from '../src/lib/schemas'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const get = query({
   args: { salesOrderId: v.id('salesOrders') },
@@ -53,7 +54,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const vehicle = await ctx.db.get(args.vehicleId)
+    
+    await enforce(ctx, "financial");const vehicle = await ctx.db.get(args.vehicleId)
     if (!vehicle) throw new ConvexError('Vehicle not found.')
     const currentQty = vehicle.stockQty ?? 1
     if (currentQty <= 0) {
@@ -87,7 +89,8 @@ export const complete = mutation({
   args: { salesOrderId: v.id('salesOrders') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const order = await ctx.db.get(args.salesOrderId)
+    
+    await enforce(ctx, "financial");const order = await ctx.db.get(args.salesOrderId)
     if (!order) throw new ConvexError('Sales order not found.')
     if (order.balance > 0) {
       throw new ConvexError('Cannot complete order until the customer has fully paid the remaining balance.')
@@ -102,7 +105,8 @@ export const cancel = mutation({
   args: { salesOrderId: v.id('salesOrders') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const order = await ctx.db.get(args.salesOrderId)
+    
+    await enforce(ctx, "financial");const order = await ctx.db.get(args.salesOrderId)
     if (!order) throw new ConvexError('Sales order not found.')
     const vehicle = await ctx.db.get(order.vehicleId)
     if (vehicle) {
@@ -125,7 +129,8 @@ export const addPayment = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    const parsed = addSalesOrderPaymentSchema.parse(args)
+    
+    await enforce(ctx, "financial");const parsed = addSalesOrderPaymentSchema.parse(args)
     if (parsed.amount <= 0) {
       throw new ConvexError('Payment amount must be greater than 0.')
     }

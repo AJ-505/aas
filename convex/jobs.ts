@@ -9,6 +9,7 @@ import type { JobStatus } from '../src/lib/enums'
 import { addJobItemSchema, checkInJobSchema } from '../src/lib/schemas'
 import { computeInvoiceTotals, type InvoiceLineItem } from '../src/lib/schemas/invoice'
 import { findApprovedFinalForJob } from './lib/invoiceHelpers'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const getDetail = query({
   args: { jobId: v.id('jobs') },
@@ -233,7 +234,8 @@ export const checkIn = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireActiveSession(ctx, ['csr', 'manager', 'admin'])
-    const parsed = checkInJobSchema.parse({
+    
+    await enforce(ctx, "standard");const parsed = checkInJobSchema.parse({
       ...args,
       csrId: user._id,
     })
@@ -262,7 +264,8 @@ export const diagnose = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireActiveSession(ctx, ['inventoryManager', 'manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
+    
+    await enforce(ctx, "standard");const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (!canTransition(job.status, 'diagnosed')) {
       throw new ConvexError(`Cannot diagnose a job that is "${job.status}".`)
@@ -285,7 +288,8 @@ export const markReady = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['inventoryManager', 'manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
+    
+    await enforce(ctx, "standard");const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (!canTransition(job.status, 'readyForPickup')) {
       throw new ConvexError(`Cannot mark ready a job that is "${job.status}".`)
@@ -304,7 +308,8 @@ export const complete = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
+    
+    await enforce(ctx, "standard");const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (!canTransition(job.status, 'completed')) {
       throw new ConvexError(`Cannot complete a job that is "${job.status}".`)
@@ -323,7 +328,8 @@ export const markPaid = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
+    
+    await enforce(ctx, "financial");const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (!canTransition(job.status, 'paid')) {
       throw new ConvexError(`Cannot mark paid a job that is "${job.status}".`)
@@ -400,7 +406,8 @@ export const reverseReady = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['manager', 'admin'])
-    const job = await ctx.db.get(args.jobId)
+    
+    await enforce(ctx, "standard");const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (job.status !== 'readyForPickup') {
       throw new ConvexError('Only jobs in readyForPickup can be reversed.')
@@ -431,7 +438,8 @@ export const addJobItem = mutation({
   handler: async (ctx, args) => {
     const parsed = addJobItemSchema.parse({ jobId: args.jobId, type: args.type, partId: args.partId as any, labourTypeId: args.labourTypeId as any, qty: args.qty, unitPrice: args.unitPrice })
     const user = await requireActiveSession(ctx, ['inventoryManager', 'finance', 'csr', 'manager', 'admin'])
-    const job = await ctx.db.get(parsed.jobId as Id<'jobs'>)
+    
+    await enforce(ctx, "standard");const job = await ctx.db.get(parsed.jobId as Id<'jobs'>)
     if (!job) throw new ConvexError('Job not found.')
     if (job.status === 'completed' || job.status === 'paid') {
       throw new ConvexError('Cannot add items to a job that is completed or paid.')
@@ -506,7 +514,8 @@ export const removeJobItem = mutation({
   args: { jobItemId: v.id('jobItems') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['finance', 'csr', 'manager', 'admin'])
-    const item = await ctx.db.get(args.jobItemId)
+    
+    await enforce(ctx, "standard");const item = await ctx.db.get(args.jobItemId)
     if (!item) throw new ConvexError('Job item not found.')
     const job = await ctx.db.get(item.jobId)
     if (!job) throw new ConvexError('Job not found.')

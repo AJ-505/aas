@@ -4,6 +4,7 @@ import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const list = query({
   args: { date: v.optional(v.number()) },
@@ -81,7 +82,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireActiveSession(ctx, ['csr', 'manager', 'admin'])
-    const customer = await ctx.db.get(args.customerId)
+    
+    await enforce(ctx, "standard");const customer = await ctx.db.get(args.customerId)
     if (!customer) throw new ConvexError('Customer not found.')
 
     if (args.appointmentTs < Date.now() - 60_000) {
@@ -130,7 +132,8 @@ export const markCheckedIn = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'manager', 'admin'])
-    const appointment = await ctx.db.get(args.appointmentId)
+    
+    await enforce(ctx, "standard");const appointment = await ctx.db.get(args.appointmentId)
     if (!appointment) throw new ConvexError('Appointment not found.')
     if (appointment.status !== 'scheduled') {
       throw new ConvexError('Appointment is not in scheduled status.')
@@ -147,7 +150,8 @@ export const cancel = mutation({
   args: { appointmentId: v.id('appointments') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'manager', 'admin'])
-    const appointment = await ctx.db.get(args.appointmentId)
+    
+    await enforce(ctx, "standard");const appointment = await ctx.db.get(args.appointmentId)
     if (!appointment) throw new ConvexError('Appointment not found.')
     await ctx.db.patch(args.appointmentId, { status: 'cancelled' })
     await audit(ctx, 'appointment.cancel', 'appointments', args.appointmentId)

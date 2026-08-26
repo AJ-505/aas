@@ -295,6 +295,17 @@
 | Admin audit-log UI /admin/audit | [x] | `/admin/audit` admin-only, tabs auditLogs/activityLogs, filters user/action/event/date/limit, honest capture note footer, hooks-order fixed |
 | Disable/hide write buttons for audit | [x] | 7 route guards `user.role !== 'audit' &&`, finance readOnly, order detail isAudit hides actions, job detail can* excludes audit, parts/inventory canEdit excludes audit |
 
+## Throttling & Rate Limiting (t7 — Client Review "Enable throttling")
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Lazy aligned-window rate limiter (per-user per-class, no OCC hot row) + 4 classes (admin 5/min, financial 20/min, bulk 5/min, standard 60/min) | [x] | `convex/lib/rateLimit.ts` `enforce()` + `enforceDedup()` + `windowStartFor()`; `convex/schema.ts` `rateLimits` `by_key_window` + `rateLimitEvents` `by_ts` + `settings.rateLimitEnabled`; fallback aligned-window (no @convex-dev/rate-limiter dep) — one doc per user:class:window, composite index, new doc per window (P1-C). |
+| Every public mutation wired AFTER requireRole (34 mutations across 12 files) — queries never limited | [x] | `payments.record` (+60s dedup), `invoices.*`×10, `salesOrders.*`×4, `jobs.*`×8, `parts.*`×4, `vehicles.*`×3, `vehicleBrands.*`×3, `customers.*`, `leads.*`, `appointments.*`, `users.*`, `settings`, `labourTypes`, `deliveries`, `backfillPlates`, `twoFactor.*` — `await enforce(ctx, class)` after auth, before validation. |
+| Financial dedup 60s (identical invoice+amount+method) | [x] | `enforceDedup(ctx, fingerprint)` in `payments.record`; throws `DEDUP` with retryAfterMs; complements 20/min rate limit, prevents double-click ledger noise. |
+| Ships ENABLED (default true) + admin kill-switch | [x] | `settings.rateLimitEnabled` optional default true; `convex/rateLimit.ts` `getStatus` + `setEnabled` (admin-only, audited); UI toggle in `/admin/audit` Throttle tab. Env `RATE_LIMIT_ENABLED=false` also disables (tests). |
+| Structured errors + audit | [x] | `ConvexError({code:'RATE_LIMITED', retryAfterMs, limit, windowMs, actionClass})` + `DEDUP`; client distinguishes from business errors. `rateLimitEvents` + `auditLogs rateLimit.hit:*` on throttle (best-effort, documents rollback caveat). |
+| GC cron + auth honesty + observability UI | [x] | `convex/crons.ts` daily `rateLimit.cleanup` (30d events, 24h windows); `convex/rateLimit.ts` `listEvents` + `getStatus`; `/admin/audit` Throttle tab shows recent hits, limits, kill-switch. Auth HTTP (signIn/reset) honesty documented — Convex Auth runs as HTTP routes with no IP in mutations; per-user limit only after auth, client debounce via `isPending`. |
+
 ## Future (Post-MVP)
 
 - Customer portal (view history, download invoices, book appointments)

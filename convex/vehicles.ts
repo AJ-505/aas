@@ -7,6 +7,7 @@ import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { VEHICLE_STATUSES, type VehicleStatus } from '../src/lib/enums'
 import { createVehicleSchema, updateVehicleSchema } from '../src/lib/schemas'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const get = query({
   args: { vehicleId: v.id('vehicles') },
@@ -82,7 +83,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
-    const parsed = createVehicleSchema.parse({
+    
+    await enforce(ctx, "standard");const parsed = createVehicleSchema.parse({
       ...args,
       status: (args.status as VehicleStatus | undefined) ?? 'customerOwned',
     })
@@ -126,7 +128,8 @@ export const adjustStock = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
-    const vehicle = await ctx.db.get(args.vehicleId)
+    
+    await enforce(ctx, "standard");const vehicle = await ctx.db.get(args.vehicleId)
     if (!vehicle) throw new ConvexError('Vehicle not found.')
     const currentQty = vehicle.stockQty ?? 0
     const newQty = Math.max(0, currentQty + Math.round(args.qtyToAdd))
@@ -163,7 +166,8 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'inventoryManager', 'manager', 'admin'])
-    const { vehicleId, ...patch } = args
+    
+    await enforce(ctx, "standard");const { vehicleId, ...patch } = args
     const parsed = updateVehicleSchema.parse({
       ...patch,
       status: patch.status as VehicleStatus | undefined,

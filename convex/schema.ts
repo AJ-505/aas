@@ -306,5 +306,23 @@ export default defineSchema({
     nextInvSeq: v.optional(v.number()),
     estYear: v.optional(v.number()),
     invYear: v.optional(v.number()),
+    rateLimitEnabled: v.optional(v.boolean()),
   }),
+
+  rateLimits: defineTable({
+    key: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+    actionClass: v.string(),
+  }).index("by_key_window", ["key", "windowStart"]),
+
+  rateLimitEvents: defineTable({
+    key: v.string(),
+    actionClass: v.string(),
+    ts: v.number(),
+    limit: v.number(),
+    windowMs: v.number(),
+    retryAfterMs: v.number(),
+    userId: v.optional(v.id("users")),
+  }).index("by_ts", ["ts"]).index("by_actionClass", ["actionClass"]),
 })

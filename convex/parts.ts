@@ -5,6 +5,7 @@ import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { createPartSchema, updatePartSchema } from '../src/lib/schemas'
 import { STOCK_MOVEMENT_TYPES, type StockMovementType } from '../src/lib/enums'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const list = query({
   args: {},
@@ -108,7 +109,8 @@ export const createPart = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
-    const rawCode = (args.code ?? args.partNumber ?? '').trim()
+    
+    await enforce(ctx, "standard");const rawCode = (args.code ?? args.partNumber ?? '').trim()
     if (!rawCode) throw new Error('Part Number is required')
     const parsed = createPartSchema.parse({
       code: rawCode,
@@ -150,7 +152,8 @@ export const updatePart = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
-    const { partId, ...patch } = args as Record<string, unknown> & { partId: any }
+    
+    await enforce(ctx, "standard");const { partId, ...patch } = args as Record<string, unknown> & { partId: any }
     const normalized: Record<string, unknown> = { ...patch }
     // alias: partNumber -> code
     if (normalized.partNumber !== undefined && normalized.code === undefined) {
@@ -207,7 +210,8 @@ export const adjustStock = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
-    const part = await ctx.db.get(args.partId)
+    
+    await enforce(ctx, "standard");const part = await ctx.db.get(args.partId)
     if (!part) throw new Error('Part not found')
 
     let newQty = part.stockQty
@@ -260,7 +264,8 @@ export const importParts = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
-    const inserted: string[] = []
+    
+    await enforce(ctx, "bulk");const inserted: string[] = []
     for (const p of args.parts) {
       const rawCode = (p.code ?? p.partNumber ?? '').trim()
       if (!rawCode) continue

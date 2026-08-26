@@ -338,3 +338,12 @@ export function useImportPartsMutation() {
 export function useSetVatRateMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.settings.setVatRate) })
 }
+
+export const rateLimitQueries = {
+  events: (limit?: number) => convexQuery((api as any).rateLimit.listEvents, { limit }),
+  status: () => convexQuery((api as any).rateLimit.getStatus, {}),
+}
+
+export function useSetRateLimitEnabledMutation() {
+  return useMutation({ mutationFn: useConvexMutation((api as any).rateLimit.setEnabled) as any })
+}

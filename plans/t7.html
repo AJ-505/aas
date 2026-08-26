@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>T7 — Throttling Plan · Cedric Masters</title>
+<style>
+  :root{--ink:#0f172a;--mut:#64748b;--line:#e2e8f0;--accent:#d97706;--paper:#fffefb;--chip:#fef3c7}
+  *{box-sizing:border-box}body{margin:0;font-family: ui-sans-system,Segoe UI,Inter,Helvetica,Arial;color:var(--ink);background:var(--paper);line-height:1.5}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 40px}
+  .eyebrow{font:700 11px/1 letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  h1{font:900 30px/1.05 Inter,system-ui;letter-spacing:-.03em;margin:6px 0 8px}
+  .sub{color:var(--mut);font-size:14px;max-width:720px}
+  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:18px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px 16px}
+  .card h3{margin:0 0 6px;font:800 13px/1.1 Inter;letter-spacing:.02em;text-transform:uppercase}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#fff7ed;border:1px solid #ffedd5;border-radius:8px;padding:8px 10px;overflow:auto}
+  .k{font:700 11px/1 Inter;color:#92400e;background:var(--chip);border:1px solid #fde68a;border-radius:999px;padding:4px 8px;display:inline-block}
+  .steps{counter-reset:s} .step{counter-increment:s;display:flex;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;margin-top:10px}
+  .step b{background:var(--ink);color:#fff;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;font:800 12px/1 Inter;flex:none;margin-top:1px}
+  .step .t{font:700 13px/1.2 Inter} .step .d{font-size:13px;color:var(--mut);margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px} th{text-align:left;font:700 11px/1 Inter;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);padding:8px 6px} td{border-bottom:1px solid #f1f5f9;padding:8px 6px;vertical-align:top}
+  .bar{height:6px;background:#f1f5f9;border-radius:999px;overflow:hidden;margin-top:6px} .fill{height:100%;background:var(--accent)}
+  details{border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px} summary{cursor:pointer;padding:12px 14px;font:700 13px Inter;list-style:none} summary::-webkit-details-marker{display:none} details .inner{padding:0 14px 14px;font-size:13px;color:var(--mut)}
+  .pill{font:600 11px Inter;border:1px solid var(--line);border-radius:999px;padding:3px 8px;background:#f8fafc}
+</style></head><body><div class="wrap">
+  <div class="eyebrow">CMA · T7 · Enable throttling — client review</div>
+  <h1>Throttling that never blocks a real shift, but always shows the checkbox ticked.</h1>
+  <p class="sub">Single-tenant staff app (≤10 users). No middleware, no Redis, queries cannot write. We enforce <em>after</em> <code>requireRole</code> with aligned-window counters (one doc per <code>user:class:window</code>, composite index). Generous windows, kill-switch ON by default, structured <code>RATE_LIMITED/DEDUP</code> errors, and a visible admin log.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>10 Decisions (synthesis)</h3>
+      <ol style="margin:6px 0 0;padding-left:18px;font-size:13px">
+        <li><b>Mechanism:</b> lazy <code>windowStart=floor(ts/w)*w</code> — new doc per window, no reset patch, no scheduler on hot path. <code>@convex-dev/rate-limiter</code> is ideal but fallback is this table (OCC-safe).</li>
+        <li><b>Coverage:</b> EVERY public mutation gets <code>enforce()</code> AFTER auth; queries never limited (document why).</li>
+        <li><b>Classes:</b> <span class="pill">admin 5/min</span> <span class="pill">financial 20/min</span> <span class="pill">bulk 5/min</span> <span class="pill">standard 60/min</span></li>
+        <li><b>Default:</b> ships ENABLED + <code>settings.rateLimitEnabled</code> kill-switch (admin-only).</li>
+        <li><b>Errors:</b> <code>ConvexError({code:'RATE_LIMITED', retryAfterMs})</code> + <code>DEDUP</code> for double-submit.</li>
+        <li><b>Observability:</b> <code>rateLimitEvents</code> + <code>audit rateLimit.hit:*</code> + /admin Throttle tab.</li>
+        <li><b>GC:</b> daily cron prunes events &gt;30d, windows &gt;24h.</li>
+        <li><b>Auth honesty:</b> signIn/reset are HTTP routes — no IP in mutations; per-user limit after auth + client <code>isPending</code> debounce; document limitation.</li>
+        <li><b>Dedup:</b> <code>payments.record</code> 60s identical fingerprint guard.</li>
+        <li><b>Tests:</b> unit helper + kill-switch + window roll, no mocked DB — real Convex tables.</li>
+      </ol>
+      <div class="mono" style="margin-top:10px">key = `${userId}:${class}` · windowStart = floor(now/60000)*60000 · index by_key_window · throw {code, retryAfterMs} · audit before throw</div>
+    </div>
+    <div class="card">
+      <h3>Risk before / after</h3>
+      <div style="font-size:13px"><b>Before:</b> unlimited writes — stray double-click or CSV loop can double-pay / double-reserve.</div>
+      <div class="bar"><div class="fill" style="width:35%"></div></div>
+      <div style="font-size:13px;margin-top:10px"><b>After:</b> bounded throughput with generous caps; busy shift never hits 60/min CRUD, finance never hits 20/min except runaway script.</div>
+      <div class="bar"><div class="fill" style="width:92%"></div></div>
+      <div class="mono" style="margin-top:10px">Structured errors: toast “Too many requests — retry in 12s” vs business error. No silent drops.</div>
+      <p style="font-size:12px;color:var(--mut)">Source: 3 planners @ <code>/tmp/opencode/orch/t7-synthesis.md</code> (P1 enforcement, P2 auth+financial, P3 adversarial REJECT of docs/throttling-plan.html).</p>
+    </div>
+  </div>
+
+  <h3 style="margin:18px 0 6px;font:800 13px Inter;letter-spacing:.04em;text-transform:uppercase">Build order</h3>
+  <div class="steps">
+    <div class="step"><b>1</b><div><div class="t">Schema widen (additive)</div><div class="d"><code>rateLimits {key, windowStart, count, actionClass} by_key_window</code>, <code>rateLimitEvents {key, actionClass, ts, limit, windowMs, retryAfterMs, userId} by_ts</code>, <code>settings.rateLimitEnabled?</code>. No migration, no breaking reads.</div></div></div>
+    <div class="step"><b>2</b><div><div class="t">Lib <code>convex/lib/rateLimit.ts</code></div><div class="d"><code>windowStartFor</code>, <code>isRateLimitEnabled</code> (settings flag + env), <code>enforce(ctx, class)</code> (read → check → insert/patch → throw), <code>enforceDedup(ctx, fingerprint)</code> (60s per-user fingerprint). Helpers are pure of window math and testable with <code>now</code> injection.</div></div></div>
+    <div class="step"><b>3</b><div><div class="t"><code>convex/rateLimit.ts</code> + <code>convex/crons.ts</code></div><div class="d">Admin queries <code>listEvents/getStatus</code>, mutation <code>setEnabled</code> (admin-only, audited), <code>internal logEvent/cleanup</code>. Cron daily 03:00 UTC prunes.</div></div></div>
+    <div class="step"><b>4</b><div><div class="t">Wire 34 mutations</div><div class="d">One <code>await enforce(ctx, class)</code> after <code>requireRole/requireActiveSession/getCurrentUser</code> in payments, invoices×10, salesOrders×4, jobs×8, parts×4, vehicles×3, vehicleBrands×3, customers, leads, appointments, users, settings, labourTypes, deliveries, backfill, twoFactor. Queries untouched — documented.</div></div></div>
+    <div class="step"><b>5</b><div><div class="t">Dedup: payments.record</div><div class="d">Second identical <code>invoiceId:amount:method</code> within 60s → <code>DEDUP</code>. Keeps ledger clean even if 20/min bucket would otherwise allow a double-click (2 in &lt;1s).</div></div></div>
+    <div class="step"><b>6</b><div><div class="t">Admin UI & client honesty</div><div class="d">Extend <code>/admin/audit</code> with Throttle tab (events table + kill-switch toggle). Queries in <code>src/lib/queries.ts</code>. Login keeps <code>isPending</code> disable (debounce); document that sign-in HTTP has no IP in mutations.</div></div></div>
+  </div>
+
+  <h3 style="margin:18px 0 6px;font:800 13px Inter;letter-spacing:.04em;text-transform:uppercase">Coverage map</h3>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><tr><th>Class</th><th>Limit</th><th>Mutations</th><th>Why this window</th></tr>
+      <tr><td><span class="k">admin</span></td><td>5 / 60s</td><td><code>users.setRole/setActive/bootstrap/adminResetPassword/changePassword</code>, <code>vehicleBrands.*</code>, <code>backfillPlates</code></td><td>Privilege ops are rare; tight window catches brute claim loops.</td></tr>
+      <tr><td><span class="k">financial</span></td><td>20 / 60s</td><td><code>payments.record</code> (+dedup), <code>invoices.*</code>, <code>salesOrders.*</code>, <code>jobs.markPaid</code>, <code>settings.setVatRate</code>, <code>labourTypes.*</code>, <code>deliveries.complete</code></td><td>One payment every 3s sustained — above honest throughput, below script storm.</td></tr>
+      <tr><td><span class="k">bulk</span></td><td>5 / 60s</td><td><code>parts.importParts</code> (CSV)</td><td>Each call can insert dozens; 5/min forces batching and caps transaction cost.</td></tr>
+      <tr><td><span class="k">standard</span></td><td>60 / 60s</td><td>Customers/vehicles/leads/appointments/jobs/parts CRUD, <code>twoFactor.verify*</code></td><td>Generous anti-script; no 6-person shift hits 60 writes/min.</td></tr>
+    </table>
+    <div style="padding:10px 12px;font-size:12px;color:var(--mut);border-top:1px solid var(--line)">Queries: <code>customers.search</code>, <code>jobs.byStatus</code>, <code>dashboardSummary</code>, <code>invoices.getByJob</code>, etc. — never throttled (read-only, cacheable, would hurt busy shift). 300 ms client debounce on search is enough.</div>
+  </div>
+
+  <h3 style="margin:18px 0 6px;font:800 13px Inter;letter-spacing:.04em;text-transform:uppercase">Break-it tests</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="card"><b style="font-size:13px">Unit — lib/rateLimit.test (convex-test style)</b>
+      <ul style="font-size:13px;color:var(--mut);margin:6px 0 0;padding-left:18px">
+        <li>Window aligned: <code>ws = floor(now/60000)*60000</code></li>
+        <li>First hit inserts <code>count=1</code>; same window increments to 5</li>
+        <li>6th in 5/min admin window throws <code>RATE_LIMITED {retryAfterMs}</code>, count unchanged</li>
+        <li>Next window rolls to new doc <code>count=1</code></li>
+        <li>Per-user isolation: A blocked ≠ B; per-class isolation: financial ≠ standard</li>
+        <li>Kill-switch <code>settings.rateLimitEnabled=false</code> → no throw, no writes</li>
+        <li>Dedup: second identical payment &lt;60s → <code>DEDUP</code>; different amount passes; 61s later passes</li>
+      </ul>
+    </div>
+    <div class="card"><b style="font-size:13px">Integration — per-mutation sample</b>
+      <ul style="font-size:13px;color:var(--mut);margin:6px 0 0;padding-left:18px">
+        <li><code>payments.record</code> 20/min financial + 60s dedup; cross-invoice isolation</li>
+        <li><code>parts.importParts</code> 5/min bulk — 6th within 60s returns RATE_LIMITED before loop</li>
+        <li><code>customers.create</code> 60/min standard — mixed CRUD still under one bucket</li>
+        <li><code>users.setRole</code> 5/min admin — 6th throws with <code>retryAfterMs≈</code>windowEnd-now</li>
+        <li>Queries 100× loop never throw, zero <code>rateLimits</code> rows</li>
+        <li>Window roll: advance clock 61s → previously blocked mutation succeeds</li>
+      </ul>
+    </div>
+  </div>
+
+  <details><summary>Auth surface — honest constraint</summary><div class="inner">Convex Auth signIn/reset are HTTP routes (<code>convex/http.ts</code> + <code>auth.ts</code> Password provider), not Convex mutations — <code>ctx</code> has no <code>ip</code> or headers in mutations. We rate-limit what IS possible: per-user after auth (all app mutations) and normalize any email-keyed limits via <code>trim+lowercase</code> if/when an HTTP wrapper is added. We document that IP limiting inside mutations is unavailable and add client <code>isPending</code> debounce on login instead. Future HTTP wrapper can add <code>x-forwarded-for</code> IP bucket.</div></details>
+  <details><summary>OCC & cost</summary><div class="inner">One index read + one insert/patch per <code>enforce</code> (1 write). Per-user per-window doc avoids hot-row OCC death (single <code>settings</code> doc or global <code>rateLimits/{class}</code> would serialize all writers). Window roll is a new doc → no contended reset patch. Kill-switch short-circuits to one cached <code>settings</code> read, zero writes.</div></details>
+
+  <div class="card" style="margin-top:14px;background:#fffbeb;border-color:#fde68a">
+    <h3>Grill & plan-review (adversarial)</h3>
+    <p style="font-size:13px;color:var(--mut)">Grill subagent will attack: <em>boundary 2× burst, reset race thundering herd, OCC hot row, auth bypass via email variants, queries throttled by mistake, default-off compliance fail, silent drop vs throw, dedup vs rate limit confusion</em>. After plan, spawn two plan-review subagents; verify each finding against code before fixing.</p>
+    <div class="mono">Spawn: nohup opencode2 run --model "opencode/muse-spark-1.2-contributor-free" --auto --format json "attack my design for t7 throttling: ..." > /tmp/opencode/t7_grill.json 2>&1 &</div>
+  </div>
+</div></body></html>

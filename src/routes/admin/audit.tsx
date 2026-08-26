@@ -7,8 +7,9 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Loader } from '~/components/Loader'
 import { useCurrentUser } from '~/lib/auth'
-import { auditQueries, userQueries } from '~/lib/queries'
+import { auditQueries, userQueries, rateLimitQueries, useSetRateLimitEnabledMutation } from '~/lib/queries'
 import { formatDateTime } from '~/lib/format'
+import toast from 'react-hot-toast'
 
 export const Route = createFileRoute('/admin/audit')({
   component: AuditPage,
@@ -16,7 +17,7 @@ export const Route = createFileRoute('/admin/audit')({
 
 function AuditPage() {
   const { data: user } = useCurrentUser()
-  const [tab, setTab] = useState<'audit' | 'activity'>('audit')
+  const [tab, setTab] = useState<'audit' | 'activity' | 'throttle'>('audit')
   const [userId, setUserId] = useState('')
   const [action, setAction] = useState('')
   const [event, setEvent] = useState('')
@@ -48,6 +49,13 @@ function AuditPage() {
     }),
     enabled: tab === 'activity',
   })
+  const throttleQ: any = rateLimitQueries.events(50)
+  const statusQ: any = rateLimitQueries.status()
+  const { data: throttleEventsAny, isLoading: throttleLoading } = useQuery({ ...throttleQ, enabled: tab === 'throttle' })
+  const throttleEvents = throttleEventsAny as any
+  const { data: rateStatusAny } = useQuery(statusQ)
+  const rateStatus = rateStatusAny as any
+  const setEnabled = useSetRateLimitEnabledMutation()
 
   if (user?.role && user.role !== 'admin') return <Navigate to="/" />
 
@@ -62,13 +70,38 @@ function AuditPage() {
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button variant={tab === 'audit' ? 'default' : 'outline'} onClick={() => setTab('audit')}>
           Business audit ({auditLogs?.length ?? '—'})
         </Button>
         <Button variant={tab === 'activity' ? 'default' : 'outline'} onClick={() => setTab('activity')}>
           Activity ({activityLogs?.length ?? '—'})
         </Button>
+        <Button variant={tab === 'throttle' ? 'default' : 'outline'} onClick={() => setTab('throttle')}>
+          Throttle ({throttleEvents?.length ?? '—'})
+        </Button>
+        <span className="ml-auto flex items-center gap-2 text-xs">
+          <span className={rateStatus?.enabled ? 'text-emerald-600' : 'text-red-600'}>
+            Throttling: {rateStatus?.enabled ? 'ON' : 'OFF'}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const next = !rateStatus?.enabled
+              setEnabled.mutate(
+                { enabled: next } as any,
+                {
+                  onSuccess: () => toast.success(`Throttling ${next ? 'enabled' : 'disabled'}`),
+                  onError: (e: any) => toast.error(e?.data?.message ?? e.message),
+                },
+              )
+            }}
+            disabled={setEnabled.isPending}
+          >
+            {rateStatus?.enabled ? 'Disable' : 'Enable'} (admin kill-switch)
+          </Button>
+        </span>
       </div>
 
       <Card>
@@ -173,7 +206,7 @@ function AuditPage() {
             </table>
           </div>
         </Card>
-      ) : (
+      ) : tab === 'activity' ? (
         <Card className="overflow-hidden">
           <div className="overflow-auto">
             <table className="w-full text-sm">
@@ -225,6 +258,54 @@ function AuditPage() {
             Honest capture note: <code>userAgent</code>/<code>screenInfo</code> come from the browser (<code>navigator.userAgent</code>); they are
             trivially spoofable. <code>ip</code> is only populated when logging via an HTTP action that has a request object (e.g.{' '}
             <code>x-forwarded-for</code>); direct <code>activityLogs.log</code> mutation calls have no server IP.
+          </div>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-line-soft text-xs text-mute">
+                <tr>
+                  <th className="px-3 py-2 text-left">Time</th>
+                  <th className="px-3 py-2 text-left">User</th>
+                  <th className="px-3 py-2 text-left">Class</th>
+                  <th className="px-3 py-2 text-left">Limit</th>
+                  <th className="px-3 py-2 text-left">Retry after</th>
+                  <th className="px-3 py-2 text-left">Key</th>
+                </tr>
+              </thead>
+              <tbody>
+                {throttleLoading ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center">
+                      <Loader />
+                    </td>
+                  </tr>
+                ) : !throttleEvents || throttleEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-mute">
+                      No throttle hits yet — limits are generous (admin 5/min, financial 20/min, bulk 5/min, standard 60/min). Events appear here when <code>RATE_LIMITED</code> fires; also logged to audit with <code>rateLimit.hit:*</code>.
+                    </td>
+                  </tr>
+                ) : (
+                  throttleEvents.map((e: any) => (
+                    <tr key={e._id} className="border-t border-line text-[13px]">
+                      <td className="whitespace-nowrap px-3 py-2 text-mute">{formatDateTime(e.ts)}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{(e.userId as string)?.slice(-6) ?? '—'}</td>
+                      <td className="px-3 py-2"><span className="rounded bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 font-mono text-xs">{e.actionClass}</span></td>
+                      <td className="px-3 py-2 font-mono text-xs">{e.limit}/{e.windowMs / 1000}s</td>
+                      <td className="px-3 py-2 text-xs">{Math.ceil((e.retryAfterMs ?? 0) / 1000)}s</td>
+                      <td className="max-w-[220px] truncate px-3 py-2 font-mono text-xs" title={e.key}>{e.key}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-line bg-line-soft/50 px-3 py-2 text-[11px] text-mute">
+            Limits — <code>admin</code> 5/min (setRole/setActive/bootstrap), <code>financial</code> 20/min (payments/invoices/sales),{' '}
+            <code>bulk</code> 5/min (CSV import), <code>standard</code> 60/min (CRUD). Dedup on <code>payments.record</code> blocks identical{' '}
+            <code>invoice+amount+method</code> within 60s (code <code>DEDUP</code>). Auth HTTP (sign-in/reset) honesty: Convex Auth runs as HTTP routes — no request IP in mutations; limit is per-user after auth. Client debounces login submit.
           </div>
         </Card>
       )}

@@ -5,6 +5,7 @@ import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { recordPaymentSchema } from '../src/lib/schemas/invoice'
+import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const byInvoice = query({
   args: { invoiceId: v.id('invoices') },
@@ -25,7 +26,9 @@ export const record = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
-    const parsed = recordPaymentSchema.parse(args)
+    
+    await enforce(ctx, "financial");
+    await enforceDedup(ctx, `pay:${args.invoiceId}:${args.amount}:${args.method}`);const parsed = recordPaymentSchema.parse(args)
     const invoice = await ctx.db.get(parsed.invoiceId as Id<'invoices'>)
     if (!invoice) throw new ConvexError('Invoice not found.')
     if ((invoice as any).kind === 'estimate') throw new ConvexError('Cannot record payments against an estimate.')
