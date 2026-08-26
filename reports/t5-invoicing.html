@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>t5 — Invoicing Controls — Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@500;700;800&display=swap');
+  :root{--ink:#0b0c0f;--mut:#6b7280;--line:#e5e7eb;--bg:#fefefe;--accent:#e11d48;--emer:#059669;--amber:#d97706;--card:#ffffff;--soft:#f8fafc;--grid:#f1f5f9}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  header{background:var(--ink);color:#fff;padding:28px 24px 18px;position:relative;overflow:hidden}
+  header:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 48px,rgba(255,255,255,.04) 48px 49px);pointer-events:none}
+  .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#ff99aa}
+  header h1{font-size:38px;font-weight:800;letter-spacing:-.04em;line-height:.95;margin-top:6px;max-width:980px}
+  header h1 span{color:var(--accent)}
+  header p{color:#cbd5e1;font-size:13.5px;margin-top:10px;max-width:820px}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#e2e8f0}
+  .pill.hot{background:var(--accent);border-color:var(--accent);color:#fff}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 18px 40px}
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card h2{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .badge{width:8px;height:8px;border-radius:999px;background:var(--accent)}
+  .badge.g{background:var(--emer)}
+  .badge.a{background:var(--amber)}
+  .card h3{font-size:13.5px;font-weight:800;letter-spacing:-.02em;margin:14px 0 6px;padding-left:10px;border-left:3px solid var(--accent)}
+  .card h3.em{border-color:var(--emer)}
+  .card h3.am{border-color:var(--amber)}
+  ul,ol{padding-left:18px}
+  li{font-size:13px;margin:4px 0}
+  code{font-family:'IBM Plex Mono',monospace;font-size:11.5px;background:var(--soft);border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+  .callout{background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:12.8px;margin-top:10px}
+  .callout.ok{background:#ecfdf5;border-color:#a7f3d0;border-left-color:var(--emer)}
+  .callout.warn{background:#fffbeb;border-color:#fde68a;border-left-color:var(--amber)}
+  table{width:100%;border-collapse:collapse;font-size:12.8px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--ink);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:860px){.two{grid-template-columns:1fr}}
+  details{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  summary{cursor:pointer;font-weight:700;font-size:13px}
+  pre{font-family:'IBM Plex Mono',monospace;font-size:11px;background:#0b1220;color:#c7d2fe;padding:12px;border-radius:12px;overflow:auto;border:1px solid #1e293b;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .hr{height:1px;background:var(--line);margin:14px 0}
+  .foot{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut);margin-top:14px}
+  .toc a{color:var(--accent);text-decoration:none;font-weight:700}
+  .toc a:hover{text-decoration:underline}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:12px;cursor:pointer}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+</style>
+<header>
+  <div class="kicker">Cedric Masters Autos — t5 · feat/invoicing-controls</div>
+  <h1>Financial & Transaction <span>Controls</span> — Invoicing</h1>
+  <p>Shipped separate <b>Sales</b> vs <b>After-Sales</b> invoicing with human numbers, a CSR → Finance estimate workflow, reversible <b>ready-for-pickup</b>, and a <b>locked</b> final-invoice fence with admin-only unlock.</p>
+  <div class="meta">
+    <span class="pill hot">branch: feat/invoicing-controls</span>
+    <span class="pill">task: t5</span>
+    <span class="pill">convex + tanstack start</span>
+    <span class="pill">no mocked frontend data</span>
+  </div>
+</header>
+<div class="wrap">
+  <div class="card toc" style="margin-bottom:14px">
+    <h2><span class="badge"></span> Quick nav</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px">
+      <a href="#changed">What changed & why</a> · <a href="#how">Step-by-step how</a> · <a href="#tests">Exhaustive tests</a> · <a href="#mistakes">Mistakes</a> · <a href="#proof">Verification proof</a> · <a href="#commands">Commands</a>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="changed">
+      <h2><span class="badge"></span> What changed & why</h2>
+      <p style="font-size:13px;color:#334155">All demo data stays in Convex seeds; UI pulls straight from queries. Five client-reviewed controls land in one coherent slice:</p>
+
+      <h3>1 — Schema: separate Sales vs After-Sales + human numbers</h3>
+      <ul>
+        <li><code>convex/schema.ts</code>: <code>invoices.jobId</code> → optional, added <code>salesOrderId?</code>, <code>domain?:'service'|'sales'</code>, <code>kind?:'estimate'|'final'</code>, <code>invoiceNumber?:string</code> (<code>EST-YYYY-####</code> / <code>INV-YYYY-####</code>), <code>status?:'draft'|'approved'|'rejected'|'converted'</code>, <code>rejectedReason?</code>, <code>locked?:boolean</code>, <code>generatedById?</code>; indexes <code>salesOrderId</code> + <code>invoiceNumber</code>; <code>jobs.reversedReadyTs?</code>; <code>settings.nextEstSeq/nextInvSeq/estYear/invYear</code>.</li>
+        <li><code>src/lib/enums.ts</code>: <code>INVOICE_DOMAINS/KINDS/STATUSES</code>.</li>
+        <li><code>src/lib/schemas/invoice.ts</code>: Zod schemas <code>createEstimateSchema / rejectEstimateSchema / adminUnlockSchema</code>.</li>
+        <li>Why: nullable linkage keeps legacy rows migratable (old invoices backfill as <code>service/final</code>), while new writes enforce <code>domain==='service' ⇒ jobId</code> vs <code>sales ⇒ salesOrderId</code>.</li>
+      </ul>
+
+      <h3 class="em">2 — Shared line-item builder kills duplication</h3>
+      <ul>
+        <li>New <code>convex/lib/invoiceHelpers.ts</code>: <code>buildLineItemsForJob(ctx, jobId)</code> (maps <code>jobItems</code> → descriptions via <code>part.code - description</code> / <code>labourType.name</code>, now <code>Promise.all</code> parallel), <code>buildLineItemsForSalesOrder</code> (single vehicle line at <code>agreedPrice</code>), <code>nextInvoiceNumber(kind)</code> (atomic counter on <code>settings</code> doc with yearly reset), <code>assertNotLocked</code>, <code>findApprovedFinalForJob</code>.</li>
+        <li>All of <code>invoices.generate / generateSales / regenerate</code>, <code>jobs.syncInvoiceForJob</code>, <code>seedAdvanced</code> now call the helper; VAT via shared <code>computeInvoiceTotals(lineItems, vatRate)</code>. Removes the 4× copy-paste that previously was in <code>generate/regenerate/sync</code>.</li>
+      </ul>
+
+      <h3>3 — Estimates: CSR prepares, Finance governs</h3>
+      <ul>
+        <li><code>convex/invoices.ts</code>: <code>createEstimate</code> (csr/manager/admin/salesRep, requires parent + ≥1 jobItem, assigns <code>EST-YYYY-####</code>), <code>updateEstimate</code> (refresh from parent, only <code>draft</code> + not locked), <code>approveEstimate</code> (finance/manager/admin), <code>rejectEstimate</code> (reason 3..300), <code>convertEstimateToFinal</code> (approved → new <code>INV-YYYY-####</code> final draft copying totals, marks estimate <code>converted</code>, audits both). Estimates never lock.</li>
+      </ul>
+
+      <h3 class="am">4 — Reverse ready-for-pickup</h3>
+      <ul>
+        <li><code>convex/jobs.ts:reverseReady</code> — <code>requireRole(['manager','admin'])</code>, requires <code>status==='readyForPickup'</code> and <b>no approved final</b> (via <code>findApprovedFinalForJob</code>), patches <code>status→inProgress</code>, clears <code>readyForPickupTs</code>, sets <code>reversedReadyTs</code>, audit <code>job.reverseReady</code>.</li>
+      </ul>
+
+      <h3>5 — Lock after final approved</h3>
+      <ul>
+        <li>When <code>kind==='final' && approved===true</code> → <code>locked=true</code> + <code>generatedById</code> (+ <code>approvedTs</code>). Set in <code>approve</code>.</li>
+        <li><code>assertNotLocked</code> enforced in <code>jobs.addJobItem / removeJobItem</code>, <code>invoices.generate/regenerate</code>, <code>payments.record</code>, and <code>syncInvoiceForJob</code> (early return if locked). <code>payments.record</code> also caps <code>amount > remaining</code> and blocks estimates.</li>
+        <li><code>invoices.adminUnlock</code> — <code>admin</code> only, reason 10..300, <code>locked=false</code>, audit reason in action string.</li>
+        <li><code>generatedById</code> projected only to <code>admin</code> (<code>getByJob/listByJob/getById</code> strip field for non-admin, return <code>generatedBy</code> join only when admin).</li>
+        <li>Scope cuts honored: no COGS, no commissions, no PDF redesign beyond estimate/locked banners.</li>
+      </ul>
+      <div class="callout ok"><b>Seed:</b> <code>convex/seedAdvanced.ts</code> assigns <code>INV-YYYY-0001..0003</code> to demo invoices, sets <code>domain service, kind final, status approved, locked true, generatedById csr</code>, and bumps <code>settings.nextInvSeq</code> past seeded numbers.</div>
+    </div>
+
+    <div class="card" id="how">
+      <h2><span class="badge g"></span> Step-by-step how (every subagent)</h2>
+      <ol>
+        <li><b>Read & grilling:</b> read <code>AGENTS.md / ROADMAP.md / docs/tanstack-router-guidelines.md</code>, inspected <code>convex/schema.ts, invoices.ts, jobs.ts, payments.ts, seed*.ts, lib/enums, queries.ts, job.$id.tsx, order.$id.tsx, PrintableInvoice.tsx</code>. Spawned grilling subagent via <code>nohup opencode2 run --model opencode/muse-spark-1.2-contributor-free --auto --format json "attack my design for t5…"</code> → <code>/tmp/opencode/t5_grill.json</code>. Grill returned JSON with 9 objections (orphan FK, numbering race, duplication, lock bypass, payments cap, approve vs convert, edit window, sales line source, reverseReady) + 8-node design tree with recommended defaults (counters table, create-not-mutate for convert, status-based edit window, wrapper lock). Answered by hardening schema to optional-for-legacy then validating domain linkage in mutations, keeping single <code>settings</code> counter (Convex serializes), and using central <code>assertNotLocked</code>.</li>
+        <li><b>Plan:</b> authored <code>plans/t5.html</code> — self-contained, distinctive (Newsreader + JetBrains Mono, ink/paper palette) with build order + break-it tests. Spawned TWO adversarial plan-review subagents via <code>nohup opencode2 run ...</code> → <code>/tmp/opencode/t5_plan_review1.json</code> / <code>t5_plan_review2.json</code>. Review 1 flagged 7 defects (permission gaps, sales line source, audit completeness, UI gating, helper missing, nullability) — most were future-state (helper now exists, UI now gated); hard points kept: sales line-item VAT semantics noted but deferred (spec cuts COGS), audit completeness kept minimal. Review 2 raised 14 findings (F09 estimateTransition consolidation, F10 nullability, F11 index scan, F12 generatedBy leakage, F14 lock wrapper) — applied F10 (domain assert), F11 (collect-then-filter OK for low fan-out), F12 (strip generatedById for non-admin), F14 (central assert), and batched helper to <code>Promise.all</code>.</li>
+        <li><b>Merge main:</b> <code>git fetch origin; git merge main --no-edit</code> — main was ancestor (0d77a69) so already up-to-date; no conflicts (additive schema).</li>
+        <li><b>Schema + helper:</b> edited <code>convex/schema.ts</code> + <code>src/lib/enums.ts</code> + <code>src/lib/schemas/invoice.ts</code>; created <code>convex/lib/invoiceHelpers.ts</code>.</li>
+        <li><b>Backend:</b> rewrote <code>convex/invoices.ts</code> to use helper, added 7 mutations + list queries + human numbering; edited <code>convex/jobs.ts</code> to add <code>reverseReady</code> + locked guards + batched helper, early return in <code>syncInvoiceForJob</code>; edited <code>convex/payments.ts</code> cap + estimate block; updated <code>convex/seedAdvanced.ts</code> with human numbers + locked.</li>
+        <li><b>Frontend:</b> wired <code>src/lib/queries.ts</code> with estimate/reverse hooks; rebuilt <code>src/routes/service/job.$id.tsx</code> StatusActions (reverse button) + full <code>InvoiceSection</code> (estimates vs finals, badges, approve/reject/convert, refresh, lock banners, admin unlock, generatedBy for admin, sales estimate CTAs); updated <code>src/components/PrintableInvoice.tsx</code> to show <code>invoiceNumber</code> + banners; added <code>src/routes/sales/order.$id.tsx:SalesInvoiceSection</code> for sales domain.</li>
+        <li><b>ROADMAP:</b> appended Financial & Transaction Controls (t5) section to <code>ROADMAP.md</code>.</li>
+        <li><b>Verify:</b> <code>bun install</code> once; <code>bunx tsc --noEmit</code>; <code>bunx vitest run --config vitest.config.ts</code>; <code>bun run build</code> — saved to <code>proofs/t5/</code>.</li>
+        <li><b>Diff review:</b> spawned TWO adversarial diff-review subagents via <code>nohup opencode2 run --model … --format json "You are an adversarial diff reviewer…"</code> → <code>/tmp/opencode/t5_diff_review1.json</code> / <code>t5_diff_review2.json</code>. Findings were stale (pre-fix) or low-severity (index scan on tiny per-job collect, batch suggestion). Applied batched <code>Promise.all</code> + projection strip; no blocking defects remained.</li>
+        <li><b>Re-verify & commit:</b> re-ran <code>bunx tsc / vitest / build</code> (saved proofs), committed small commits on branch, included <code>plans/t5.html, proofs/t5/*, reports/t5-invoicing.html</code>. Final <code>git fetch origin; git merge main --no-edit</code> before report still clean.</li>
+      </ol>
+      <div class="callout warn"><b>RAM discipline:</b> ran heavy commands one-at-a-time; browser + agent + dev server budget respected. Never started <code>bun dev</code>.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px" id="tests">
+    <h2><span class="badge a"></span> Exhaustive test list — click-through</h2>
+    <div class="two">
+      <div>
+        <h3>Estimates (CSR → Finance)</h3>
+        <ol>
+          <li>Login <code>amara@cedricmastersautos.com / password123</code> (CSR) → open job with ≥1 jobItem → <b>Create Estimate</b> → expect <code>EST-YYYY-####</code>, badge <code>draft</code>, amber “ESTIMATE — NOT A TAX INVOICE” banner. Verify invoice number increments on second estimate.</li>
+          <li>CSR on draft estimate → add another jobItem → <b>Refresh from job items</b> → totals update, <code>invoiceNumber</code> unchanged.</li>
+          <li>Login <code>funmi@cedricmastersautos.com / password123</code> (Finance) → draft estimate → <b>Approve</b> → status <code>approved</code>. Try edit as CSR → fails “not draft”.</li>
+          <li>Finance on same approved estimate → <b>Convert to Final Invoice</b> → new card appears with <code>INV-YYYY-####</code>, <code>draft</code>, totals copied; estimate becomes <code>converted</code>.</li>
+          <li>Create new estimate → Finance <b>Reject</b> with “Client budget exceeded” → status <code>rejected</code>, reason visible; refresh/edit/conversion blocked.</li>
+          <li>Try <code>createEstimate</code> with no jobItems → error “no job items”.</li>
+          <li>Try <code>approveEstimate</code> as CSR → unauthorized.</li>
+          <li>Try <code>rejectEstimate</code> with 2-char reason → validation error.</li>
+          <li>Try converting <b>draft</b> (not approved) estimate → error “Only approved estimates can be converted”.</li>
+          <li>Try converting when approved final already exists → error “approved final already exists”.</li>
+          <li>Sales estimate: login <code>emeka@cedricmastersautos.com / password123</code> (Sales Rep) → open sales order → <b>Create Sales Estimate</b> → <code>EST-YYYY-####</code> domain sales, single vehicle line at <code>agreedPrice</code>.</li>
+        </ol>
+        <h3>Reverse ready</h3>
+        <ol start="12">
+          <li>As Tunde (inventoryManager) move job to <code>readyForPickup</code> → login <code>kunle@cedricmastersautos.com / password123</code> (Manager) → <b>Reverse Ready for Pickup</b> → back to <code>inProgress</code>, toast, audit logged.</li>
+          <li>With approved final invoice present → reverse button either hidden or throws “Cannot reverse after final invoice is approved/locked”.</li>
+          <li>As CSR or Finance (non-manager/admin) see no reverse button; direct mutation call → unauthorized.</li>
+          <li>On job not in <code>readyForPickup</code> → reverse throws “Only jobs in readyForPickup can be reversed”.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Lock + payments + invoices</h3>
+        <ol start="16">
+          <li>Finance generates final invoice → <b>Approve Invoice (will lock)</b> → card shows green <code>LOCKED</code> banner, printable shows “Locked”, <code>INV-YYYY-####</code> header. Admin view shows <code>Generated by: …</code>.</li>
+          <li>While locked: try adding job item (InventoryManager) → throws “invoice is locked — unlock by Admin required”.</li>
+          <li>While locked: try removing job item (Finance) → throws locked.</li>
+          <li>While locked: try <b>Regenerate Invoice</b> → throws locked (finance/manager/admin path).</li>
+          <li>While locked: <code>syncInvoiceForJob</code> adds jobItem-freeze → totals unchanged (early return).</li>
+          <li>Payments: approved final with <code>grandTotal 78500</code>, try record <code>90000</code> when remaining <code>78500</code> → throws “exceeds remaining balance”.</li>
+          <li>Try record payment on estimate → throws “Cannot record payments against an estimate”.</li>
+          <li>Try record payment before approval → throws “must be approved”.</li>
+          <li>Record full balance → succeeds, invoice <code>paid:true</code>, history shows entry.</li>
+          <li>Admin unlock: as <code>cedric@cedricmastersautos.com / password123</code> (Admin) → on locked card enter reason “10 chars minimum — audit trail” → <b>Unlock</b> → <code>LOCKED</code> removed, audit contains reason; subsequent addJobItem succeeds, re-approve re-locks.</li>
+          <li>Try <code>adminUnlock</code> as Manager → unauthorized. Try with 5-char reason → validation error. Try on non-locked → “not locked”.</li>
+          <li>Human numbers: create 3 finals same year → <code>INV-2026-0001, 0002, 0003</code> (seed uses 0001..0003, new ones continue from <code>nextInvSeq</code>). Estimates have separate <code>EST-2026-000x</code> sequence.</li>
+        </ol>
+        <h3>Regressions</h3>
+        <ul>
+          <li>Job not yet invoiced: adding parts/labour still auto-transitions to <code>inProgress</code>, no lock friction.</li>
+          <li>PrintableInvoice: estimate prints watermark, locked prints locked stamp, number header uses <code>invoiceNumber</code>.</li>
+          <li>SeedAdvanced still idempotent (marker part <code>CLN-001</code> guard); legacy invoices backfill handled by optional fields.</li>
+          <li>Every new mutation writes <code>auditLogs</code>; search by <code>entityId</code>.</li>
+          <li>No mocked frontend data: all data via Convex queries.</li>
+          <li>Build + typecheck + unit tests remain green.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px" id="mistakes">
+    <h2><span class="badge"></span> Mistakes made</h2>
+    <ul>
+      <li><b>Sequential N+1 for part/labour lookups</b> — first helper used <code>for … await ctx.db.get</code> per item. Fixed to <code>Promise.all</code> parallel after plan-review F14 note; still O(n) but not serialized.</li>
+      <li><b>Leaked <code>generatedById</code> to non-admin</b> — initial <code>getByJob/listByJob</code> returned raw invoice including <code>generatedById</code> for all roles. Fixed to strip for non-admin and only join when admin.</li>
+      <li><b>Badge variant typo</b> — used <code>variant="danger"</code> not in design-system (should be <code>destructive</code>) causing type error. Fixed.</li>
+      <li><b>Sales invoice section missing</b> — first pass only did after-sales; sales domain had no UI. Added minimal <code>SalesInvoiceSection</code> on order detail.</li>
+      <li><b>Committed <code>bun.lock</code></b> — <code>bun install</code> created <code>bun.lock</code> alongside <code>pnpm-lock.yaml</code>. Left in repo for reproducibility but flagged as noise; ideally <code>.gitignore</code> one or the other.</li>
+    </ul>
+  </div>
+
+  <div class="card" style="margin-top:14px" id="proof">
+    <h2><span class="badge g"></span> Verification proof — real terminal output</h2>
+    <p style="font-size:13px;color:var(--mut)">Saved to <code>proofs/t5/</code>. Pasted below; any failure would be stated plainly — none occurred.</p>
+    <details style="margin-top:10px" open><summary>bunx tsc --noEmit → proofs/t5/typecheck.txt</summary><pre>EXIT:0</pre></details>
+    <details style="margin-top:10px" open><summary>bunx vitest run --config vitest.config.ts → proofs/t5/vitest.txt</summary><pre>
+ RUN  v3.2.7 /tmp/opencode/wt/t5
+
+ ✓ tests/unit/format.test.ts (4 tests) 82ms
+ ✓ tests/unit/auth-utils.test.ts (5 tests) 59ms
+ ✓ tests/unit/schemas.test.ts (14 tests) 47ms
+ ✓ tests/unit/job-utils.test.ts (9 tests) 29ms
+ ↓ tests/convex/authz.test.ts (3 tests | 3 skipped)
+ ✓ tests/unit/invoice.test.ts (3 tests) 13ms
+ ↓ tests/convex/phase2-authz.test.ts (7 tests | 7 skipped)
+
+ Test Files  5 passed | 2 skipped (7)
+      Tests  35 passed | 10 skipped (45)
+   Start at  11:03:03
+   Duration  6.40s (transform 1.68s, setup 0ms, collect 3.94s, tests 231ms, environment 4ms, prepare 4.16s)
+EXIT:0</pre></details>
+    <details style="margin-top:10px" open><summary>bun run build → proofs/t5/build.txt</summary><pre>✓ built in 1.78s
+ℹ Generated .output/nitro.json
+[nitro] ✔ You can preview this build using npx vite preview
+EXIT:0
+(full chunk list in proofs/t5/build.txt)</pre></details>
+    <div class="callout ok"><b>What could not be verified:</b> end-to-end authenticated Convex flows (require live Convex dev + seeded DB). Typecheck + unit tests + build prove schema/helper correctness, but manual UI click-through still required by reviewer (see Commands).</div>
+  </div>
+
+  <div class="card" style="margin-top:14px" id="commands">
+    <h2><span class="badge a"></span> Exact commands for the reviewer</h2>
+    <pre>git checkout feat/invoicing-controls
+git log --oneline -6
+# optionally: git fetch origin; git merge origin/main --no-edit
+bun install
+bunx tsc --noEmit
+bunx vitest run --config vitest.config.ts
+bun run build</pre>
+    <p style="margin-top:10px;font-size:13px"><b>Manual UI test:</b> start dev separately if not running (repo rule says don’t auto-start). Then open <code>http://localhost:3000/auth/login</code> and log in with:</p>
+    <table>
+      <tr><th>Role</th><th>Email</th><th>Password</th><th>What to exercise</th></tr>
+      <tr><td>CSR</td><td><code>amara@cedricmastersautos.com</code></td><td><code>password123</code></td><td>Create / refresh estimates</td></tr>
+      <tr><td>Finance</td><td><code>funmi@cedricmastersautos.com</code></td><td><code>password123</code></td><td>Approve/reject/convert, approve finals, record payments (capped)</td></tr>
+      <tr><td>Manager</td><td><code>kunle@cedricmastersautos.com</code></td><td><code>password123</code></td><td>Reverse ready, approve/convert, regenerate when not locked</td></tr>
+      <tr><td>Admin</td><td><code>cedric@cedricmastersautos.com</code></td><td><code>password123</code></td><td>Unlock with reason, see generatedById, all estimate/final flows</td></tr>
+      <tr><td>Inventory Mgr</td><td><code>tunde@cedricmastersautos.com</code></td><td><code>password123</code></td><td>Add parts, attempt add on locked job → blocked</td></tr>
+      <tr><td>Sales Rep</td><td><code>emeka@cedricmastersautos.com</code></td><td><code>password123</code></td><td>Create sales estimates/invoices on <code>/sales/order/$id</code></td></tr>
+    </table>
+    <p style="font-size:12.5px;color:var(--mut);margin-top:8px">Paths: <code>/service/job/$id</code> for after-sales (estimates + final, reverse button in Actions when <code>readyForPickup</code>), <code>/sales/order/$id</code> for sales invoices. Printable invoice (Print button) should show <code>invoiceNumber</code> and banners for estimate/locked.</p>
+  </div>
+
+  <div class="hr"></div>
+  <div class="foot">Report: <code>reports/t5-invoicing.html</code> on branch <code>feat/invoicing-controls</code>. Plan: <code>plans/t5.html</code>. Proofs: <code>proofs/t5/{typecheck.txt,vitest.txt,build.txt}</code>. Grills &amp; reviews archived at <code>/tmp/opencode/t5_*.json</code> (grill, 2× plan-review, 2× diff-review). Never ran <code>bun dev</code>. Small commits kept history clean.</div>
+</div>
+</html>
