@@ -1,0 +1,33 @@
+# t6b verification — research only, zero app code changes
+# Date: 2026-08-26  branch: docs/powerapps-import-export
+
+## git diff --stat main...HEAD (committed + staged + untracked accounted separately)
+
+## git diff --stat HEAD (staged vs HEAD)
+ ROADMAP.md                     | 4 +++-
+ docs/sharepoint-integration.md | 6 ++++--
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+## git status --porcelain
+ M ROADMAP.md
+ M docs/sharepoint-integration.md
+?? docs/powerapps-import-export.md
+?? plans/t6b.html
+?? proofs/t6b/
+
+## file list (new docs)
+-rw-rw-r-- 1 abasiono abasiono 15K Aug 26 10:12 ROADMAP.md
+-rw-rw-r-- 1 abasiono abasiono 76K Aug 26 10:14 docs/powerapps-import-export.md
+-rw-rw-r-- 1 abasiono abasiono 52K Aug 26 10:12 docs/sharepoint-integration.md
+-rw-rw-r-- 1 abasiono abasiono 27K Aug 26 10:13 plans/t6b.html
+
+## link checks
+sharepoint superseded banner: OK
+sharepoint link to successor: OK
+ROADMAP superseded: OK
+ROADMAP rollout row: OK
+822 docs/powerapps-import-export.md
+
+## no code changes proof
+Convex files changed? 0 (expected 0)
+package.json changed? 0 (expected 0)

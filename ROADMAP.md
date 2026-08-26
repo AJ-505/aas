@@ -240,7 +240,9 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| SharePoint integration research (hosting, Graph, SPFx, Entra SSO) | [x] | Research-only. Doc: `docs/sharepoint-integration.md` — Azure-hosted + Entra SSO recommended (2–4 d); SPFx/Graph deferred. No code changes. |
+| SharePoint integration research (hosting, Graph, SPFx, Entra SSO) | [x] **SUPERSEDED** | Research-only. Doc: `docs/sharepoint-integration.md` — Azure-hosted + Entra SSO recommended (2–4 d); SPFx/Graph deferred. No code changes. **26 Aug 2026: SharePoint/SPFx path DEAD per client; SUPERSEDED BY `docs/powerapps-import-export.md` Part A (Power App decision). Banner added to prior doc; content kept.** |
+| Power Apps + Excel/PDF import-export feasibility & rollout design | [x] | Research-only. Doc: `docs/powerapps-import-export.md` — Part A: Power Apps brutal rebuild cost (6–10 w + $20/u/mo + Dataverse) vs finish this app (10–15 d); recommend thin companion via Convex custom connector ONLY if field-mobile hard req. Part B: SheetJS client import + xlsx client export + jspdf-autotable PDF; rollout table (Parts M, Customers/Jobs/Finance S/M, Stock audit M server). No code changes. |
+| Excel import/export rollout (implementation) | [ ] | Next engineering track per Part B Build Order: Phase 1 Parts import+export+PDF (M), Phase 2 Customers/Jobs/Finance (M), Phase 3 Stock movements server export (M). Libraries: `xlsx` + `jspdf/jspdf-autotable` (lazy), optional `exceljs` for styled export. Zero schema changes for Phases 1–3. |
 
 ---
 

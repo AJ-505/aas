@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T6b — Power Apps + Excel/PDF — Plan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Instrument+Sans:wght@600;700;800&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap');
+  :root{--ink:#111827;--steel:#6b7280;--line:#d1d5db;--paper:#f8f7f3;--panel:#ffffff;--accent:#d11a2a;--accent2:#0f3d5e;--ok:#065f46;--warn:#92400e;--grid:#e5e7eb}
+  *{box-sizing:border-box} html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Serif',Georgia,serif;line-height:1.6}
+  /* header bar like workshop work order */
+  .topline{height:6px;background:repeating-linear-gradient(90deg,var(--accent) 0 28px,var(--ink) 28px 56px,var(--accent2) 56px 84px)}
+  .mast{max-width:1160px;margin:0 auto;padding:18px 24px 12px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:2px solid var(--ink)}
+  .mast h1{margin:0;font-family:'Instrument Sans',sans-serif;font-size:30px;letter-spacing:-.03em;line-height:.95}
+  .mast h1 i{font-family:'IBM Plex Serif',serif;font-weight:400;color:var(--accent)}
+  .mast .meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--steel);text-align:right;line-height:1.5}
+  .mast .meta b{color:var(--ink)}
+  .hero{max-width:1160px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:1.45fr .75fr;gap:20px}
+  .hero .lede{font-size:16px;color:#374151}
+  .kicker{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .spec{border:2px solid var(--ink);background:var(--panel);padding:14px 16px}
+  .spec h3{margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--steel)}
+  .spec dl{margin:0;display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:13px;font-family:'JetBrains Mono',monospace}
+  .spec dt{color:var(--steel)} .spec dd{margin:0;color:var(--ink);font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border:1px solid var(--ink)}
+  .chip.fill{background:var(--ink);color:#fff} .chip.accent{background:var(--accent);color:#fff;border-color:var(--accent)} .chip.outline{background:transparent}
+  .nav{max-width:1160px;margin:0 auto;padding:0 24px 10px;display:flex;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .nav a{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);text-decoration:none;border-bottom:1px solid}
+  .layout{max-width:1160px;margin:0 auto;padding:16px 24px 36px;display:grid;grid-template-columns:1fr 320px;gap:20px}
+  h2{font-family:'Instrument Sans',sans-serif;font-size:20px;letter-spacing:-.02em;margin:26px 0 8px;padding-left:10px;border-left:5px solid var(--accent)}
+  h3{font-family:'Instrument Sans',sans-serif;font-size:15px;margin:14px 0 6px}
+  p,li{font-size:14px}
+  .card{border:1px solid var(--line);background:var(--panel);padding:14px 16px;margin:10px 0}
+  .card.warn{border-left:5px solid var(--warn);background:#fffbeb}
+  .card.ok{border-left:5px solid var(--ok);background:#ecfdf5}
+  .card.accent{border-left:5px solid var(--accent);background:#fef2f2}
+  .mono{font-family:'JetBrains Mono',monospace}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+  th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;text-align:left;border-bottom:2px solid var(--ink);padding:7px 6px;background:#f9fafb}
+  td{border-bottom:1px solid var(--line);padding:7px 6px;vertical-align:top}
+  .step{border:2px solid var(--ink);background:var(--panel);padding:14px 16px;margin:10px 0;position:relative}
+  .step::before{content:'';position:absolute;left:-2px;top:-2px;width:8px;height:8px;background:var(--accent);border:2px solid var(--ink)}
+  .step .n{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  details{border:1px solid var(--line);background:var(--panel);padding:10px 12px;margin:8px 0}
+  details summary{font-family:'Instrument Sans',sans-serif;font-weight:700;cursor:pointer}
+  aside .sticky{position:sticky;top:16px}
+  aside .box{border:2px solid var(--ink);background:var(--panel);padding:12px 14px;margin-bottom:12px}
+  aside h4{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin:0 0 8px}
+  .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 6px;border:1px solid var(--line);background:#f3f4f6;margin-right:4px}
+  .progress{height:8px;background:var(--grid);border:1px solid var(--line);overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--accent)}
+  @media(max-width:900px){.hero{grid-template-columns:1fr}.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<div class="mast">
+  <div>
+    <div class="kicker">Plan · T6b · Docs/powerapps-import-export · Research-only</div>
+    <h1>Power Apps <i>vs</i> Finishing the Shop — <br>+ Excel/PDF for every surface</h1>
+  </div>
+  <div class="meta">
+    <div><b>Worktree</b> /tmp/opencode/wt/t6b</div>
+    <div><b>Branch</b> docs/powerapps-import-export</div>
+    <div><b>Date</b> 26 Aug 2026</div>
+    <div><b>Deliverables</b> docs/powerapps-import-export.md</div>
+    <div><b>Status</b> Zero app code changes</div>
+  </div>
+</div>
+
+<div class="hero">
+  <div>
+    <p class="lede"><b>Two questions, one honest doc.</b> The client killed SharePoint/SPFx and asked “what if we use Power Apps?” — while what they <em>really</em> keep asking for is <b>bulk Excel + .xlsx/PDF export</b> (inventory first). This plan ensures Part&nbsp;A tells the brutal truth about a rebuild, and Part&nbsp;B gives a shippable, sized design for import/export on <em>this</em> stack (TanStack Start + Convex + React 19 + bun).</p>
+    <div class="card accent"><b>Scope guard:</b> Research only. No <span class="mono">convex/*.ts</span> or <span class="mono">src/**</span> changes. Code sketches live <em>inside the doc</em> as illustrations. Verify via <span class="mono">git diff --stat</span> + link checks; typecheck/build are N/A (no code). The prior <span class="mono">docs/sharepoint-integration.md</span> is <b>not deleted</b> — it gets a <span class="mono">SUPERSEDED-BY</span> banner (corrections propagate).</div>
+    <div class="grid2">
+      <div class="card"><b>Part A must survive grill:</b><br>Canvas vs model-driven, Dataverse 16-table mapping, state machine / RBAC / audit / search / invoice — what Power Apps does poorly, licensing ($20/u/mo), offline, custom connector to Convex vs Excel glue, effort 6–10 w vs 10–15 d, clear recommendation.</div>
+      <div class="card"><b>Part B must be buildable:</b><br>SheetJS vs exceljs, client-parse + bulk mutation + row errors + dup by_code, export client vs Convex action, print-CSS vs jspdf/pdfmake, rollout table S/M/L with import/export/PDF per surface, lazy bundle.</div>
+    </div>
+  </div>
+  <div class="spec">
+    <h3>At-a-glance</h3>
+    <dl>
+      <dt>Task</dt><dd>t6b — Power Apps + Excel/PDF research</dd>
+      <dt>Branch</dt><dd class="mono">docs/powerapps-import-export</dd>
+      <dt>Reviewer</dt><dd>M365 / Power Platform + enterprise IT</dd>
+      <dt>Risk</dt><dd>Hand-wavy Power Apps advice, or an import design that duplicates schemas</dd>
+      <dt>Grill</dt><dd><span class="mono">opencode2 run</span> → /tmp/opencode/t6b_grill.json</dd>
+      <dt>Plan reviews</dt><dd>2× adversarial via <span class="mono">opencode2 run</span></dd>
+      <dt>Proof</dt><dd><span class="mono">proofs/t6b/</span> — diff, links, counts</dd>
+    </dl>
+    <div class="chips"><span class="chip fill">Research only</span><span class="chip accent">No code</span><span class="chip outline">Corrections propagate</span></div>
+    <div style="margin-top:12px">
+      <div class="mono" style="font-size:11px;color:var(--steel);margin-bottom:4px">Build progress</div>
+      <div class="progress"><i style="width:72%"></i></div>
+      <div class="mono" style="font-size:11px;color:var(--steel);margin-top:4px">72% — Part A+B doc drafts, awaiting plan-review fixes + report</div>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <a href="#why">Why this framing</a>
+  <a href="#order">Build order</a>
+  <a href="#grill">Grilling</a>
+  <a href="#break">Break-it tests</a>
+  <a href="#risks">Risks & traps</a>
+  <a href="#verify">Verification</a>
+</div>
+
+<div class="layout">
+  <main>
+    <h2 id="why">Why this framing earns trust</h2>
+    <p>A Power Apps pitch that skips licensing, Dataverse capacity, and the state-machine/RBAC/audit mismatch will be shredded by the first enterprise reviewer. The doc flips it: <b>name the hard parts of <em>this</em> app that Power Apps is worst at</b> (the 6-status guarded machine with per-transition timestamps, 6-role default-deny, immutable <span class="mono">auditLogs</span>, indexed parts search, invoice approve/pay/balance) — then price the rebuild honestly vs finishing the shop. For Excel/PDF, the client has already told us the answer: the parts CSV import is real but lossy (no <span class="mono">.xlsx</span>, no row errors, no dup report). Solving that well on this stack often <em>removes</em> the Power App ask.</p>
+    <div class="grid2">
+      <div class="card"><b>The doc must prove</b>
+        <ul style="margin:6px 0 0 16px">
+          <li>Dataverse is <em>not</em> a free M365 add-on — $20/u/mo + capacity overage is the TCO driver</li>
+          <li>6 statuses + 6 timestamps + <span class="mono">canTransition</span> does not fit Power Fx business rules cleanly</li>
+          <li>Custom connector to Convex keeps one source of truth — mirror is eventual drift</li>
+          <li>Import = client SheetJS parse + Zod row errors + <span class="mono">by_code</span> dedup; export = client SheetJS + lazy <span class="mono">jspdf-autotable</span></li>
+        </ul>
+      </div>
+      <div class="card"><b>The doc must not do</b>
+        <ul style="margin:6px 0 0 16px">
+          <li>Propose hosting Convex inside Power Apps / SPFx (impossible)</li>
+          <li>Claim M365 Business Standard includes Power Apps premium/Dataverse (it doesn't)</li>
+          <li>Duplicate Zod schemas in Power Fx — two validations = drift</li>
+          <li>Commit a <span class="mono">.msapp</span> or <span class="mono">convex/http.ts</span> route (research only)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="order">Build order — five moves, no branching</h2>
+
+    <div class="step">
+      <div class="n">Step 1 — Grill & settle design tree</div>
+      <h3>Attack the Power Apps + import design before writing</h3>
+      <p>Spawned <span class="mono">nohup opencode2 run --model "opencode/muse-spark-1.2-contributor-free" --auto --format json "Attack my design for t6b ..."</span> → <span class="mono">/tmp/opencode/t6b_grill.json</span> (background). Grill is asked to be ruthless about: shaky assumptions in licensing numbers, hidden Dataverse capacity/delegation traps, missing thin-companion kill rule, whether import/export should be client vs server per surface, and what would make the analysis dishonest. Settled defaults before the doc:</p>
+      <ul>
+        <li>Licensing: cite <b>Aug 2026 list</b> (Premium $20, per-app $5 ≤2, pay-go $10 via Azure, Dataverse ~$40/GB) and name EA variance.</li>
+        <li>Schema: 16 tables explicitly mapped — not hand-waved — with audit/capacity cost callout.</li>
+        <li>Import: <b>SheetJS Community in browser</b> (lighter, tolerant) — not exceljs — with row error preview + policy skip/update/error.</li>
+        <li>Export: client-side for ≤5k rows; server Convex action only for stock movements audit.</li>
+        <li>PDF: keep print-CSS for job card/invoice; real <span class="mono">jspdf-autotable</span> for tabular lists — lazy-loaded.</li>
+      </ul>
+      <p class="mono" style="font-size:11px;color:var(--steel)">If grill returns late / malformed JSON, proceed with best defaults and note it in the report.</p>
+    </div>
+
+    <div class="step">
+      <div class="n">Step 2 — Author the research doc</div>
+      <h3>docs/powerapps-import-export.md</h3>
+      <p>Both analyses in one file with decision tables + code sketches (illustrative only). Part A: canvas vs model-driven table, Dataverse mapping table, 8 "what Power Apps does poorly" subsections, licensing worked example (7 and 20 users), integration Pattern 1 (custom connector + <span class="mono">convex/http.ts</span> + OpenAPI) vs mirror vs strawman Excel glue, 6–10 w vs 10–15 d, recommendation ladder + decision flip table. Part B: SheetJS vs exceljs table, import validation/dedup flow, export client vs server, PDF split-role table, surface rollout table (9 surfaces with S/M/L + build order), shared helpers + Convex mutation shape + lazy-loading notes. Also: banner the prior doc as SUPERSEDED.</p>
+    </div>
+
+    <div class="step">
+      <div class="n">Step 3 — Update prior doc & ROADMAP</div>
+      <h3>docs/sharepoint-integration.md + ROADMAP.md</h3>
+      <p>Prepend <span class="mono">SUPERSEDED-BY docs/powerapps-import-export.md</span> banner to <span class="mono">sharepoint-integration.md</span> (do not delete content — corrections propagate). In <span class="mono">ROADMAP.md</span> Miscellaneous: mark SharePoint row <span class="mono">[x] SUPERSEDED</span>, add row <span class="mono">[x] Power Apps + Excel/PDF feasibility</span>, add row <span class="mono">[ ] Excel import/export rollout (implementation)</span> with Phase 1–4.</p>
+    </div>
+
+    <div class="step">
+      <div class="n">Step 4 — Adversarial plan reviews</div>
+      <h3>Spawn two plan-review subagents (nohup opencode2)</h3>
+      <p>After this plan is written, spawn <b>two</b> reviewers via <span class="mono">nohup opencode2 run … &gt; /tmp/opencode/t6b_plan_review_{1,2}.json 2>&1 &</span> with prompts that hunt: missing Power Apps licensing nuance, Dataverse audit/delegation gaps, effort under-estimates, import/export surface omissions, bundle-size or index-misuse traps. Each finding is checked against <span class="mono">convex/schema.ts</span> + <span class="mono">src/lib/schemas</span> + <span class="mono">src/components/Printable*</span> before acting; false positives are logged, real ones fixed in the doc.</p>
+    </div>
+
+    <div class="step">
+      <div class="n">Step 5 — Report + proofs + commit</div>
+      <h3>reports/t6b-powerapps-import-export.html + proofs/t6b/</h3>
+      <p>Self-contained HTML report, <em>visually distinct from this plan</em> (different palette/layout — not the workshop-work-order). Required sections: What changed & why · Step-by-step how (incl. <em>every</em> subagent + what it returned) · Exhaustive click-through test list · Mistakes made · Verification proof (real <span class="mono">git diff --stat</span> + link checks) · Exact commands (<span class="mono">git checkout docs/powerapps-import-export</span> + manual checks via <span class="mono">docs/mock-accounts.md</span> password <span class="mono">password123</span>). Save proofs to <span class="mono">proofs/t6b/</span>. Commit all (doc, prior-doc banner, ROADMAP, plan, proofs, report) on branch; do not merge to main. End with <span class="mono">RESULT: taskid=t6b …</span>.</p>
+    </div>
+
+    <h2 id="grill">Grilling — settled design tree</h2>
+    <div class="card">
+      <b>Grilling subagent:</b> <span class="mono">nohup opencode2 run --model "opencode/muse-spark-1.2-contributor-free" --auto --format json "Attack my design for t6b …" &gt; /tmp/opencode/t6b_grill.json 2>&1 &</span>
+      <p style="margin:8px 0 4px">Full JSON in <span class="mono">/tmp/opencode/t6b_grill.json</span>. The grill (and our pre-mortem) pressed on:</p>
+      <table>
+        <tr><th>Probe</th><th>Objection</th><th>Best default adopted</th></tr>
+        <tr><td>Licensing honesty</td><td>“M365 already paid, so Power Apps is free” — false for custom apps</td><td>State explicitly: M365 Standard does <b>not</b> include premium/Dataverse/custom connector; every user needs $20 Premium. Name pay-go $10 as alternative, not default.</td></tr>
+        <tr><td>Dataverse capacity</td><td>Audit + stock movements silently grow billed storage</td><td>Call out audit retention → $40/GB/mo overage; Convex bandwidth contrast. Rollout table marks stock audit as server export for same reason.</td></tr>
+        <tr><td>State machine</td><td>Power Fx BPF vs Convex <span class="mono">canTransition</span> — where does the guard live?</td><td>Guard must be Dataverse plug-in or Flow or it is bypassable. Flag the two-sources risk; recommend keeping guard in Convex behind custom connector.</td></tr>
+        <tr><td>Import duplication</td><td>Existing CSV path ignores <span class="mono">by_code</span> dup</td><td>Preview with policy skip/update/error + <span class="mono">Map&lt;codeUpper,id&gt;</span> built from one indexed read; Zod re-parse server-side.</td></tr>
+        <tr><td>Bundle cost</td><td>exceljs/jspdf bloat if imported at top level</td><td>Lazy <span class="mono">await import('xlsx')</span> / <span class="mono">await import('jspdf')</span> behind buttons only; no shell cost.</td></tr>
+        <tr><td>PDF split</td><td>Why not one library for all PDFs?</td><td>Print-CSS keeps job/invoice pixel-perfect at zero bytes; <span class="mono">jspdf-autotable</span> only for tabular lists that need pagination. Both are lazy.</td></tr>
+      </table>
+      <p class="mono" style="font-size:11px;color:var(--steel)">If the grill process stalls (common on tight RAM), proceed with these defaults and record the stall in the report.</p>
+    </div>
+
+    <details><summary>Plan-review subagents (spawned after this plan)</summary>
+      <p>Two reviewers are spawned with distinct prompts; both read this plan HTML <em>and</em> <span class="mono">docs/sharepoint-integration.md</span> / <span class="mono">convex/schema.ts</span> / <span class="mono">src/components/Printable*.tsx</span> / <span class="mono">src/routes/service/parts.tsx</span> for ground truth.</p>
+      <ul>
+        <li><b>Reviewer 1 — Power Apps lens:</b> “You are an adversarial M365 reviewer. Hunt missing canvas/model trade-off, Dataverse table gaps (which of the 16 are awkward?), security-role count vs <span class="mono">requireRole</span>, offline sync conflicts, licensing under-pricing, and effort optimism. Cite file:line.”</li>
+        <li><b>Reviewer 2 — Import/export lens:</b> “You are an adversarial frontend/Convex reviewer. Hunt missing header-alias handling, money kobo vs Naira unit bugs, index misuse in dedup, audit spam on export, bundle size, and surfaces where import should be forbidden (jobs/orders).”</li>
+      </ul>
+      <p>Each JSON is read, cross-checked, and either fixed in <span class="mono">docs/powerapps-import-export.md</span> or logged as a false positive in the report.</p>
+    </details>
+
+    <h2 id="break">Break-it tests — how to falsify this work</h2>
+    <p class="mono" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel)">If any probe passes against the doc's claims, the doc is wrong.</p>
+    <table>
+      <tr><th>#</th><th>Probe</th><th>Expected if doc is correct</th></tr>
+      <tr><td>A1</td><td>Claim “M365 Business Standard covers this Power App.” Check licence — does custom connector require premium?</td><td>Doc correctly says <b>no</b> — premium ($20) required (Part A5).</td></tr>
+      <tr><td>A2</td><td>Create a Power Fx rule that skips <span class="mono">diagnosed→readyForPickup</span> directly. Does BPF allow it?</td><td>Should be blocked by plug-in/Flow; doc flags two-source risk (Part A4.1).</td></tr>
+      <tr><td>A3</td><td>Write an invoice in Dataverse directly as InventoryManager — does it audit?</td><td>Only if plug-in covers that table; doc warns custom audit needs 16-table coverage (Part A4.3).</td></tr>
+      <tr><td>A4</td><td>Gallery with 5 000 customers filtered by <span class="mono">Filter(… , Len(phone)&gt;10)</span>. Does gallery show all?</td><td>No — hits delegation cap at ~2000; doc names delegation limits (Part A4.4).</td></tr>
+      <tr><td>B1</td><td>Upload <span class="mono">photo.jpg</span> renamed to <span class="mono">.xlsx</span> on Parts import</td><td>Error “not a workbook / no sheets” before any DB call; preview shows zero valid rows.</td></tr>
+      <tr><td>B2</td><td>Upload Excel with header <span class="mono">Part Number</span> not <span class="mono">code</span></td><td>Alias map resolves — imports correctly (Part B1).</td></tr>
+      <tr><td>B3</td><td>Sheet with 500 rows where rows 7 and 312 share code <span class="mono">OIL-001</span></td><td>Preview flags row 312 “Duplicate code in file — also row 7”; blocked until policy.</td></tr>
+      <tr><td>B4</td><td>Duplicate against DB — <span class="mono">OIL-001</span> already in <span class="mono">parts.by_code</span></td><td>Policy skip: existing untouched, count reported. Policy error: row flagged “Duplicate code: OIL-001”.</td></tr>
+      <tr><td>B5</td><td>Price cell contains <span class="mono">₦ 12,500</span> via Excel formatting</td><td>Import strips <span class="mono">₦</span>/comma — value is 1250000 kobo; export shows <span class="mono">12,500</span> in <span class="mono">₦</span> col.</td></tr>
+      <tr><td>B6</td><td>Negative price <span class="mono">-500</span> in Excel</td><td>Row error on <span class="mono">costPrice/sellingPrice</span>, highlighted.</td></tr>
+      <tr><td>B7</td><td>10k-row parts export (tabular PDF)</td><td>Client path paginates via <span class="mono">jspdf-autotable</span>; for &gt;5k stock audit, doc prescribes server action + <span class="mono">storage.store()</span>.</td></tr>
+      <tr><td>B8</td><td>CSR tries <span class="mono">parts.importBulk</span></td><td><span class="mono">ConvexError('You are not authorized…')</span>; no import.</td></tr>
+    </table>
+
+    <h2 id="risks">Risks & traps we explicitly avoid</h2>
+    <div class="card warn"><b>Trap: “Rebuild is free because we have M365.”</b> Dataverse + premium connectors are metered; $20/u/mo × 20 users × 12 = $4,800/yr before capacity. The doc prices this in a worked example and ties it to a kill rule for the companion PoC.</div>
+    <div class="card warn"><b>Trap: Two validations, two truths.</b> Zod schemas live in <span class="mono">src/lib/schemas</span> and are shared client/server in this app. A Power Apps rebuild would re-encode them in Power Fx — drift guaranteed. The doc warns against duplicating schemas and recommends Convex-behind-connector if companion is built.</div>
+    <div class="card warn"><b>Trap: Import as a second source of truth.</b> Naïve import that writes directly to <span class="mono">parts</span> without row errors or dedup silently corrupts catalogue. The design requires preview + per-row Zod + <span class="mono">by_code</span> dedup + server re-parse.</div>
+
+    <h2 id="verify">Verification — research-only means diff proof</h2>
+    <p>Per the task: <em>zero app code changes</em>. So verification is not <span class="mono">bun run typecheck/build</span> — those would only confirm the existing codebase is unchanged. We prove it with artefacts:</p>
+    <ul>
+      <li><span class="mono">git diff --stat main...HEAD</span> → only <span class="mono">docs/powerapps-import-export.md</span>, <span class="mono">docs/sharepoint-integration.md</span> (banner only), <span class="mono">ROADMAP.md</span>, <span class="mono">plans/t6b.html</span>, <span class="mono">reports/t6b-powerapps-import-export.html</span>, <span class="mono">proofs/t6b/*</span>.</li>
+      <li>No <span class="mono">convex/*.ts</span>, <span class="mono">src/**</span>, <span class="mono">package.json</span>, lockfile changes.</li>
+      <li>Link checks: <span class="mono">docs/powerapps-import-export.md → docs/sharepoint-integration.md → ROADMAP.md</span> all resolve; banner points correctly.</li>
+      <li>Saved to <span class="mono">proofs/t6b/verify.txt</span> and <span class="mono">proofs/t6b/diff-stat.txt</span>; report pastes them verbatim and states “typecheck/build N/A — no code”.</li>
+    </ul>
+    <div class="card ok"><b>Why this passes without typecheck:</b> No TypeScript is added or modified. Running <span class="mono">bun run typecheck</span> would validate the unchanged existing codebase — hygienic but not required for a research deliverable. The report says so plainly.</div>
+  </main>
+
+  <aside>
+    <div class="sticky">
+      <div class="box">
+        <h4>Deliverables checklist</h4>
+        <ul style="margin:6px 0 0 16px;font-size:13px">
+          <li><span class="mono">docs/powerapps-import-export.md</span> — Parts A+B, tables, sketches, references</li>
+          <li><span class="mono">docs/sharepoint-integration.md</span> — banner added, content kept</li>
+          <li><span class="mono">plans/t6b.html</span> — this file, work-order look</li>
+          <li><span class="mono">reports/t6b-powerapps-import-export.html</span> — distinct look (ink/amber&amp;cream)</li>
+          <li><span class="mono">ROADMAP.md</span> — 2 new rows + superseded row</li>
+          <li><span class="mono">proofs/t6b/verify.txt</span> — diff proof, links</li>
+          <li>One commit on <span class="mono">docs/powerapps-import-export</span>, no merge</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>Effort honesty check</h4>
+        <table>
+          <tr><th>Approach</th><th>Estimate</th></tr>
+          <tr><td>Finish this app (Part B, all phases)</td><td>10–15 d</td></tr>
+          <tr><td>Thin companion + connector (if needed)</td><td>1–2 w PoC</td></tr>
+          <tr><td>Full rebuild in Power Apps</td><td>6–10 w + $20/u/mo forever</td></tr>
+        </table>
+        <div class="mono" style="font-size:11px;color:var(--steel);margin-top:8px">Licensing at 20 users: this app ~$40/mo · Power Apps ~$400/mo + $40/GB overage.</div>
+      </div>
+      <div class="box">
+        <h4>Links</h4>
+        <ul style="margin:6px 0 0 16px;font-size:13px">
+          <li><a href="../docs/powerapps-import-export.md">Research doc (Markdown)</a></li>
+          <li><a href="../docs/sharepoint-integration.md">Prior doc (now superseded)</a></li>
+          <li><a href="#grill">Grilling</a></li>
+          <li><a href="#break">Break-it probes</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div style="max-width:1160px;margin:0 auto;padding:12px 24px 24px;border-top:2px solid var(--ink);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--steel)">
+  T6b Plan — Cedric Masters Autos — Worktree /tmp/opencode/wt/t6b — Branch docs/powerapps-import-export — Research only, no code.
+</div>
+</body>
+</html>
