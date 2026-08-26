@@ -235,6 +235,7 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | Comprehensive User Manual | [x] | Updated role-based multi-page user manual with live screenshots, RBAC rules, print features & inventory-invoice auto-sync (`user_manual.md`) |
+| Code review report v2 — full engineering report (a–f) | [x] | `docs/code-review-report-v2.md` (CMA-CRR-002, 26 Aug 2026, main@fb45ae6) — architecture (file routes → Convex lifecycle + module map), every convex query/mutation + lib helper inventory with role gate + `v` + Zod, honest encapsulation vs composition (no classical inheritance, `requireActiveSession∘requireRole`, `enforce` composition), every table’s indexes/write/immutability/relation rules, Convex explainer (documents/ACID-OCC/queries-vs-mutations/subscriptions/crons/auth), validators (`v` + Zod + plate regex + moneyKobo) + exact lock triggers (`locked` set at `invoices.approve`, `assertNotLocked`/`findApprovedFinalForJob` in add/remove/generate/regenerate/payments/sync/reverseReady/convert, rate-limit `enforce`/`enforceDedup` per class + 30-min session throw). Zero app-code behaviour changes — see `plans/t8.html` + `reports/t8-code-review.html` + `proofs/t8/` |
 
 ## Miscellaneous — Client Review Items
 
