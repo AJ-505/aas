@@ -1,0 +1,37 @@
+=== git status --short (before add) ===
+ M ROADMAP.md
+?? docs/sharepoint-integration.md
+?? plans/
+?? proofs/
+?? reports/
+
+=== git diff --stat HEAD (tracked changes) ===
+ ROADMAP.md | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+=== untracked files ===
+docs/sharepoint-integration.md
+plans/t6.html
+proofs/t6-sharepoint/verify.txt
+reports/t6-sharepoint.html
+
+=== wc -l docs/sharepoint-integration.md ===
+556 docs/sharepoint-integration.md
+
+=== branch ===
+docs/sharepoint-integration
+
+=== AFTER git add: git diff --cached --stat HEAD ===
+ ROADMAP.md                      |  10 +-
+ docs/sharepoint-integration.md  | 556 ++++++++++++++++++++++++++++++++++++++++
+ plans/t6.html                   | 249 ++++++++++++++++++
+ proofs/t6-sharepoint/verify.txt |  22 ++
+ reports/t6-sharepoint.html      | 297 +++++++++++++++++++++
+ 5 files changed, 1133 insertions(+), 1 deletion(-)
+
+=== git status --short after add ===
+M  ROADMAP.md
+A  docs/sharepoint-integration.md
+A  plans/t6.html
+AM proofs/t6-sharepoint/verify.txt
+A  reports/t6-sharepoint.html

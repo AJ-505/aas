@@ -1,6 +1,6 @@
 # Roadmap — Cedric Masters Autos
 
-> Last updated: 18 Jul 2026
+> Last updated: 26 Aug 2026
 
 ---
 
@@ -235,6 +235,14 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | Comprehensive User Manual | [x] | Updated role-based multi-page user manual with live screenshots, RBAC rules, print features & inventory-invoice auto-sync (`user_manual.md`) |
+
+## Miscellaneous — Client Review Items
+
+| Task | Status | Notes |
+|------|--------|-------|
+| SharePoint integration research (hosting, Graph, SPFx, Entra SSO) | [x] | Research-only. Doc: `docs/sharepoint-integration.md` — Azure-hosted + Entra SSO recommended (2–4 d); SPFx/Graph deferred. No code changes. |
+
+---
 
 ## Future (Post-MVP)
 
