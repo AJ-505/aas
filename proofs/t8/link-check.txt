@@ -1,0 +1,32 @@
+=== git diff main...HEAD --stat (docs-only proof) ===
+ ROADMAP.md                    |   1 +
+ docs/code-review-report-v2.md | 547 ++++++++++++++++++++++++++++++++++++++++++
+ plans/t8.html                 | 118 +++++++++
+ proofs/t8/build.txt           | 213 ++++++++++++++++
+ proofs/t8/diff-stat.txt       |   9 +
+ proofs/t8/tests.txt           |  17 ++
+ proofs/t8/typecheck.txt       |   1 +
+ reports/t8-code-review.html   | 224 +++++++++++++++++
+ 8 files changed, 1130 insertions(+)
+
+=== git diff HEAD --stat (working tree) ===
+
+=== markdown link check — anchors file:symbol grep ===
+-- convex/invoices.ts exports --
+106:export const generate = mutation({
+167:export const generateSales = mutation({
+285:export const approve = mutation({
+310:export const createEstimate = mutation({
+417:export const approveEstimate = mutation({
+514:export const adminUnlock = mutation({
+-- convex/schema.ts locked --
+163:    locked: v.optional(v.boolean()),
+-- lib helpers --
+convex/lib/session.ts:29:export async function requireActiveSession(
+convex/lib/rateLimit.ts:35:export async function enforce(
+convex/lib/rateLimit.ts:102:export async function enforceDedup(
+convex/lib/invoiceHelpers.ts:88:export function assertNotLocked(invoice: any) {
+convex/lib/auth.ts:26:export async function requireRole(
+-- untracked docs/code-review-report.html/.pdf untouched --
+-rw-rw-r-- 1 abasiono abasiono 15K Aug 26 11:57 docs/code-review-report.html
+-rw-rw-r-- 1 abasiono abasiono 97K Aug 26 11:57 docs/code-review-report.pdf
