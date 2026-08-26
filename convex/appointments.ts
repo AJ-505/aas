@@ -63,37 +63,55 @@ export const get = query({
   },
 })
 
+const PLATE_REGEX = /^[A-Z0-9][A-Z0-9 -]{2,}$/
+
 export const create = mutation({
   args: {
-    name: v.string(),
-    phone: v.string(),
+    customerId: v.id('customers'),
+    // Legacy display fields: accepted but ignored — server derives from customer record
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
     email: v.optional(v.string()),
-    vehicleMake: v.optional(v.string()),
-    vehicleModel: v.optional(v.string()),
-    vehiclePlate: v.optional(v.string()),
-    complaint: v.optional(v.string()),
+    vehicleMake: v.string(),
+    vehicleModel: v.string(),
+    vehiclePlate: v.string(),
+    complaint: v.string(),
     appointmentTs: v.number(),
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ['csr', 'manager', 'admin'])
+    const customer = await ctx.db.get(args.customerId)
+    if (!customer) throw new ConvexError('Customer not found.')
+
     if (args.appointmentTs < Date.now() - 60_000) {
       throw new ConvexError('Appointment date cannot be in the past.')
     }
     if (
-      !args.vehicleMake?.trim() ||
-      !args.vehicleModel?.trim() ||
-      !args.vehiclePlate?.trim() ||
-      !args.complaint?.trim()
+      !args.vehicleMake.trim() ||
+      !args.vehicleModel.trim() ||
+      !args.vehiclePlate.trim() ||
+      !args.complaint.trim()
     ) {
       throw new ConvexError('Vehicle details (make, model, plate) and complaint are required.')
     }
+    const normalizedPlate = args.vehiclePlate.trim().toUpperCase()
+    if (!PLATE_REGEX.test(normalizedPlate)) {
+      throw new ConvexError('Plate must be 3+ chars, uppercase alphanumerics, spaces or hyphens (e.g. LSD-123-HG)')
+    }
+    // Server is source of truth for name/phone — ignore any client-provided name/phone
+    // to prevent display-field spoofing. Email can be overridden only if explicitly provided,
+    // otherwise fall back to customer.email.
+    const displayName = customer.name
+    const displayPhone = customer.phone
+
     const id = await ctx.db.insert('appointments', {
-      name: args.name.trim(),
-      phone: args.phone.trim(),
-      email: args.email?.trim() || undefined,
+      customerId: args.customerId,
+      name: displayName,
+      phone: displayPhone,
+      email: args.email?.trim() || customer.email || undefined,
       vehicleMake: args.vehicleMake.trim(),
       vehicleModel: args.vehicleModel.trim(),
-      vehiclePlate: args.vehiclePlate.trim(),
+      vehiclePlate: normalizedPlate,
       complaint: args.complaint.trim(),
       appointmentTs: args.appointmentTs,
       status: 'scheduled',

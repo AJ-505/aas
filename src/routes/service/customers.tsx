@@ -139,9 +139,31 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
   const createCustomer = useCreateCustomerMutation()
   const createVehicle = useCreateVehicleMutation()
   const checkIn = useCheckInMutation()
+  const navigate = useNavigate()
+
+  const [gateQ, setGateQ] = useState('')
+  const [hasSearched, setHasSearched] = useState(false)
+  const [duplicateInfo, setDuplicateInfo] = useState<{ id: string; name: string; phone: string } | null>(null)
+
+  const { data: gateResults } = useQuery({
+    ...customerQueries.search(gateQ.trim()),
+    enabled: hasSearched && gateQ.trim().length > 0,
+  })
+
+  function handleGateSearch() {
+    if (!gateQ.trim()) {
+      toast.error('Enter name or phone to search first.')
+      return
+    }
+    setHasSearched(true)
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!hasSearched) {
+      toast.error('Please search for existing customers first.')
+      return
+    }
     const formData = new FormData(event.currentTarget)
     const name = (formData.get('name') as string).trim()
     const phone = (formData.get('phone') as string).trim()
@@ -207,38 +229,104 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
       }
       void queryClient.invalidateQueries()
       onDone()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create customer.')
+    } catch (err: any) {
+      const raw = err?.message ?? 'Failed to create customer.'
+      // ConvexError with structured data may be stringified; try to extract existingCustomerId
+      const data = err?.data
+      if (data?.existingCustomerId) {
+        setDuplicateInfo({ id: data.existingCustomerId, name: data.existingName ?? '', phone: data.existingPhone ?? '' })
+        toast.error(data.message ?? raw)
+        return
+      }
+      // Fallback parse ID from message
+      const m = raw.match(/Existing customerId:\s*(\w+)/)
+      if (m) {
+        setDuplicateInfo({ id: m[1]!, name: '', phone: '' })
+      }
+      toast.error(raw)
     }
   }
 
   const saving = createCustomer.isPending || createVehicle.isPending || checkIn.isPending
+  const gateDone = hasSearched && gateQ.trim().length > 0
 
   return (
     <Card>
       <CardHeader><CardTitle>New customer</CardTitle></CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input id="name" name="name" required />
+        {/* Mandatory search gate */}
+        <div className="mb-6 rounded-xl border border-line bg-bg p-4">
+          <Label className="text-[12px] font-bold tracking-wide text-ink">Step 1 — Search existing customers (required)</Label>
+          <p className="mt-1 text-[12.5px] text-mute">Search by name <b>and</b> phone to avoid duplicates. View results before the form unlocks.</p>
+          <div className="mt-3 flex gap-2">
+            <div className="relative flex-1">
+              <IconSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
+              <Input
+                placeholder="Name or phone..."
+                value={gateQ}
+                onChange={(e) => setGateQ(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleGateSearch() } }}
+                className="pl-9"
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone *</Label>
-              <Input id="phone" name="phone" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input id="address" name="address" />
-            </div>
+            <Button type="button" variant="secondary" onClick={handleGateSearch}>
+              <IconSearch size={14} /> Search
+            </Button>
           </div>
+          {hasSearched && (
+            <div className="mt-3 rounded-lg border border-line bg-surface p-3">
+              {!gateQ.trim() ? (
+                <p className="text-[12.5px] text-mute">Enter a search term.</p>
+              ) : gateResults === undefined ? (
+                <p className="text-[12.5px] text-mute">Searching...</p>
+              ) : gateResults.length === 0 ? (
+                <p className="text-[12.5px] font-medium text-emerald-700">No matches — you can create this customer.</p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-mute">{gateResults.length} match{gateResults.length !== 1 ? 'es' : ''} — reuse existing if relevant</p>
+                  {gateResults.slice(0, 5).map((c) => (
+                    <div key={c._id} className="flex items-center justify-between rounded-lg border border-line px-3 py-2">
+                      <span className="flex items-center gap-2 text-[13px] font-semibold text-ink"><Avatar name={c.name} size={24} />{c.name} <span className="font-normal text-mute">· {c.phone}</span></span>
+                      <Button variant="ghost" size="sm" onClick={() => navigate({ to: '/service/customer/$id', params: { id: c._id } })}>View</Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {!hasSearched && <p className="mt-2 text-[11.5px] font-medium text-amber-700">Search required before the create form unlocks.</p>}
+        </div>
 
-          <div className="border-t border-line-soft pt-5">
+        {duplicateInfo && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[13px]">
+            <span className="font-semibold text-red-700">Duplicate detected:</span>{' '}
+            <span className="text-body">Phone already exists{duplicateInfo.name ? ` for ${duplicateInfo.name}` : ''}.</span>{' '}
+            <Link to="/service/customer/$id" params={{ id: duplicateInfo.id }} className="font-semibold text-red-700 underline">Use existing customer</Link>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <fieldset disabled={!gateDone} className={`${!gateDone ? 'opacity-50' : ''} space-y-6`}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input id="name" name="name" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone *</Label>
+                <Input id="phone" name="phone" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input id="address" name="address" />
+              </div>
+            </div>
+
+            <div className="border-t border-line-soft pt-5">
             <h3 className="mb-3 text-[13px] font-bold text-ink">Vehicle <span className="font-medium text-mute">(optional)</span></h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -259,7 +347,7 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="plate">Plate</Label>
-                <Input id="plate" name="plate" />
+                <Input id="plate" name="plate" placeholder="LSD-123-HG" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vin">VIN</Label>
@@ -279,9 +367,10 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
               />
             </div>
           </div>
+          </fieldset>
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || !gateDone}>
               {saving ? 'Saving...' : 'Save customer'}
             </Button>
             <Button type="button" variant="outline" onClick={onDone}>

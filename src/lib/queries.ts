@@ -12,6 +12,7 @@ export const customerQueries = {
 export const vehicleQueries = {
   byCustomer: (customerId: string) => convexQuery(api.vehicles.byCustomer, { customerId: customerId as Id<'customers'> }),
   inventory: (status?: string) => convexQuery(api.vehicles.inventory, { status }),
+  byPlate: (plate: string) => convexQuery(api.vehicles.byPlate, { plate }),
 }
 
 export const userQueries = {

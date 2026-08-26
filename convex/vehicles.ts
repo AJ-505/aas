@@ -26,11 +26,17 @@ export const byCustomer = query({
   },
 })
 
+const PLATE_REGEX = /^[A-Z0-9][A-Z0-9 -]{2,}$/
+
+function normalizePlate(plate: string): string {
+  return plate.trim().toUpperCase()
+}
+
 export const byPlate = query({
   args: { plate: v.string() },
   handler: async (ctx, args) => {
     await requireUser(ctx)
-    const normalized = args.plate.trim().toLowerCase()
+    const normalized = normalizePlate(args.plate)
     if (!normalized) return null
     return (
       (
@@ -79,8 +85,11 @@ export const create = mutation({
       ...args,
       status: (args.status as VehicleStatus | undefined) ?? 'customerOwned',
     })
-    const plate = parsed.plate && parsed.plate.length > 0 ? parsed.plate.trim().toLowerCase() : undefined
+    const plate = parsed.plate && parsed.plate.length > 0 ? normalizePlate(parsed.plate) : undefined
     if (plate) {
+      if (!PLATE_REGEX.test(plate)) {
+        throw new ConvexError('Plate must be 3+ chars, uppercase alphanumerics, spaces or hyphens (e.g. LSD-123-HG)')
+      }
       const existing = await ctx.db
         .query('vehicles')
         .withIndex('by_plate', (q) => q.eq('plate', plate))
@@ -162,7 +171,22 @@ export const update = mutation({
     for (const [k, val] of Object.entries(parsed)) {
       if (val === undefined) continue
       if (k === 'plate') {
-        clean[k] = val && (val as string).length > 0 ? (val as string).trim().toLowerCase() : undefined
+        const raw = val as string
+        const normalized = raw && raw.length > 0 ? normalizePlate(raw) : undefined
+        if (normalized) {
+          if (!PLATE_REGEX.test(normalized)) {
+            throw new ConvexError('Plate must be 3+ chars, uppercase alphanumerics, spaces or hyphens (e.g. LSD-123-HG)')
+          }
+          // uniqueness check if plate is being changed
+          const existing = await ctx.db
+            .query('vehicles')
+            .withIndex('by_plate', (q) => q.eq('plate', normalized))
+            .first()
+          if (existing && existing._id !== vehicleId) {
+            throw new ConvexError('A vehicle with this plate already exists.')
+          }
+        }
+        clean[k] = normalized
       } else if (typeof val === 'string' && val === '') {
         clean[k] = undefined
       } else {

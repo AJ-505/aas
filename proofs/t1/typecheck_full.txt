@@ -1,0 +1,200 @@
+convex/appointments.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/appointments.ts(3,29): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/appointments.ts(9,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/appointments.ts(9,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/appointments.ts(15,36): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/appointments.ts(30,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/appointments.ts(30,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/appointments.ts(34,36): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+convex/appointments.ts(39,21): error TS7006: Parameter 'f' implicitly has an 'any' type.
+convex/appointments.ts(47,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/appointments.ts(51,29): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/appointments.ts(52,16): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/appointments.ts(60,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/appointments.ts(60,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/appointments.ts(80,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/appointments.ts(80,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/appointments.ts(130,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/appointments.ts(130,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/appointments.ts(147,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/appointments.ts(147,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/customers.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/customers.ts(3,29): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/customers.ts(13,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/customers.ts(13,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/customers.ts(21,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+convex/customers.ts(25,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+convex/customers.ts(41,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/customers.ts(41,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/customers.ts(49,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/customers.ts(49,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/customers.ts(55,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/customers.ts(97,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/customers.ts(97,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/customers.ts(106,31): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/customers.ts(144,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/customers.ts(144,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/deliveries.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/deliveries.ts(9,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/deliveries.ts(9,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/deliveries.ts(17,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/deliveries.ts(17,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/deliveries.ts(21,35): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/deliveries.ts(36,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/deliveries.ts(36,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/http.ts(1,28): error TS2307: Cannot find module 'convex/server' or its corresponding type declarations.
+convex/invoices.ts(2,32): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/invoices.ts(9,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/invoices.ts(9,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/invoices.ts(14,30): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/invoices.ts(22,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/invoices.ts(22,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/invoices.ts(28,32): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/invoices.ts(36,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/invoices.ts(36,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/invoices.ts(44,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/invoices.ts(50,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/invoices.ts(57,56): error TS7006: Parameter 'item' implicitly has an 'any' type.
+convex/invoices.ts(120,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/invoices.ts(120,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/invoices.ts(127,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/invoices.ts(132,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/invoices.ts(138,56): error TS7006: Parameter 'item' implicitly has an 'any' type.
+convex/invoices.ts(198,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/invoices.ts(198,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(3,32): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/jobs.ts(13,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(13,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(24,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/jobs.ts(28,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/jobs.ts(33,36): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/jobs.ts(54,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(54,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(60,35): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/jobs.ts(66,23): error TS7006: Parameter 'job' implicitly has an 'any' type.
+convex/jobs.ts(95,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(108,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(194,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(194,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(198,33): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/jobs.ts(202,23): error TS7006: Parameter 'job' implicitly has an 'any' type.
+convex/jobs.ts(232,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(232,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(261,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(261,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(284,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(284,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(303,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(303,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(322,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(322,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(331,28): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/jobs.ts(405,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(405,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/jobs.ts(477,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/jobs.ts(477,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/labourTypes.ts(2,32): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/labourTypes.ts(9,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/labourTypes.ts(20,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/labourTypes.ts(20,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/labourTypes.ts(38,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/labourTypes.ts(38,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/labourTypes.ts(52,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/labourTypes.ts(52,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/leads.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/leads.ts(3,29): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/leads.ts(14,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/leads.ts(22,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/leads.ts(22,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/leads.ts(30,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+convex/leads.ts(34,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+convex/leads.ts(50,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/leads.ts(50,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/leads.ts(64,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/leads.ts(64,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/leads.ts(86,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/leads.ts(86,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/leads.ts(100,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/leads.ts(100,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/lib/auth.ts(2,29): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/parts.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/parts.ts(10,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(18,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(18,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/parts.ts(26,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(29,24): error TS7006: Parameter 'p' implicitly has an 'any' type.
+convex/parts.ts(35,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(35,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/parts.ts(43,8): error TS7006: Parameter 'p' implicitly has an 'any' type.
+convex/parts.ts(52,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(52,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/parts.ts(56,29): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/parts.ts(73,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(73,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/parts.ts(99,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(99,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/parts.ts(120,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(120,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/parts.ts(170,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/parts.ts(170,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/payments.ts(3,32): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/payments.ts(10,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/payments.ts(10,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/payments.ts(14,32): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/payments.ts(25,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/payments.ts(25,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/salesOrders.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/salesOrders.ts(3,29): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/salesOrders.ts(10,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(10,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/salesOrders.ts(18,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(26,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(26,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/salesOrders.ts(30,32): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/salesOrders.ts(37,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(37,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/salesOrders.ts(41,29): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/salesOrders.ts(53,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(53,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/salesOrders.ts(87,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(87,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/salesOrders.ts(102,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(102,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/salesOrders.ts(125,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/salesOrders.ts(125,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/schema.ts(1,43): error TS2307: Cannot find module 'convex/server' or its corresponding type declarations.
+convex/schema.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/seed.ts(145,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/seed.ts(223,67): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/seed.ts(269,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/seed.ts(300,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/seed.ts(302,29): error TS7006: Parameter 'a' implicitly has an 'any' type.
+convex/seed.ts(302,67): error TS7006: Parameter 'a' implicitly has an 'any' type.
+convex/seedAdvanced.ts(101,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/seedAdvanced.ts(110,24): error TS7006: Parameter 'p' implicitly has an 'any' type.
+convex/seedAdvanced.ts(116,30): error TS7006: Parameter 'u' implicitly has an 'any' type.
+convex/seedAdvanced.ts(117,43): error TS7006: Parameter 'u' implicitly has an 'any' type.
+convex/seedAdvanced.ts(146,32): error TS7006: Parameter 'u' implicitly has an 'any' type.
+convex/seedAdvanced.ts(370,43): error TS7006: Parameter 'l' implicitly has an 'any' type.
+convex/seedAdvanced.ts(392,39): error TS7006: Parameter 'p' implicitly has an 'any' type.
+convex/seedAdvanced.ts(518,59): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/seedAdvanced.ts(533,59): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/seedAdvanced.ts(556,46): error TS7006: Parameter 'v' implicitly has an 'any' type.
+convex/seedAdvanced.ts(589,44): error TS7006: Parameter 'v' implicitly has an 'any' type.
+convex/seedAdvanced.ts(604,48): error TS7006: Parameter 'v' implicitly has an 'any' type.
+convex/seedAdvanced.ts(628,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/seedAdvanced.ts(643,70): error TS7006: Parameter 'v' implicitly has an 'any' type.
+convex/seedAdvanced.ts(650,66): error TS7006: Parameter 'j' implicitly has an 'any' type.
+convex/seedAdvanced.ts(655,66): error TS7006: Parameter 'i' implicitly has an 'any' type.
+convex/seedAdvanced.ts(655,113): error TS7006: Parameter 'i' implicitly has an 'any' type.
+convex/seedAdvanced.ts(658,67): error TS7006: Parameter 'l' implicitly has an 'any' type.
+convex/seedAdvanced.ts(664,73): error TS7006: Parameter 's' implicitly has an 'any' type.
+convex/settings.ts(2,19): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/settings.ts(9,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/settings.ts(20,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/settings.ts(20,24): error TS7006: Parameter 'args' implicitly has an 'any' type.
+convex/users.ts(2,32): error TS2307: Cannot find module 'convex/values' or its corresponding type declarations.
+convex/users.ts(9,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/users.ts(25,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
+convex/users.ts(29,16): error TS7006: Parameter 'q' implicitly has an 'any' type.
+convex/users.ts(37,19): error TS7006: Parameter 'ctx' implicitly has an 'any' type.
