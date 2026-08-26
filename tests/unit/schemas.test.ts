@@ -84,6 +84,7 @@ describe('roleSchema', () => {
 describe('createAppointmentSchema', () => {
   it('validates a complete future appointment', () => {
     const parsed = createAppointmentSchema.parse({
+      customerId: 'j9abcdef1234567890123456',
       name: 'John Doe',
       phone: '08012345678',
       vehicleMake: 'Toyota',
@@ -96,9 +97,22 @@ describe('createAppointmentSchema', () => {
     expect(parsed.vehicleMake).toBe('Toyota')
   })
 
+  it('rejects missing customerId', () => {
+    expect(() =>
+      createAppointmentSchema.parse({
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+        vehiclePlate: 'KJA-123AA',
+        complaint: 'Check brakes',
+        appointmentTs: Date.now() + 86400000,
+      } as any),
+    ).toThrow()
+  })
+
   it('rejects past appointment date', () => {
     expect(() =>
       createAppointmentSchema.parse({
+        customerId: 'j9abcdef1234567890123456',
         name: 'John Doe',
         phone: '08012345678',
         vehicleMake: 'Toyota',
@@ -113,6 +127,7 @@ describe('createAppointmentSchema', () => {
   it('rejects missing vehicle details or complaint', () => {
     expect(() =>
       createAppointmentSchema.parse({
+        customerId: 'j9abcdef1234567890123456',
         name: 'John Doe',
         phone: '08012345678',
         vehicleMake: '',
@@ -125,12 +140,26 @@ describe('createAppointmentSchema', () => {
 
     expect(() =>
       createAppointmentSchema.parse({
+        customerId: 'j9abcdef1234567890123456',
         name: 'John Doe',
         phone: '08012345678',
         vehicleMake: 'Toyota',
         vehicleModel: 'Camry',
         vehiclePlate: 'KJA-123AA',
         complaint: '   ',
+        appointmentTs: Date.now() + 86400000,
+      }),
+    ).toThrow()
+  })
+
+  it('rejects invalid plate format', () => {
+    expect(() =>
+      createAppointmentSchema.parse({
+        customerId: 'j9abcdef1234567890123456',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+        vehiclePlate: '!!',
+        complaint: 'Check brakes',
         appointmentTs: Date.now() + 86400000,
       }),
     ).toThrow()

@@ -187,7 +187,7 @@ export const seedAdvanced = mutation({
         year: v.year,
         color: v.color,
         vin: v.vin,
-        plate: v.plate.toLowerCase(),
+        plate: v.plate.toUpperCase(),
         cost: v.cost,
         sellingPrice: v.sellingPrice,
         status: v.status,
@@ -213,7 +213,7 @@ export const seedAdvanced = mutation({
 
     const fullVehicles = [
       ...existingVehicles,
-      ...NEW_VEHICLES.map((v, i) => ({ _id: newVehicleIds[i]!, plate: v.plate.toLowerCase(), vin: v.vin })),
+      ...NEW_VEHICLES.map((v, i) => ({ _id: newVehicleIds[i]!, plate: v.plate.toUpperCase(), vin: v.vin })),
     ] as Array<{ _id: Id<'vehicles'>; plate: string; vin?: string }>
 
     // ---- Jobs ----
@@ -319,7 +319,7 @@ export const seedAdvanced = mutation({
     }
 
     function findVehicleIn(plate: string) {
-      return fullVehicles.find((v) => v.plate === plate.toLowerCase())
+      return fullVehicles.find((v) => v.plate === plate.toUpperCase())
     }
 
     const jobIds: Id<'jobs'>[] = []

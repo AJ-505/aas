@@ -1,0 +1,42 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/tmp/opencode/wt/t1[39m
+
+ [31m❯[39m tests/convex/phase2-authz.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m tests/convex/authz.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [32m✓[39m tests/unit/format.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+ [32m✓[39m tests/unit/job-utils.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m tests/unit/auth-utils.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m tests/unit/schemas.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m tests/unit/invoice.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/convex/authz.test.ts[2m [ tests/convex/authz.test.ts ][22m
+[31m[1mError[22m: Cannot find package 'convex/browser' imported from /tmp/opencode/wt/t1/tests/convex/fixtures.ts[39m
+[36m [2m❯[22m tests/convex/fixtures.ts:[2m1:1[22m[39m
+    [90m  1|[39m [35mimport[39m { [33mConvexHttpClient[39m } [35mfrom[39m [32m'convex/browser'[39m
+    [90m   |[39m [31m^[39m
+    [90m  2|[39m
+    [90m  3|[39m // Helpers for integration tests that run against a live Convex deploy…
+[90m [2m❯[22m tests/convex/authz.test.ts:[2m2:1[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/convex/phase2-authz.test.ts[2m [ tests/convex/phase2-authz.test.ts ][22m
+[31m[1mError[22m: Cannot find package 'convex/browser' imported from /tmp/opencode/wt/t1/tests/convex/fixtures.ts[39m
+[36m [2m❯[22m tests/convex/fixtures.ts:[2m1:1[22m[39m
+    [90m  1|[39m [35mimport[39m { [33mConvexHttpClient[39m } [35mfrom[39m [32m'convex/browser'[39m
+    [90m   |[39m [31m^[39m
+    [90m  2|[39m
+    [90m  3|[39m // Helpers for integration tests that run against a live Convex deploy…
+[90m [2m❯[22m tests/convex/phase2-authz.test.ts:[2m2:1[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m5 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m35 passed[39m[22m[90m (35)[39m
+[2m   Start at [22m 09:45:11
+[2m   Duration [22m 1.98s[2m (transform 528ms, setup 0ms, import 1.09s, tests 217ms, environment 4ms)[22m
+
+exit:0

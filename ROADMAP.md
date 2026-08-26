@@ -236,6 +236,18 @@
 |------|--------|-------|
 | Comprehensive User Manual | [x] | Updated role-based multi-page user manual with live screenshots, RBAC rules, print features & inventory-invoice auto-sync (`user_manual.md`) |
 
+## Customer Intake Controls — Duplicate & Plate Governance
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Mandatory search gate (name AND phone) before customer create — UI must show results before form unlocks | [x] | Search gate in `/service/customers` + appointment booking; form locked until `hasSearched`; server guard is source of truth |
+| Duplicate guard server-enforced (exact trimmed phone OR same phone + very similar name → existingCustomerId suggestion) | [x] | `convex/customers.ts` `by_phone` index check + case-insensitive + Levenshtein ≤2; throws structured `ConvexError({existingCustomerId})`; `update` also guards |
+| Appointment requires `customerId` FK (legacy display fields optional) | [x] | `convex/schema.ts` adds `appointments.customerId`; `appointments.create` requires `customerId`, validates existence, derives display name/phone; legacy rows remain optional |
+| Booking UI picks/creates customer first (search → select/inline create → book) | [x] | `service/appointments.tsx` customer picker + inline create after search; submit sends `customerId`; check-in path auto-creates+links customer via phone search with duplicate handling |
+| Plates stored UPPERCASE everywhere + regex `^[A-Z0-9][A-Z0-9 -]{2,}$` + fix lookups | [x] | `vehicles.create/update` + `appointments.create` normalize `trim().toUpperCase()` then validate; `vehicles.byPlate` normalizes same; zod `plateValidator` added |
+| Backfill idempotent for `vehicles.plate` + `appointments.vehiclePlate` | [x] | `convex/backfillPlates.ts` admin-guarded mutation, iterates both tables, uppercases if needed, audit-logged, safe to rerun |
+| Seed data uses uppercase plates | [x] | `convex/seed.ts` + `seedAdvanced.ts` flipped `toLowerCase → toUpperCase` |
+
 ## Future (Post-MVP)
 
 - Customer portal (view history, download invoices, book appointments)

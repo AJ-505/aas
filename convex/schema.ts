@@ -40,8 +40,9 @@ export default defineSchema({
   }).index('email', ['email']),
 
   appointments: defineTable({
-    name: v.string(),
-    phone: v.string(),
+    customerId: v.optional(v.id('customers')),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
     email: v.optional(v.string()),
     vehicleMake: v.optional(v.string()),
     vehicleModel: v.optional(v.string()),
@@ -54,7 +55,8 @@ export default defineSchema({
   })
     .index('appointmentTs', ['appointmentTs'])
     .index('status', ['status'])
-    .index('phone', ['phone']),
+    .index('phone', ['phone'])
+    .index('customerId', ['customerId']),
 
   // ---- Service module ----
   customers: defineTable({

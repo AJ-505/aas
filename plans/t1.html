@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Plan t1 — Customer Intake Controls</title>
+<style>
+  :root{--ink:#0f1225;--body:#2a2d45;--mute:#7a7d96;--line:#e0e1ea;--bg:#f4f2eb;--surface:#ffffff;--accent:#d84a1a;--accent2:#0f7a6b;}
+  *{box-sizing:border-box} html{font-size:16px;background:var(--bg)}
+  body{margin:0;font-family:"IBM Plex Serif",Georgia,serif;color:var(--body);line-height:1.6}
+  .max{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+  header{border:2px solid var(--ink);background:var(--surface);padding:22px 24px;display:grid;grid-template-columns:1fr auto;gap:16px}
+  .kicker{font:700 10px/1 "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  h1{margin:6px 0 8px;font:800 30px/1.05 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:-.03em;color:var(--ink)}
+  .meta{font:600 11px/1.4 "IBM Plex Mono",monospace;color:var(--mute);text-align:right}
+  .meta b{color:var(--ink)}
+  nav.tabs{margin-top:18px;display:flex;gap:6px;flex-wrap:wrap}
+  nav.tabs button{font:700 11px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;border:1px solid var(--ink);background:var(--surface);cursor:pointer}
+  nav.tabs button.active{background:var(--ink);color:#fff}
+  .grid{display:grid;grid-template-columns:1.35fr .85fr;gap:16px;margin-top:18px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr} header{grid-template-columns:1fr} .meta{text-align:left}}
+  .card{border:1.5px solid var(--ink);background:var(--surface);padding:18px 18px}
+  .card h2{margin:0 0 10px;font:800 13px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);border-bottom:1.5px solid var(--ink);padding-bottom:9px}
+  .card h3{margin:16px 0 6px;font:800 13px/1.2 "IBM Plex Sans",sans-serif;color:var(--ink)}
+  p{margin:8px 0;font-size:13.5px}
+  ul{margin:8px 0 0 18px;padding:0;font-size:13.5px}
+  li{margin:4px 0}
+  code{font:600 12px/1.4 "IBM Plex Mono",monospace;background:var(--bg);border:1px solid var(--line);padding:1px 5px}
+  .badge{display:inline-block;font:700 10px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;padding:5px 7px;border:1px solid var(--ink)}
+  .badge.orange{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .badge.teal{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+  .steps{counter-reset:s}
+  .steps li{list-style:none;margin-left:0;position:relative;padding-left:28px}
+  .steps li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;width:20px;height:20px;display:grid;place-items:center;background:var(--ink);color:#fff;font:700 11px/1 "IBM Plex Mono",monospace}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:var(--ink);color:#fff;font:700 10px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+  .callout{border-left:3px solid var(--accent);padding:8px 12px;background:#fff7f0;font-size:13px;margin:10px 0}
+  .callout.teal{border-color:var(--accent2);background:#eff8f6}
+  details{border:1px solid var(--line);padding:10px 12px;background:var(--bg);margin:8px 0}
+  summary{cursor:pointer;font:700 12px/1 "IBM Plex Mono",monospace;color:var(--ink)}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .hidden{display:none}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=IBM+Plex+Sans:wght@600;700;800&family=IBM+Plex+Serif:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="max">
+<header>
+  <div>
+    <div class="kicker">Cedric Masters Autos · Plans / t1</div>
+    <h1>Customer intake controls — search gate, dedup guard, customer-linked appointments &amp; uppercase plates</h1>
+    <p style="margin:0;color:var(--mute);font-size:12.5px">Branch <code>feat/customer-intake-controls</code> · Worktree <code>/tmp/opencode/wt/t1</code> · RAM-tight mode: heavy cmds one-at-a-time</p>
+    <nav class="tabs" id="tabs">
+      <button data-tab="overview" class="active">Overview</button>
+      <button data-tab="build">Build order</button>
+      <button data-tab="tests">Break-it tests</button>
+      <button data-tab="risks">Risks &amp; grill</button>
+    </nav>
+  </div>
+  <div class="meta">
+    <div><b>TaskID</b> t1</div>
+    <div><b>Stack</b> TanStack Start · Convex · Zod</div>
+    <div><b>Hard rules</b> no front-end mock · no dev server</div>
+    <div style="margin-top:8px"><span class="badge orange">server-enforced</span> <span class="badge teal">idempotent backfill</span></div>
+  </div>
+</header>
+
+<div class="grid">
+  <div id="panel-overview" class="card">
+    <h2>1 — What ships & why</h2>
+    <p><b>Goal:</b> stop duplicate customer records at the gate and make every appointment traceable to a real customer. Plates become canonical uppercase.</p>
+    <h3>Requirements mapped</h3>
+    <table>
+      <tr><th>#</th><th>Requirement</th><th>Decision</th></tr>
+      <tr><td><b>R1</b></td><td>Search by name <b>AND</b> phone before create — UI must force a search + show results before the form unlocks</td><td>Single search input (merged <code>name</code> + <code>search_phone</code> indexes) with <code>hasSearched</code> flag. Form disabled until <code>q.trim() &amp;&amp; hasSearched</code>. Works on both <code>/service/customers</code> and appointment booking.</td></tr>
+      <tr><td><b>R2</b></td><td>Duplicate guard server-side: exact trimmed phone OR same phone + very similar name → return suggestion instead of insert</td><td><code>customers.create</code> queries <code>by_phone</code> index for exact <code>phone.trim()</code>. If hit → throw <code>ConvexError({message, existingCustomerId, existingName})</code>. Name similarity = case-insensitive exact after trim + whitespace collapse OR Levenshtein ≤2 (no lib). Hard reject, not advisory.</td></tr>
+      <tr><td><b>R3</b></td><td><code>appointments.customerId</code> FK required, legacy fields optional, booking UI picks/creates customer, check-in auto-creates+links</td><td>Schema adds <code>customerId: optional v.id('customers')</code> (optional for legacy rows, required in mutation). Mutation validates customer exists, normalizes plate to uppercase. Booking form is a 2-step picker (search → select → or create inline after search). <code>AppointmentCheckInButton</code> now does <em>search by phone → use existing else create → create vehicle → create job → markCheckedIn</em> and links <code>customerId</code>.</td></tr>
+      <tr><td><b>R4</b></td><td>Plates uppercase everywhere, regex <code>^[A-Z0-9][A-Z0-9 -]{2,}$</code>, fix lookups, idempotent backfill for vehicles+appointments</td><td><code>vehicles.create/update</code> + <code>appointments.create</code> normalize <code>plate.trim().toUpperCase()</code>, then validate against regex. <code>vehicles.byPlate</code> normalizes the same way. Seed inserts flipped to <code>toUpperCase()</code>. Backfill lives at <code>convex/backfillPlates.ts</code> as <code>internalMutation</code> (or public mutation guarded by admin) iterating both tables, uppercasing if needed, audit-logged.</td></tr>
+    </table>
+    <div class="callout">Scope cuts honored: no fuzzy lib, no ML, phone = <code>trim()</code> only, no customers table redesign beyond FK.</div>
+    <h3>Files touched (planned)</h3>
+    <ul>
+      <li><code>convex/schema.ts</code> — add <code>appointments.customerId</code> + keep legacy fields optional; vehicles plate already optional</li>
+      <li><code>convex/customers.ts</code> — dedup guard + <code>byPhoneExact</code> helper + audit</li>
+      <li><code>convex/vehicles.ts</code> — <code>toUpperCase()</code> + regex + lookup fix</li>
+      <li><code>convex/appointments.ts</code> — require <code>customerId</code>, plate uppercase+regex, legacy optional</li>
+      <li><code>convex/backfillPlates.ts</code> — new — idempotent backfill, internal, committed not run vs prod</li>
+      <li><code>convex/seed.ts</code>, <code>seedAdvanced.ts</code> — <code>toLowerCase → toUpperCase</code></li>
+      <li><code>src/lib/schemas/*</code> — vehicle plate regex, appointment schema adds <code>customerId</code></li>
+      <li><code>src/routes/service/customers.tsx</code> — search gate</li>
+      <li><code>src/routes/service/appointments.tsx</code> — customer picker + gated booking + check-in linking</li>
+      <li><code>ROADMAP.md</code> — new row marked <b>[x]</b></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Design tree — settled defaults</h2>
+    <p class="mono" style="font-size:11px;color:var(--mute)">Frontier exhausted autonomously; grill spawned via <code>nohup opencode2</code></p>
+    <details open><summary>Q1 — Duplicate signal: throw or return?</summary><p>Throw <code>ConvexError</code> with structured payload <code>{message, existingCustomerId}</code>. UI catches and offers “Use existing” CTA. Returning an ID would silently succeed and confuse callers expecting an ID.</p></details>
+    <details open><summary>Q2 — Name similarity definition</summary><p>Normalize both names: <code>trim → collapse whitespace → lower</code>. Equal → similar. Else Levenshtein distance ≤2 (covers Chinedu vs Chinede, Amara vs Amarah). No library. Threshold tight to avoid false positives.</p></details>
+    <details open><summary>Q3 — Phone normalization boundary</summary><p>Exactly <code>trim()</code> — no stripping of +234, spaces, dashes. Matches spec “no normalization lib”.</p></details>
+    <details open><summary>Q4 — Plate regex timing</summary><p>Normalize first, then test <code>^[A-Z0-9][A-Z0-9 -]{2,}$</code>. Reject with clear message. Empty plate stays <code>undefined</code> where optional.</p></details>
+    <details open><summary>Q5 — Appointment legacy migration</summary><p>Schema makes <code>customerId</code> optional so old rows still read. Mutation enforces required. No data migration needed. Backfill plates only.</p></details>
+    <details open><summary>Q6 — Check-in race</summary><p>Check-in reuses same <code>customers.create</code> guard. If two tabs race to create same phone, one wins, other gets duplicate error → retries by fetching existing. Convex OCC serializes.</p></details>
+    <div class="callout teal"><b>Guard pattern:</b> every mutation keeps <code>requireRole</code> + <code>audit()</code>. Plate mutation adds <code>audit('vehicle.update',...)</code> already present.</div>
+    <h3>Indexes used</h3>
+    <ul>
+      <li><code>customers.by_phone</code> (exact duplicate check) — indexed, not search</li>
+      <li><code>customers.name</code> + <code>search_phone</code> search indexes (UI search)</li>
+      <li><code>vehicles.by_plate</code> (uniqueness) — now stores uppercase only</li>
+      <li><code>appointments.appointmentTs</code> range + <code>status</code></li>
+    </ul>
+  </div>
+</div>
+
+<div id="panel-build" class="card hidden">
+  <h2>2 — Build order (small commits)</h2>
+  <ol class="steps">
+    <li><b>Schema + Zod</b> — <code>schema.ts</code> add <code>appointments.customerId</code>; <code>schemas/vehicle.ts</code> add <code>plateRegex</code>; <code>schemas/appointment.ts</code> add <code>customerId: z.string().min(1)</code>. Keep <code>name/phone</code> zod optional for server but required in UI after picker.</li>
+    <li><b>Vehicles plates uppercase</b> — flip <code>.toLowerCase()</code>→<code>.toUpperCase()</code>, add regex check, fix <code>byPlate</code> lookup, add uniqueness re-check on update if plate changes.</li>
+    <li><b>Customers dedup guard</b> — add helper <code>isVerySimilar(a,b)</code> + exact phone index query in <code>customers.create</code>. Throw structured <code>ConvexError</code>. Keep <code>requireRole</code> + <code>audit</code>.</li>
+    <li><b>Appointments FK</b> — add <code>customerId</code> arg, validate existence, normalize <code>vehiclePlate</code> to uppercase + regex, store <code>customerId</code> + audited.</li>
+    <li><b>Backfill</b> — new <code>convex/backfillPlates.ts</code>: <code>backfillPlates</code> mutation (admin-only) paginates <code>vehicles</code> + <code>appointments</code>, uppercases plates, idempotent, returns counts. Not auto-run.</li>
+    <li><b>Seeds</b> — <code>seed.ts</code> + <code>seedAdvanced.ts</code> flip <code>toLowerCase()</code>→<code>toUpperCase()</code>.</li>
+    <li><b>Customers UI gate</b> — <code>service/customers.tsx</code>: search input tracks <code>hasSearched</code> (set on query success with non-empty q). Create form locked behind <code>hasSearched</code> + shows match list with “use existing” CTA. On duplicate error, surface existing customer link.</li>
+    <li><b>Appointments UI gate</b> — rewrite <code>CreateAppointmentForm</code> to: (a) customer search picker, (b) inline create after search (still gated), (c) selected customer badge, (d) submit sends <code>customerId</code>. Update <code>AppointmentCheckInButton</code> to create+link customer.</li>
+    <li><b>ROADMAP</b> — add section row <b>[x] Customer intake controls</b>.</li>
+    <li><b>Verify</b> — <code>bun install</code> once, then sequential <code>typecheck → test → build</code>, capture to <code>proofs/t1/</code>.</li>
+  </ol>
+  <div class="callout">Commit after each bullet. No <code>bun dev</code>. Follow neighboring module style exactly.</div>
+</div>
+
+<div id="panel-tests" class="card hidden">
+  <h2>3 — Break-it tests (exhaustive click-through)</h2>
+  <table>
+    <tr><th>Flow</th><th>Steps</th><th>Expect</th></tr>
+    <tr><td>Customer gate blocks form</td><td>Login as CSR (<code>amara@…</code>/password123) → Customers → see Add customer → without searching form is disabled showing “Search first” callout → type “Chinedu” → see results → form unlocks</td><td>Gate enforced; “No matches — you can create” appears if zero hits</td></tr>
+    <tr><td>Duplicate phone blocked</td><td>Search “08031234567” (existing) → try create same phone, different name “Chinedu Duplicate” → submit</td><td>Server rejects with duplicate toast + link to existing customer; no new row</td></tr>
+    <tr><td>Same phone + similar name blocked</td><td>Search → attempt create with phone “08031234567” name “chinedu okafor” (lowercase) → submit</td><td>Rejected as very-similar name duplicate</td></tr>
+    <tr><td>Different phone, same name allowed</td><td>Search unique phone “08000000999” name “Chinedu Okafor” → submit</td><td>Succeeds — different phone is distinct identity</td></tr>
+    <tr><td>Appointment requires customer</td><td>Appointments → Book appointment → without picking customer submit disabled → search+pick customer → fill vehicle+complaint → Book</td><td>Book succeeds, appointment row shows customer name; API without customerId throws “customerId required”</td></tr>
+    <tr><td>Appointment plate uppercase+regex</td><td>Book with plate “abc 123” → submit → check DB → plate stored “ABC 123”. Try plate “!!” → submit</td><td>First auto-uppercased; second rejected regex</td></tr>
+    <tr><td>Vehicle plate uppercase+regex</td><td>Sales→Inventory or vehicle create with plate “lag-012-cd” → save. Try vehicle update plate “x!”</td><td>Stored “LAG-012-CD”; invalid rejected; byPlate lookup “lag-012-cd” still finds it</td></tr>
+    <tr><td>Check-in auto-creates+links</td><td>Book appointment for brand-new customer via picker inline create → then Appointments → Check in → creates job linked to that customer → open Job detail → customer matches</td><td>No orphan appointments; check-in path also handles existing phone reuse without duplicate</td></tr>
+    <tr><td>Backfill idempotent</td><td>Run <code>convex/backfillPlates</code> twice via CLI/dashboard</td><td>First converts any lowercase plates, second reports 0 changes</td></tr>
+    <tr><td>Role gating intact</td><td>Login as finance → try create customer</td><td>Blocked “not authorized” (already: csr/salesRep/manager/admin only)</td></tr>
+    <tr><td>Regression: existing lists</td><td>Customers search empty shows 50; Vehicles inventory loads; Jobs still visible</td><td>No empty states, no console errors</td></tr>
+  </table>
+  <p class="mono" style="font-size:11px;color:var(--mute)">Also verify: trim-only phone (spaces preserved), auditLogs entries for create/update, search dedup (name+phone same id not duplicated).</p>
+</div>
+
+<div id="panel-risks" class="card hidden">
+  <h2>4 — Risks &amp; grill findings (answered)</h2>
+  <ul>
+    <li><b>False duplicate from phone exact + case-only name diff:</b> tolerated — phone equality is the business identity; claiming two customers share one phone is legit to block. User shown “Use existing” CTA to merge.</li>
+    <li><b>Race on concurrent create with same phone:</b> both read index before write; Convex serializes via OCC — second mutation retries and now sees duplicate → error. No lost duplicate.</li>
+    <li><b>Appointment legacy rows without customerId:</b> UI guards new creates only; old rows render with fallback <code>name ?? customer.name</code>. No migration burn.</li>
+    <li><b>Plate case migration:</b> byPlate index had lowercase keys; after flip we uppercase on read but old keys stay lowercase unless backfilled. Backfill rewrites them — until then lookup misses. Backfill must run before prod flip is considered complete.</li>
+    <li><b>Search UX bypass via direct API:</b> covered — server guard is source of truth; UI gate is convenience only.</li>
+    <li><b>ConvexError shape drift:</b> we use <code>new ConvexError({message, existingCustomerId})</code> — client parses <code>err.data?.existingCustomerId ?? parse from message</code> defensively.</li>
+  </ul>
+  <div class="callout"><b>Adversarial plan reviews:</b> two subagents (nohup opencode2) will verify index misuse, missing validators, RBAC gaps, and over-built UI. Findings checked against code before fixing.</div>
+  <p class="mono" style="font-size:11px;color:var(--mute)">Artifacts after verify go to <code>proofs/t1/{typecheck,test,build}.log</code> on branch.</p>
+</div>
+
+<script>
+  const tabs=document.querySelectorAll('nav.tabs button');
+  const panels={overview:document.getElementById('panel-overview'),build:document.getElementById('panel-build'),tests:document.getElementById('panel-tests'),risks:document.getElementById('panel-risks')};
+  const grid=document.querySelector('.grid');
+  function show(k){
+    tabs.forEach(b=>b.classList.toggle('active', b.dataset.tab===k));
+    Object.entries(panels).forEach(([name,el])=>{
+      if(name===k){ el.classList.remove('hidden'); if(name!=='overview') grid.after(el); }
+      else if(name!=='overview'){ el.classList.add('hidden'); }
+    });
+    if(k==='overview'){ document.getElementById('panel-overview').classList.remove('hidden'); ['build','tests','risks'].forEach(n=>panels[n].classList.add('hidden')); }
+  }
+  tabs.forEach(b=>b.addEventListener('click',()=>show(b.dataset.tab)));
+</script>
+</div>
+</body>
+</html>

@@ -230,7 +230,7 @@ function AppointmentCheckInButton({
   appointment,
   onDone,
 }: {
-  appointment: { _id: string; name: string; phone: string; vehicleMake?: string; vehicleModel?: string; vehiclePlate?: string; complaint?: string }
+  appointment: { _id: string; customerId?: string; name?: string; phone?: string; vehicleMake?: string; vehicleModel?: string; vehiclePlate?: string; complaint?: string }
   onDone: () => void
 }) {
   const [loading, setLoading] = useState(false)
@@ -243,31 +243,68 @@ function AppointmentCheckInButton({
   async function handleCheckIn() {
     setLoading(true)
     try {
-      const customers = await queryClient.fetchQuery(customerQueries.search(appointment.phone))
-
-      let customerId: string
-      if (customers && customers.length > 0) {
-        customerId = customers[0]!._id
-      } else {
-        customerId = await createCustomer.mutateAsync({
-          name: appointment.name,
-          phone: appointment.phone,
-        })
+      let customerId: string | undefined = (appointment as any).customerId
+      // If appointment already has a customerId, use it; otherwise resolve via phone/name
+      if (!customerId) {
+        const phone = (appointment.phone ?? '').trim()
+        const name = (appointment.name ?? '').trim()
+        if (phone) {
+          const customers = await queryClient.fetchQuery(customerQueries.search(phone))
+          if (customers && customers.length > 0) {
+            // Prefer exact phone match if available
+            const exact = customers.find((c) => c.phone.trim() === phone)
+            customerId = (exact ?? customers[0])!._id
+          }
+        }
+        if (!customerId && appointment.name && appointment.phone) {
+          try {
+            customerId = await createCustomer.mutateAsync({
+              name: appointment.name,
+              phone: appointment.phone,
+            })
+          } catch (e: any) {
+            // If duplicate guard fired, use suggested existing id
+            if (e?.data?.existingCustomerId) customerId = e.data.existingCustomerId
+            else throw e
+          }
+        }
+        if (!customerId) throw new Error('Could not resolve customer for this appointment.')
       }
 
       const hasVehicle = !!(appointment.vehicleMake && appointment.vehicleModel)
       let vehicleId: string | null = null
 
       if (hasVehicle) {
-        vehicleId = await createVehicle.mutateAsync({
-          ownerId: customerId as Id<'customers'>,
-          make: appointment.vehicleMake!,
-          model: appointment.vehicleModel!,
-          year: new Date().getFullYear(),
-          color: 'N/A',
-          plate: appointment.vehiclePlate || undefined,
-          status: 'customerOwned',
-        })
+        const plate = appointment.vehiclePlate?.trim()
+        if (plate) {
+          try {
+            const { vehicleQueries } = await import('~/lib/queries')
+            const existing: any = await queryClient.fetchQuery(vehicleQueries.byPlate(plate))
+            if (existing?._id) vehicleId = existing._id
+          } catch {}
+        }
+        if (!vehicleId) {
+          try {
+            vehicleId = await createVehicle.mutateAsync({
+              ownerId: customerId as Id<'customers'>,
+              make: appointment.vehicleMake!,
+              model: appointment.vehicleModel!,
+              year: new Date().getFullYear(),
+              color: 'N/A',
+              plate: appointment.vehiclePlate || undefined,
+              status: 'customerOwned',
+            })
+          } catch (e: any) {
+            if (e?.message?.includes('already exists') && plate) {
+              try {
+                const { vehicleQueries } = await import('~/lib/queries')
+                const v: any = await queryClient.fetchQuery(vehicleQueries.byPlate(plate))
+                if (v?._id) vehicleId = v._id
+                else throw e
+              } catch { throw e }
+            } else throw e
+          }
+        }
       }
 
       if (vehicleId && appointment.complaint) {
@@ -319,13 +356,51 @@ function CancelButton({ appointmentId, onDone }: { appointmentId: string; onDone
 
 function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
   const create = useCreateAppointmentMutation()
+  const createCustomer = useCreateCustomerMutation()
   const todayStr = new Date().toLocaleDateString('en-CA')
+
+  const [customerQ, setCustomerQ] = useState('')
+  const [hasSearched, setHasSearched] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<{ _id: string; name: string; phone: string; email?: string } | null>(null)
+  const [inlineName, setInlineName] = useState('')
+  const [inlinePhone, setInlinePhone] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  const { data: searchResults } = useQuery({
+    ...customerQueries.search(customerQ.trim()),
+    enabled: hasSearched && customerQ.trim().length > 0,
+  })
+
+  function doSearch() {
+    if (!customerQ.trim()) { toast.error('Enter name or phone to search'); return }
+    setHasSearched(true)
+  }
+
+  async function handleInlineCreate() {
+    const n = inlineName.trim()
+    const p = inlinePhone.trim()
+    if (!n || !p) { toast.error('Name and phone required to create customer'); return }
+    setCreating(true)
+    try {
+      const id = await createCustomer.mutateAsync({ name: n, phone: p })
+      setSelectedCustomer({ _id: id as string, name: n, phone: p })
+      toast.success('Customer created — now complete booking')
+    } catch (e: any) {
+      const data = e?.data
+      if (data?.existingCustomerId) {
+        toast.error(data.message ?? 'Duplicate customer')
+        setSelectedCustomer({ _id: data.existingCustomerId, name: data.existingName ?? n, phone: data.existingPhone ?? p })
+      } else {
+        toast.error(e?.message ?? 'Failed to create customer')
+      }
+    } finally { setCreating(false) }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!hasSearched) { toast.error('Search for a customer first.'); return }
+    if (!selectedCustomer) { toast.error('Pick or create a customer before booking.'); return }
     const f = new FormData(e.currentTarget)
-    const name = (f.get('name') as string).trim()
-    const phone = (f.get('phone') as string).trim()
     const email = (f.get('email') as string).trim()
     const vehicleMake = (f.get('vehicleMake') as string).trim()
     const vehicleModel = (f.get('vehicleModel') as string).trim()
@@ -334,10 +409,6 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
     const dateStr = f.get('date') as string
     const timeStr = f.get('time') as string
 
-    if (!name || !phone) {
-      toast.error('Name and phone are required.')
-      return
-    }
     if (!vehicleMake || !vehicleModel || !vehiclePlate || !complaint) {
       toast.error('Vehicle details (make, model, plate) and complaint are required.')
       return
@@ -358,8 +429,9 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
 
     await create.mutateAsync(
       {
-        name,
-        phone,
+        customerId: selectedCustomer._id as Id<'customers'>,
+        name: selectedCustomer.name,
+        phone: selectedCustomer.phone,
         email: email || undefined,
         vehicleMake,
         vehicleModel,
@@ -377,50 +449,106 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
     )
   }
 
+  const canBook = !!selectedCustomer
+
   return (
     <Card>
       <CardHeader><CardTitle>Book appointment</CardTitle></CardHeader>
       <CardContent>
+        {/* Customer gate */}
+        <div className="mb-5 rounded-xl border border-line bg-bg p-4">
+          <Label className="text-[12px] font-bold tracking-wide text-ink">Customer (required) — search first</Label>
+          <p className="mt-1 text-[12.5px] text-mute">Search by name <b>and</b> phone, pick an existing customer, or create inline after viewing results.</p>
+          <div className="mt-3 flex gap-2">
+            <Input placeholder="Search name or phone..." value={customerQ} onChange={(e) => setCustomerQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch() } }} />
+            <Button type="button" variant="secondary" onClick={doSearch}>Search</Button>
+          </div>
+
+          {hasSearched && (
+            <div className="mt-3 rounded-lg border border-line bg-surface p-3">
+              {!customerQ.trim() ? <p className="text-[12.5px] text-mute">Enter a term.</p>
+              : searchResults === undefined ? <p className="text-[12.5px] text-mute">Searching...</p>
+              : searchResults.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-[12.5px] font-medium text-emerald-700">No matches — create customer inline:</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Input placeholder="Full name *" value={inlineName} onChange={(e) => setInlineName(e.target.value)} />
+                    <Input placeholder="Phone *" value={inlinePhone} onChange={(e) => setInlinePhone(e.target.value)} />
+                  </div>
+                  <Button type="button" size="sm" onClick={handleInlineCreate} disabled={creating}>{creating ? 'Creating...' : 'Create customer'}</Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-mute">{searchResults.length} match{searchResults.length !== 1 ? 'es' : ''}</p>
+                  {searchResults.slice(0, 6).map((c) => {
+                    const active = selectedCustomer?._id === c._id
+                    return (
+                      <button key={c._id} type="button" onClick={() => setSelectedCustomer({ _id: c._id, name: c.name, phone: c.phone, email: c.email })} className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${active ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:bg-bg'}`}>
+                        <span className="text-[13px] font-semibold text-ink">{c.name} <span className="font-normal text-mute">· {c.phone}</span></span>
+                        {active && <span className="text-[11px] font-bold text-accent">Selected</span>}
+                      </button>
+                    )
+                  })}
+                  <div className="border-t border-line-soft pt-3">
+                    <p className="mb-2 text-[12px] font-semibold text-ink">Or create new (after seeing results):</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Input placeholder="Full name *" value={inlineName} onChange={(e) => setInlineName(e.target.value)} />
+                      <Input placeholder="Phone *" value={inlinePhone} onChange={(e) => setInlinePhone(e.target.value)} />
+                    </div>
+                    <Button type="button" size="sm" className="mt-2" variant="outline" onClick={handleInlineCreate} disabled={creating}>{creating ? 'Creating...' : 'Create & select'}</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedCustomer && (
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+              <span className="text-[13px] font-semibold text-emerald-800">{selectedCustomer.name} · {selectedCustomer.phone}</span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedCustomer(null)}>Change</Button>
+            </div>
+          )}
+          {!hasSearched && <p className="mt-2 text-[11.5px] font-medium text-amber-700">Search required before booking.</p>}
+          {hasSearched && !selectedCustomer && <p className="mt-2 text-[11.5px] font-medium text-amber-700">Pick or create a customer to unlock booking.</p>}
+        </div>
+
         <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
-            <Input id="name" name="name" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone *</Label>
-            <Input id="phone" name="phone" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" />
-          </div>
-          <div className="space-y-2" />
-          <div className="space-y-2">
-            <Label htmlFor="date">Date *</Label>
-            <Input id="date" name="date" type="date" min={todayStr} required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="time">Time *</Label>
-            <Input id="time" name="time" type="time" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vehicleMake">Vehicle make *</Label>
-            <Input id="vehicleMake" name="vehicleMake" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vehicleModel">Vehicle model *</Label>
-            <Input id="vehicleModel" name="vehicleModel" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vehiclePlate">Plate *</Label>
-            <Input id="vehiclePlate" name="vehiclePlate" required />
-          </div>
-          <div className="sm:col-span-2 space-y-2">
-            <Label htmlFor="complaint">Complaint *</Label>
-            <Textarea id="complaint" name="complaint" rows={2} required />
-          </div>
+          <fieldset disabled={!canBook} className={`contents ${!canBook ? 'opacity-50' : ''}`}>
+            <div className="space-y-2">
+              <Label>Selected customer</Label>
+              <Input value={selectedCustomer ? `${selectedCustomer.name} · ${selectedCustomer.phone}` : 'No customer selected'} disabled className="bg-bg" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" placeholder={selectedCustomer?.email ?? ''} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date">Date *</Label>
+              <Input id="date" name="date" type="date" min={todayStr} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="time">Time *</Label>
+              <Input id="time" name="time" type="time" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vehicleMake">Vehicle make *</Label>
+              <Input id="vehicleMake" name="vehicleMake" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vehicleModel">Vehicle model *</Label>
+              <Input id="vehicleModel" name="vehicleModel" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vehiclePlate">Plate *</Label>
+              <Input id="vehiclePlate" name="vehiclePlate" placeholder="LSD-123-HG" required />
+            </div>
+            <div className="sm:col-span-2 space-y-2">
+              <Label htmlFor="complaint">Complaint *</Label>
+              <Textarea id="complaint" name="complaint" rows={2} required />
+            </div>
+          </fieldset>
           <div className="flex gap-2 sm:col-span-2">
-            <Button type="submit" disabled={create.isPending}>
+            <Button type="submit" disabled={create.isPending || !canBook}>
               {create.isPending ? 'Booking...' : 'Book appointment'}
             </Button>
             <Button type="button" variant="outline" onClick={onDone}>

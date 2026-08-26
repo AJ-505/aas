@@ -203,7 +203,7 @@ export const seedData = mutation({
           year: v.year,
           color: v.color,
           vin: v.vin,
-          plate: v.plate?.toLowerCase(),
+          plate: v.plate?.toUpperCase(),
           cost: v.cost,
           sellingPrice: v.sellingPrice,
           status: v.status,
