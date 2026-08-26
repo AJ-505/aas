@@ -399,7 +399,7 @@ export async function syncInvoiceForJob(ctx: any, jobId: Id<'jobs'>) {
 export const reverseReady = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['manager', 'admin'])
+    await requireActiveSession(ctx, ['manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
     if (job.status !== 'readyForPickup') {

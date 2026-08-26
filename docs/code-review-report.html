@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code Review Report — Cedric Masters Autos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_doc.css" />
+</head>
+<body>
+<div class="doc">
+
+  <header class="cover">
+    <div class="kicker on-dark">Engineering Review</div>
+    <h1 class="display xl">Code Review Report<br /><span class="thin">Backend &amp; Authorization Pass</span></h1>
+    <p class="sub">A line-by-line review of the Convex backend, shared validation layer, and authorization surface across the service and sales modules.</p>
+
+    <div class="specplate">
+      <div class="cell"><div class="k">Document ID</div><div class="v">CMA-CRR-001</div></div>
+      <div class="cell"><div class="k">Scope</div><div class="v">convex/ + src/lib</div></div>
+      <div class="cell"><div class="k">Date</div><div class="v amber">07 Aug 2026</div></div>
+      <div class="cell"><div class="k">Ref</div><div class="v">commit 0a26911</div></div>
+      <div class="cell"><div class="k">Critical</div><div class="v">0</div></div>
+      <div class="cell"><div class="k">High</div><div class="v">1</div></div>
+      <div class="cell"><div class="k">Medium</div><div class="v">6</div></div>
+      <div class="cell"><div class="k">Low</div><div class="v">7</div></div>
+    </div>
+  </header>
+
+  <!-- ============ 01 EXECUTIVE SUMMARY ============ -->
+  <section class="mod first">
+    <div class="mod-head">
+      <div class="mod-id"><em>01</em></div>
+      <h2 class="mod-title">Executive Summary</h2>
+    </div>
+
+    <p class="lead">The codebase is in strong condition. Default-deny authorization, a single typed validation layer, an immutable audit log, and a guarded eight-status job state machine are all implemented correctly. The review found <b>zero critical</b> and <b>one high-severity</b> item — a production-logging concern — plus six medium and seven low findings, most of which are maintainability wins rather than defects.</p>
+
+    <h3 class="mod-sub">Verdict &amp; Severity Distribution</h3>
+    <div class="gauge-wrap avoid">
+      <div class="gauge-bar">
+        <div class="gauge-seg g" style="width:42%">Critical · 0</div>
+        <div class="gauge-seg a" style="width:30%">High · 1</div>
+        <div class="gauge-seg g" style="width:28%">Low · 7</div>
+      </div>
+      <div class="gauge-ticks"><span>Critical 0</span><span>High 1</span><span>Medium 6</span><span>Low 7</span></div>
+    </div>
+
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>Recommended: Move Forward</h4>
+        <ul class="small" style="margin:0">
+          <li>Continue MVP on the current architecture</li>
+          <li>Keep the defense-in-depth authorization pattern</li>
+          <li>Retain the shared Zod + integer-kobo monetary model</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4>Gate Before Public Production</h4>
+        <ul class="small" style="margin:0">
+          <li>CR-01 — stop logging password-reset tokens</li>
+          <li>CR-02 — cap service-invoice payments at remaining balance</li>
+          <li>Review CR-03 (rate limiting) for any publicly reachable surface</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 WHAT'S GOOD ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>02</em></div>
+      <h2 class="mod-title">Strengths</h2>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="panel avoid">
+        <h4><span class="hash">#</span> Default-Deny Authorization</h4>
+        <p class="small"><span class="code">convex/lib/auth.ts</span> + <span class="code">src/lib/auth-utils.ts</span> implement a clean matrix: a null role is <em>never</em> authorized, <span class="code">admin</span> bypasses, and every mutation routes through <span class="code">requireRole</span>. Tests in <span class="code">tests/convex/authz.test.ts</span> prove anonymous callers are rejected.</p>
+      </div>
+      <div class="panel avoid">
+        <h4><span class="hash">S</span> Single Source of Truth</h4>
+        <p class="small">Enums, Zod schemas, and the invoice-totals calculator (<span class="code">computeInvoiceTotals</span>) are shared between client preview and server generation — the same logic that shows the total also bills it.</p>
+      </div>
+      <div class="panel avoid">
+        <h4><span class="hash">S</span> Guarded State Machine</h4>
+        <p class="small"><span class="code">canTransition</span> is centralized in <span class="code">src/lib/job-utils.ts</span> and re-checked inside every transition mutation, backed by a full unit suite — clients can't skip states.</p>
+      </div>
+      <div class="panel avoid">
+        <h4><span class="hash">S</span> Immutable Audit + Integer Money</h4>
+        <p class="small">All mutations append to <span class="code">auditLogs</span>; stock movements are append-only; all money is integer kobo. These two decisions protect data integrity end to end.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 FINDINGS ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>03</em></div>
+      <h2 class="mod-title">Findings</h2>
+    </div>
+
+    <!-- HIGH -->
+    <h3 class="mod-sub">High Severity</h3>
+    <div class="panel avoid">
+      <h4>CR-01 · Password-reset tokens logged to console</h4>
+      <p class="small">The reset provider prints the reset code, token, and URL via <span class="code">console.log</span> in <span class="code">convex/auth.ts</span>. In any shared/production environment these land in server logs and could enable account takeover.</p>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Location</td><td class="code">convex/auth.ts:33–38 (sendVerificationRequest)</td></tr>
+          <tr><td class="code">Impact</td><td>Credential-reset token exposure · High</td></tr>
+          <tr><td class="code">Fix</td><td>Replace with a transactional email provider (SMTP/SendGrid); log only <span class="code">identifier</span>, never <span class="code">token</span> or <span class="code">url</span>.</td></tr>
+          <tr><td class="code">Effort</td><td>~0.5 d</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MEDIUM -->
+    <h3 class="sub">Medium Severity</h3>
+    <div class="panel avoid">
+      <h4>CR-02 · Service payments can exceed the invoice grand total</h4>
+      <p class="small"><span class="code">payments.record</span> (<span class="code">convex/payments.ts</span>) adds any positive amount to <span class="code">amountPaid</span> without an upper bound, unlike <span class="code">salesOrders.addPayment</span> which caps at balance. Over-recording inflates collections and muddies settlement.</p>
+      <table class="dt">
+        <tbody>
+          <tr><td class="code" style="width:110px">Location</td><td class="code">convex/payments.ts: record</td></tr>
+          <tr><td class="code">Impact</td><td>Financial-data integrity · Medium</td></tr>
+          <tr><td class="code">Fix</td><td>Reject when <span class="code">amount &gt; grandTotal − amountPaid</span>; also constrain <span class="code">method</span> to an allow-list (cash/transfer/card).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>CR-03 · No request throttling on the public surface</h4>
+      <p class="small">Writes (check-in, invoice generation, payments, parts dispatch) and the auth flow have no rate limit. Practically low risk for a single-tenant staff app, but any public-facing route invites scripted abuse and accidental double-submits.</p>
+      <table class="dt">
+        <tbody>
+          <tr><td class="code" style="width:110px">Location</td><td class="code">all mutations</td></tr>
+          <tr><td class="code">Impact</td><td>Abuse / availability · Medium (mitigated by single-tenant nature)</td></tr>
+          <tr><td class="code">Fix</td><td>Adopt the <a href="throttling-plan.html">Throttling Plan</a> for finance/dispatch mutations when/if any surface becomes public.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>CR-04 · <span class="code">invoices.generate</span> and <span class="code">regenerate</span> are near-duplicates</h4>
+      <p class="small">≈70 lines of snapshot/totals logic are repeated between the two handlers, and <span class="code">jobs.syncInvoiceForJob</span> is a third, looser variant typed with <span class="code">any</span>. Drift risk is real.</p>
+      <table class="dt">
+        <tbody>
+          <tr><td class="code" style="width:110px">Location</td><td class="code">convex/invoices.ts · convex/jobs.ts</td></tr>
+          <tr><td class="code">Impact</td><td>Maintainability · Medium</td></tr>
+          <tr><td class="code">Fix</td><td>Extract one <span class="code">buildInvoiceLineItems(jobId) + upsertInvoice</span> helper; type <span class="code">syncInvoiceForJob</span> with a <span class="code">MutationCtx</span> instead of <span class="code">any</span>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>CR-05 · Inconsistent error primitives</h4>
+      <p class="small"><span class="code">parts.adjustStock</span> uses <span class="code">throw new Error</span> while the rest of the backend uses <span class="code">ConvexError</span> (and optional <span class="code">data</span> for structured failure). Callers lose the standard error contract and the client toast sees a bare name.</p>
+      <table class="dt">
+        <tbody>
+          <tr><td class="code" style="width:110px">Location</td><td class="code">convex/parts.ts: adjustStock</td></tr>
+          <tr><td class="code">Impact</td><td>Error handling consistency · Medium</td></tr>
+          <tr><td class="code">Fix</td><td>Use <span class="code">ConvexError</span> everywhere; drop the redundant second <span class="code">await requireUser(ctx)</span> (already validated by <span class="code">requireRole</span>).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>CR-06 · Search coalesces whole-collection reads</h4>
+      <p class="small"><span class="code">parts.search</span> collects all rows then filters in JS; <span class="code">customers.search</span> / <span class="code">leads.search</span> do two separate search-index reads and merge. Fine at current seed scale, but O(n) per keystroke — coordinate with the P1 perf track.</p>
+      <table class="dt">
+        <tbody>
+          <tr><td class="code" style="width:110px">Location</td><td class="code">convex/parts.ts · customers.ts · leads.ts</td></tr>
+          <tr><td class="code">Impact</td><td>Read amplification · Medium (at scale)</td></tr>
+          <tr><td class="code">Fix</td><td>Bound with <span class="code">take()</span> at the source, and traces on the client.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- LOW -->
+    <h3 class="sub">Low Severity</h3>
+    <table class="dt">
+      <thead><tr><th style="width:70px">ID</th><th style="width:225px">Observation</th><th>Location</th></tr></thead>
+      <tbody>
+        <tr><td class="code">CR-07</td><td>Route guards duplicate inline role arrays across many files</td><td class="code">job.$id · customers · finance · sales/*</td></tr>
+        <tr><td class="code">CR-08</td><td><span class="code">bootstrapFirstAdmin</span> promotes caller to admin (safe now, race-prone later)</td><td class="code">users.ts</td></tr>
+        <tr><td class="code">CR-09</td><td><span class="code">audit()</span> silently skips when no actor — missing audit for system ops</td><td class="code">lib/audit.ts</td></tr>
+        <tr><td class="code">CR-10</td><td><span class="code">auditLogs</span> has no index on <span class="code">action</span>/<span class="code">ts</span> for large decks</td><td class="code">schema.ts</td></tr>
+        <tr><td class="code">CR-11</td><td>Heterogeneous frontier arrays typed as blanket <span class="code">v.string()</span> in some args</td><td class="code">jobs.addJobItem · partsRequests.review</td></tr>
+        <tr><td class="code">CR-12</td><td><span class="code">window.innerWidth</span> in <span class="code">useState</span> initializer risks hydration mismatch</td><td class="code">AppShell.tsx</td></tr>
+        <tr><td class="code">CR-13</td><td><span class="code">importParts</span> inserts in a loop (no Convex batch)</td><td class="code">parts.ts</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 04 ACTION PLAN ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>04</em></div>
+      <h2 class="mod-title">Action Plan</h2>
+    </div>
+
+    <table class="dt">
+      <thead><tr><th>ID</th><th>Priority</th><th>Owner</th><th>Target</th><th>Effort</th></tr></thead>
+      <tbody>
+        <tr><td class="code">CR-01</td><td><span class="badge fail">High</span></td><td class="code">eng</td><td>Before public prod</td><td class="num">~0.5 d</td></tr>
+        <tr><td class="code">CR-02</td><td><span class="badge warn">Medium</span></td><td class="code">eng</td><td>Next sprint</td><td class="num">0.25 d</td></tr>
+        <tr><td class="code">CR-03</td><td><span class="badge warn">Medium</span></td><td class="code">eng</td><td>Per throttling plan</td><td class="num">~0.5 d</td></tr>
+        <tr><td class="code">CR-04</td><td><span class="badge warn">Medium</span></td><td class="code">eng</td><td>Next sprint</td><td class="num">0.5 d</td></tr>
+        <tr><td class="code">CR-05</td><td><span class="badge warn">Medium</span></td><td class="code">eng</td><td>Next sprint</td><td class="num">0.25 d</td></tr>
+        <tr><td class="code">CR-06</td><td><span class="badge warn">Medium</span></td><td class="code">eng</td><td>Perf track</td><td class="num">0.5 d</td></tr>
+        <tr><td class="code">CR-07..13</td><td><span class="badge neutral">Low</span></td><td class="code">eng</td><td>Backlog</td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note info avoid">
+      <span class="t">Recommended Cadence</span>
+      Pair the CR-04 refactor with a regression pass on <span class="code">tests/unit/invoice.test.ts</span> and one paid-job E2E, so consolidation lands on verified behavior.
+    </div>
+
+    <div class="colophon">
+      <div class="brand">Cedric Masters Autos</div>
+      <div class="mono">CMA-01-001 · 07 Aug 2026 · rev a0</div>
+      <div class="small">Companion docs: <a href="srs.html">SRS</a> · <a href="throttling-plan.html">Throttling</a> · <a href="rbac-matrix.html">RBAC</a></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

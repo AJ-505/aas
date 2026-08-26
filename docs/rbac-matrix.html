@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RBAC Matrix — Cedric Masters Autos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_doc.css" />
+</head>
+<body>
+<div class="doc">
+
+  <header class="cover">
+    <div class="kicker on-dark">Access Control Specification</div>
+    <h1 class="display xl">RBAC Matrix<br /><span class="thin">7 Roles × Capabilities</span></h1>
+    <p class="sub">The authoritative role-to-capability map for Cedric Masters Autos, derived from the server-side <span class="code">requireRole</span> guards, route-level guards, and navigation gating. Admin bypasses every check; a null role is denied everywhere.</p>
+
+    <div class="specplate">
+      <div class="cell"><div class="k">Document ID</div><div class="v">CMA-RBAC-001</div></div>
+      <div class="cell"><div class="k">Roles</div><div class="v">7</div></div>
+      <div class="cell"><div class="k">Capabilities</div><div class="v">41</div></div>
+      <div class="cell"><div class="k">Date</div><div class="v amber">07 Aug 2026</div></div>
+      <div class="cell"><div class="k">Enforcement</div><div class="v">Server-side</div></div>
+      <div class="cell"><div class="k">Model</div><div class="v">Default-deny</div></div>
+      <div class="cell"><div class="k">Bypass</div><div class="v">Admin only</div></div>
+      <div class="cell"><div class="k">Source</div><div class="v">commit 0a26911</div></div>
+    </div>
+  </header>
+
+  <!-- ============ 01 OVERVIEW ============ -->
+  <section class="mod first">
+    <div class="mod-head">
+      <div class="mod-id"><em>01</em></div>
+      <h2 class="mod-title">Model Overview</h2>
+    </div>
+
+    <div class="legend avoid">
+      <span class="lg"><span class="sw" style="background:var(--good)"></span> ● Full access</span>
+      <span class="lg"><span class="sw" style="background:var(--amber)"></span> ◐ Scoped access (assigned-own only)</span>
+      <span class="lg"><span class="sw" style="background:var(--brand)"></span> ● Unconditional override (Admin)</span>
+      <span class="lg"><span class="sw" style="background:#f0f1ee;border:1px solid var(--line-strong)"></span> — No access</span>
+    </div>
+
+    <div class="pin" style="display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 14px">
+      <span class="badge neutral">Model</span><span class="small">isAuthorized(role, allowed): null ⇢ deny · admin ⇢ true · else membership.</span>
+    </div>
+
+    <div class="role-grid">
+      <div class="panel"><h4>Admin</h4><p class="small">Unconditional bypass; user mgmt, rates, everything.</p></div>
+      <div class="panel"><h4>CSR / Advisor</h4><p class="small">Front desk: check-in, customers, appointments, labour lines.</p></div>
+      <div class="panel"><h4>Technician</h4><p class="small">Diagnose + work own jobs, request parts. No invoices, no customers.</p></div>
+      <div class="panel"><h4>Inventory Mgr</h4><p class="small">Parts catalogue, stock, approve/dispatch/reverse requests.</p></div>
+      <div class="panel"><h4>Finance</h4><p class="small">Invoices, approval, payments, labour &amp; VAT settings.</p></div>
+      <div class="panel"><h4>Manager</h4><p class="small">All service ops, completes jobs, approves invoices, oversees.</p></div>
+      <div class="panel"><h4>Sales Rep</h4><p class="small">Leads, sales orders, deliveries, sales inventory exposure.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 02 MATRIX ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>02</em></div>
+      <h2 class="mod-title">Capability Matrix</h2>
+    </div>
+
+    <div class="matrix avoid">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Capability</th>
+            <th class="role">Admin</th>
+            <th class="role">CSR</th>
+            <th class="role">Tech</th>
+            <th class="role">Inv&nbsp;Mgr</th>
+            <th class="role">Finance</th>
+            <th class="role">Manager</th>
+            <th class="role">Sales</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- NAVIGATION & READ -->
+          <tr><td class="group" colspan="8">Navigation &amp; Read Access</td></tr>
+          <tr><td class="cap">Dashboard</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">Customers (list/detail)</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Jobs board (all)</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Appointments</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Customer vehicles (read)</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Parts catalogue</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Finance (invoices/settlements)</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Sales pipeline (inv/leads/orders)</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">View job items &amp; invoices</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">User management page</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td></tr>
+
+          <!-- SERVICE -->
+          <tr><td class="group" colspan="8">Service (After-Sales) — Writes</td></tr>
+          <tr><td class="cap">Create / update customer</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">Create / update vehicle</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">Book / cancel / check-in appointment</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Walk-in check-in (create job)</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Assign technician</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Record diagnosis</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-partial">◐</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Start work</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-partial">◐</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Mark ready for pickup</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-partial">◐</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Complete job</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Mark job paid</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Add / remove labour item</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Request parts (to waiting release)</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-partial">◐</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Review parts request (approve/reject)</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Dispatch / reverse parts</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+
+          <tr><td class="group" colspan="8">Finance &amp; Configuration</td></tr>
+          <tr><td class="cap">Generate / regenerate invoice</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Approve invoice</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Record service payment</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Configure VAT &amp; labour types</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td><td class="cell-no">—</td></tr>
+
+          <!-- SALES -->
+          <tr><td class="group" colspan="8">Sales — Writes</td></tr>
+          <tr><td class="cap">Create / edit / adjust sales vehicle</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">Create lead / change stage / follow-up</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">Create / complete / cancel sales order</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">Add sales-order payment</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+          <tr><td class="cap">Delivery handover checklist</td><td class="cell-own">●</td><td class="cell-ok">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-ok">●</td><td class="cell-ok">●</td></tr>
+
+          <!-- ADMIN -->
+          <tr><td class="group" colspan="8">Administration</td></tr>
+          <tr><td class="cap">List all users</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Assign roles / activate &amp; deactivate</td><td class="cell-own">●</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td></tr>
+          <tr><td class="cap">Bootstrap first admin (one-time)</td><td class="cell-own">○</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td><td class="cell-no">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note avoid">
+      <span class="t">Reading this matrix</span>
+      ● full · ◐ scoped to the user's own assigned jobs · ○ conditional (only succeeds while zero admins exist) · — denied. Admin is an <b>unconditional bypass</b> for every row; a user with no role is denied on every row (default-deny).
+    </div>
+  </section>
+
+  <!-- ============ 03 VERIFY ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>03</em></div>
+      <h2 class="mod-title">Verification</h2>
+    </div>
+
+    <table class="dt avoid">
+      <thead><tr><th>Layer</th><th>Artifact</th><th>Covers</th></tr></thead>
+      <tbody>
+        <tr><td class="code">Server</td><td class="code">convex/lib/auth.ts · src/lib/auth-utils.ts</td><td>requireRole, default-deny, admin bypass</td></tr>
+        <tr><td class="code">Guards</td><td class="code">convex/*.ts requireRole(...)</td><td>Per-mutation role whitelists in the matrix</td></tr>
+        <tr><td class="code">UI gating</td><td class="code">AppShell · route redirects</td><td>Nav visibility + unauth redirect per role</td></tr>
+        <tr><td class="code">Tests</td><td class="code">tests/convex/authz.test.ts</td><td>Anonymous rejection of users/customers/vehicles</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note info avoid">
+      <span class="t">Amplify</span>
+      The matrix should be locked by expanding <span class="code">tests/convex/authz.test.ts</span> with per-role positive/negative cases (e.g., Technician cannot <span class="code">markPaid</span>, Sales cannot <span class="code">checkIn</span>) — these currently live only in manual walkthroughs.
+    </div>
+
+    <div class="colophon">
+      <div class="brand">Cedric Masters Autos</div>
+      <div class="mono">CMA-RBAC-001 · 07 Aug 2026</div>
+      <div class="small">Companion docs: <a href="srs.html">SRS</a> · <a href="code-review-report.html">Code Review</a> · <a href="throttling-plan.html">Throttling</a> · <a href="docs/mock-accounts.md">Mock Accounts</a></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

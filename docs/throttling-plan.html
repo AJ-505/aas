@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Throttling Plan — Cedric Masters Autos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_doc.css" />
+</head>
+<body>
+<div class="doc">
+
+  <header class="cover">
+    <div class="kicker on-dark">Proposed Engineering Plan</div>
+    <h1 class="display xl">Throttling Plan<br /><span class="thin">Application Rate Limiting</span></h1>
+    <p class="sub">A targeted, fixed-window rate-limiting design for Cedric Masters Autos — written for review. This is a <b>proposal only</b>; no throttling code is implemented in the application today.</p>
+
+    <div class="specplate">
+      <div class="cell"><div class="k">Document ID</div><div class="v">CMA-TRP-001</div></div>
+      <div class="cell"><div class="k">Status</div><div class="v amber">PROPOSED — NOT IMPLEMENTED</div></div>
+      <div class="cell"><div class="k">Date</div><div class="v">07 Aug 2026</div></div>
+      <div class="cell"><div class="k">Owner</div><div class="v">eng-team</div></div>
+      <div class="cell"><div class="k">Approach</div><div class="v">Fixed-window · DB counter</div></div>
+      <div class="cell"><div class="k">Surface</div><div class="v">Finance / dispatch / auth</div></div>
+      <div class="cell"><div class="k">Effort</div><div class="v">~0.5 d</div></div>
+      <div class="cell"><div class="k">Risk</div><div class="v">Low · reversible</div></div>
+    </div>
+  </header>
+
+  <!-- ============ 01 STATUS ============ -->
+  <section class="mod first">
+    <div class="mod-head">
+      <div class="mod-id"><em>01</em></div>
+      <h2 class="mod-title">Status &amp; Position</h2>
+    </div>
+
+    <div class="note flag avoid">
+      <span class="t">Not Yet Implemented</span>
+      This document is a <b>proposed throttling plan</b>. It has not been implemented in the application. <span class="code">git log</span> shows no rate-limiting or throttling code in <span class="code">convex/</span> or <span class="code">src/</span>. Adoption requires team sign-off and, per the recommendation below, should be limited to the surfaces that matter.
+    </div>
+
+    <div class="panel avoid">
+      <h4><span class="hash">#</span> Engineering Position (Pushback)</h4>
+      <p class="lead" style="font-size:10.5pt">Cedric Masters Autos is a <b>single-tenant staff application</b> deployed for one workshop's team. The typical threat model that motivates rate limiting — public signup, credential stuffing, scraping, bursty traffic from untrusted users — does not exist here: every caller is an authenticated employee with a role. Full-blown rate limiting would therefore be <b>over-engineering</b>. The honest recommendation is:</p>
+      <ul class="small">
+        <li><b>Do not</b> build a general-purpose rate limiter across every mutation.</li>
+        <li><b>Do</b> add two lightweight, high-value guards: (1) a soft cooldown on repeated financial mutations to absorb accidental double-clicks, and (2) limits on the auth/reset surface if it is ever exposed beyond the team.</li>
+        <li>Revisit only when a <b>customer portal</b> or public booking endpoint ships (both are post-MVP per the PRD).</li>
+      </ul>
+      <p class="small" style="margin-bottom:0">The plan below is written so the team can adopt it fully, partially, or defer it with confidence.</p>
+    </div>
+  </section>
+
+  <!-- ============ 02 THREAT MODEL ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>02</em></div>
+      <h2 class="mod-title">Threat Model</h2>
+    </div>
+
+    <table class="dt">
+      <thead><tr><th style="width:230px">Scenario</th><th style="width:120px">Likelihood</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Accidental double-submit on payments / dispatch</td><td><span class="badge warn">Moderate</span></td><td>A stray double-click records two payments or dispatches twice; both are recoverable but create ledger noise.</td></tr>
+        <tr><td>Stray client retry loops on a flaky network</td><td><span class="badge warn">Moderate</span></td><td>React Query retries can replay a mutation more than intended.</td></tr>
+        <tr><td>Credential stuffing on login/reset</td><td><span class="badge neutral">Low</span></td><td>Auth is staff-only, but the route is public by definition; guards there are cheap.</td></tr>
+        <tr><td>Scripted abuse / scraping</td><td><span class="badge neutral">Low</span></td><td>Only reachable with valid staff credentials — de-scoped for v1.</td></tr>
+        <tr><td>Public customer portal / booking</td><td><span class="badge neutral">Deferred</span></td><td>Post-MVP; when it ships, throttling becomes mandatory, not optional.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note info avoid">
+      <span class="t">Conclusion</span>
+      The realistic, proportionate scope is <b>two narrow limits</b>: one per-user cooldown on financial mutations, one on the auth/reset flow. Everything else is deferred.
+    </div>
+  </section>
+
+  <!-- ============ 03 DESIGN ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>03</em></div>
+      <h2 class="mod-title">Proposed Design</h2>
+    </div>
+
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>Mechanism — Fixed-Window Counter</h4>
+        <ul class="small" style="margin:0">
+          <li>New table <span class="code">rateLimits</span>: <span class="code">{ key, windowStart, count }</span>, indexed on <span class="code">key</span>.</li>
+          <li>Helper <span class="code">enforceLimit(ctx, key, limit, windowMs)</span> called inside a mutation.</li>
+          <li>Read the row; if the window elapsed, reset; else if <span class="code">count &ge; limit</span> throw <span class="code">ConvexError('Too many requests — try again shortly.')</span>; else increment.</li>
+          <li>Atomic: Convex mutations run as single transactions, so check-and-increment cannot race.</li>
+          <li>Key scope: per <span class="code">userId</span> (never a bare IP).</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4>Housekeeping</h4>
+        <ul class="small" style="margin:0">
+          <li>Rows are reset in-place when a window expires — bounded size.</li>
+          <li>Optional nightly cleanup removes rows older than 24 h.</li>
+          <li>Feature-flag <span class="code">RATE_LIMIT_ENABLED</span> (default <span class="code">false</span>) so limits can be disabled instantly during demos without a deploy.</li>
+          <li>Limits are per-environment config, not hard-coded business rules.</li>
+        </ul>
+      </div>
+    </div>
+
+    <pre class="code avoid"><span class="c">// convex/lib/rate-limit.ts — proposed</span>
+<span class="k">export async function</span> enforceLimit(
+  ctx: MutationCtx,
+  key: string,
+  limit: number,
+  windowMs: number,
+) {
+  <span class="k">const</span> now = Date.now()
+  <span class="k">const</span> row = await ctx.db.query(<span class="s">'rateLimits'</span>).withIndex(<span class="s">'key'</span>, q => q.eq(<span class="s">'key'</span>, key)).first()
+  <span class="k">if</span> (!row || now - row.windowStart &gt; windowMs) {
+    <span class="k">if</span> (row) await ctx.db.patch(row._id, { windowStart: now, count: 1 })
+    <span class="k">else</span> await ctx.db.insert(<span class="s">'rateLimits'</span>, { key, windowStart: now, count: 1 })
+    <span class="k">return</span>
+  }
+  <span class="k">if</span> (row.count &gt;= limit) {
+    <span class="k">throw new</span> ConvexError(<span class="s">'Too many requests. Please wait a moment and try again.'</span>)
+  }
+  await ctx.db.patch(row._id, { count: row.count + 1 })
+}</pre>
+  </section>
+
+  <!-- ============ 04 LIMIT MATRIX ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>04</em></div>
+      <h2 class="mod-title">Proposed Limit Matrix</h2>
+    </div>
+
+    <table class="dt">
+      <thead><tr><th>Surface</th><th>Mutation</th><th>Limit</th><th>Window</th><th>Scope</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td class="code">Finance</td><td class="code">payments.record</td><td class="num">20</td><td class="num">1 min</td><td class="code">user</td><td>Absorb double-clicks; prevent ledger noise</td></tr>
+        <tr><td class="code">Finance</td><td class="code">invoices.generate / approve</td><td class="num">30</td><td class="num">1 min</td><td class="code">user</td><td>Regenerate storms</td></tr>
+        <tr><td class="code">Service</td><td class="code">jobs.checkIn</td><td class="num">40</td><td class="num">1 min</td><td class="code">user</td><td>Reasonable peak intake</td></tr>
+        <tr><td class="code">Inventory</td><td class="code">partsRequests.dispatch / reverse</td><td class="num">40</td><td class="num">1 min</td><td class="code">user</td><td>Stock + invoice side effects are heavier</td></tr>
+        <tr><td class="code">Sales</td><td class="code">salesOrders.create / addPayment</td><td class="num">30</td><td class="num">1 min</td><td class="code">user</td><td>Financial writes</td></tr>
+        <tr><td class="code">Auth</td><td class="code">sign-in attempts</td><td class="num">10</td><td class="num">5 min</td><td class="code">email</td><td>Credential-stuffing guard (if exposed)</td></tr>
+        <tr><td class="code">Auth</td><td class="code">reset-password requests</td><td class="num">5</td><td class="num">1 h</td><td class="code">email</td><td>Prevent inbox flooding</td></tr>
+        <tr><td class="code">Data</td><td class="code">parts.importParts</td><td class="num">5</td><td class="num">1 min</td><td class="code">user</td><td>Bulk insert guard</td></tr>
+      </tbody>
+    </table>
+
+    <p class="small">Limits are intentionally generous for a small staff — they stop accidents and scripts, never a busy shift.</p>
+
+    <h3 class="mod-sub">Client-Side Complement</h3>
+    <div class="grid grid-3 avoid">
+      <div class="panel"><h4>Button cooldowns</h4><p class="small">Disable submit buttons while <span class="code">isPending</span> (already the norm in this app) — the primary accidental-duplicate defence.</p></div>
+      <div class="panel"><h4>Input debounce</h4><p class="small">Debounce customer/part/lead search to ~300 ms to avoid a query per keystroke (pairs with CR-06).</p></div>
+      <div class="panel"><h4>Error copy</h4><p class="small">On a 429-style <span class="code">ConvexError</span>, surface: "Too many requests — try again in a moment," never raw internals.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 05 ADOPTION ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>05</em></div>
+      <h2 class="mod-title">Adoption Path &amp; Testing</h2>
+    </div>
+
+    <table class="dt">
+      <thead><tr><th style="width:90px">Step</th><th>Action</th><th style="width:130px">Effort</th></tr></thead>
+      <tbody>
+        <tr><td class="code">1</td><td>Add <span class="code">rateLimits</span> table to <span class="code">convex/schema.ts</span> (widen — additive, non-breaking)</td><td class="num">15 min</td></tr>
+        <tr><td class="code">2</td><td>Implement <span class="code">convex/lib/rate-limit.ts</span> helper + <span class="code">RATE_LIMIT_ENABLED</span> flag</td><td class="num">30 min</td></tr>
+        <tr><td class="code">3</td><td>Call <span class="code">enforceLimit</span> at the top of the mutations in the matrix</td><td class="num">20 min</td></tr>
+        <tr><td class="code">4</td><td>Unit tests: window reset, limit hit, per-user isolation, flag off-path</td><td class="num">30 min</td></tr>
+        <tr><td class="code">5</td><td>Manual smoke: exceed a limit, confirm the friendly error and no side effects</td><td class="num">15 min</td></tr>
+        <tr><td class="code">6</td><td>Rollout: ship behind the flag, enable, watch for false positives in one shift</td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note avoid">
+      <span class="t">Rollback</span>
+      Flip <span class="code">RATE_LIMIT_ENABLED=false</span> or redeploy the prior build — the table is additive and every limit is independent, so rollback is instant and non-destructive.
+    </div>
+
+    <div class="colophon">
+      <div class="brand">Cedric Masters Autos</div>
+      <div class="mono">CMA-TRP-001 · PROPOSED · 07 Aug 2026</div>
+      <div class="small">Companion docs: <a href="srs.html">SRS</a> · <a href="code-review-report.html">Code Review</a> · <a href="rbac-matrix.html">RBAC</a></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

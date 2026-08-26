@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SRS — Cedric Masters Autos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_doc.css" />
+</head>
+<body>
+<div class="doc">
+
+  <!-- ============ COVER ============ -->
+  <header class="cover">
+    <div class="kicker on-dark">Software Requirements Specification</div>
+    <h1 class="display xl">Cedric Masters Autos<br /><span class="thin">Workshop &amp; Dealership Management System</span></h1>
+    <p class="sub">A single system to manage every vehicle that comes through the doors — from service intake to sale and handover. Built for the service bay, the showroom, and the back office.</p>
+
+    <div class="specplate">
+      <div class="cell"><div class="k">Document ID</div><div class="v">CMA-SRS-001</div></div>
+      <div class="cell"><div class="k">Version</div><div class="v amber">v1.0.0</div></div>
+      <div class="cell"><div class="k">Status</div><div class="v">Approved</div></div>
+      <div class="cell"><div class="k">Date</div><div class="v">07 Aug 2026</div></div>
+      <div class="cell"><div class="k">Platform</div><div class="v">Web (SaaS-ready)</div></div>
+      <div class="cell"><div class="k">Stack</div><div class="v">TanStack · Convex</div></div>
+      <div class="cell"><div class="k">First Site</div><div class="v">Lagos, Nigeria</div></div>
+      <div class="cell"><div class="k">Build</div><div class="v">MVP + P1–P4</div></div>
+    </div>
+  </header>
+
+  <!-- ============ 01 DOCUMENT CONTROL ============ -->
+  <section class="mod first">
+    <div class="mod-head">
+      <div class="mod-id"><em>01</em></div>
+      <h2 class="mod-title">Document Control</h2>
+    </div>
+
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>Revision History</h4>
+        <table class="dt plain">
+          <thead><tr><th>Rev</th><th>Date</th><th>Author</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td class="code">0.1</td><td>17 Jul 2026</td><td class="code">eng-team</td><td>Draft from PRD</td></tr>
+            <tr><td class="code">0.2</td><td>18 Jul 2026</td><td class="code">eng-team</td><td>Add RBAC, audit trail</td></tr>
+            <tr><td class="code">1.0</td><td>07 Aug 2026</td><td class="code">eng-team</td><td>Baseline release</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h4>Approvals</h4>
+        <table class="dt plain">
+          <thead><tr><th>Role</th><th>Owner</th><th>Sign-off</th></tr></thead>
+          <tbody>
+            <tr><td>Product Owner</td><td>Cedric Masters</td><td class="code">—</td></tr>
+            <tr><td>Engineering Lead</td><td class="code">eng-team</td><td class="code">—</td></tr>
+            <tr><td>QA Lead</td><td class="code">qa-team</td><td class="code">—</td></tr>
+          </tbody>
+        </table>
+        <p class="small" style="margin-top:8px">Sign-off is recorded when each role acknowledges this baseline.</p>
+      </div>
+    </div>
+
+    <div class="grid grid-4 avoid">
+      <div class="panel"><h4>Terminology</h4>
+        <ul class="small" style="margin:0">
+          <li><b>Job</b> — a repair / service work order</li>
+          <li><b>CSR</b> — Customer Service Representative (service advisor)</li>
+          <li><b>Parts request</b> — technician stock request for a job</li>
+          <li><b>RBAC</b> — Role-Based Access Control</li>
+        </ul>
+      </div>
+      <div class="panel"><h4>Referenced Docs</h4>
+        <ul class="small" style="margin:0">
+          <li>PRD.md — product requirements</li>
+          <li>ROADMAP.md — feature status</li>
+          <li>docs/mock-accounts.md — demo users</li>
+          <li>user_manual.pdf — operator guide</li>
+        </ul>
+      </div>
+      <div class="panel"><h4>Glossary</h4>
+        <ul class="small" style="margin:0">
+          <li><b>Kobo</b> — NGN subunit; all money stored as integer kobo</li>
+          <li><b>VAT</b> — Value-Added Tax (NGN default 7.5%)</li>
+          <li><b>OEM</b> — Original Equipment Manufacturer</li>
+        </ul>
+      </div>
+      <div class="panel"><h4>Conventions</h4>
+        <ul class="small" style="margin:0">
+          <li>Priority: <span class="badge info">P0</span> core · <span class="badge neutral">P1</span> perf · <span class="badge neutral">P2+</span> later</li>
+          <li>Requirement IDs are stable trace keys</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 INTRODUCTION ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>02</em></div>
+      <h2 class="mod-title">Introduction</h2>
+    </div>
+
+    <h3 class="mod-sub">Purpose</h3>
+    <p class="lead">This document defines the functional and non-functional requirements for the <b>Cedric Masters Autos</b> workshop and dealership management system. It is the baseline agreement between product, engineering, and quality — the single reference for what the system does, how it behaves, and how it will be verified.</p>
+
+    <h3 class="mod-sub">Scope</h3>
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4><span class="hash">#</span> In Scope — MVP</h4>
+        <ul class="small" style="margin:0">
+          <li>After-sales service: customers, check-in, technician intake, parts catalogue, labour rates, invoicing, payments, 8-status job workflow</li>
+          <li>Vehicle sales: inventory, leads/CRM, sales orders, delivery handover</li>
+          <li>Administration: 7 roles, user management, VAT &amp; labour settings</li>
+          <li>Cross-cutting: immutable audit trail, role-based access control, Excel import of parts</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4><span class="hash">#</span> Out of Scope — Post-MVP</h4>
+        <ul class="small" style="margin:0">
+          <li>Customer self-service portal (history, downloads, online booking)</li>
+          <li>Reporting &amp; dashboards (revenue, productivity, parts usage)</li>
+          <li>Multi-branch / multi-tenant organisation scoping</li>
+          <li>Trade-in management &amp; sales commission tracking</li>
+          <li>Accounting integration (QuickBooks, Sage) &amp; Excel export</li>
+          <li>Email/SMS delivery of reset codes &amp; invoices</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="mod-sub">Definitions &amp; Abbreviations</h3>
+    <table class="dt avoid">
+      <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td class="code">Job</td><td>Repair or service work order bound to one customer vehicle</td></tr>
+        <tr><td class="code">Check-in</td><td>The walk-in intake flow that creates customer → vehicle → job</td></tr>
+        <tr><td class="code">Parts request</td><td>Technician stock request linked to a job; approved and dispatched by Inventory</td></tr>
+        <tr><td class="code">Job item</td><td>Billable line — either a dispatched part or a labour line</td></tr>
+        <tr><td class="code">RBAC</td><td>Role-Based Access Control; enforced server-side on every function</td></tr>
+        <tr><td class="code">Kobo</td><td>Integer subunit of the Naira (100 kobo = 1 NGN); money is never stored as float</td></tr>
+        <tr><td class="code">CSR / Advisor</td><td>Front-desk service advisor; owns check-in and customer registration</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 03 OVERALL DESCRIPTION ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>03</em></div>
+      <h2 class="mod-title">Overall Description</h2>
+    </div>
+
+    <h3 class="mod-sub">Product Perspective</h3>
+    <p class="lead">Cedric Masters Autos is a realtime, serverless web application. The frontend is <b>TanStack Start (React 19)</b> with <b>TanStack Router</b> and <b>Tailwind v4</b>; the backend is <b>Convex</b> (typed, reactive database + functions). Data flows one direction: the browser subscribes to typed queries, and every write is a validated, authorized, audited mutation. Roles are enforced in the backend, never merely hidden in the UI.</p>
+
+    <h3 class="mod-sub">User Roles &amp; Operating Environment</h3>
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>The Seven Roles</h4>
+        <table class="dt plain">
+          <thead><tr><th>Role</th><th>Code</th><th>Primary duties</th></tr></thead>
+          <tbody>
+            <tr><td>Admin</td><td class="code">admin</td><td>Full access, user management, rates</td></tr>
+            <tr><td>Service Advisor</td><td class="code">csr</td><td>Check-in, customers, appointments</td></tr>
+            <tr><td>Technician</td><td class="code">technician</td><td>Diagnose, work jobs, request parts</td></tr>
+            <tr><td>Inventory Manager</td><td class="code">inventoryManager</td><td>Parts catalogue, stock, requests</td></tr>
+            <tr><td>Finance</td><td class="code">finance</td><td>Invoices, approval, payments</td></tr>
+            <tr><td>Manager</td><td class="code">manager</td><td>Approve invoices, complete jobs, oversee</td></tr>
+            <tr><td>Sales Rep</td><td class="code">salesRep</td><td>Leads, sales orders, deliveries</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h4>Environment &amp; Constraints</h4>
+        <ul class="small" style="margin:0">
+          <li>Modern evergreen browsers; responsive down to mobile</li>
+          <li>Deployment: Vercel (Nitro adapter, <span class="code">.output/</span>), Convex cloud backend</li>
+          <li>Auth: Convex Auth, password provider (email + password)</li>
+          <li>Validation: Zod v4 shared between client and server</li>
+          <li>Money: integer kobo everywhere; VAT rounded to kobo</li>
+          <li>TypeScript 7 (tsgo) — typecheck ~2 s</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="mod-sub">Assumptions &amp; Dependencies</h3>
+    <div class="grid grid-3 avoid">
+      <div class="panel"><h4>Assumptions</h4><p class="small">Staff are named users with assigned roles; one person may hold one role at a time; NGN is the transactional currency in v1.</p></div>
+      <div class="panel"><h4>Dependencies</h4><p class="small">Convex availability, Google Fonts for rendering, browser print support for job cards and invoices.</p></div>
+      <div class="panel"><h4>Open Questions</h4><p class="small">Discounts &amp; limits, VAT exemptions, corporate net-30 credit terms, first-time vs returning customer flows.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 04 FUNCTIONAL REQUIREMENTS ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>04</em></div>
+      <h2 class="mod-title">Functional Requirements</h2>
+    </div>
+
+    <div class="mod-sub">Service Module — After-Sales</div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-01 · Customer Database</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>CSR · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL maintain a central customer record (name, phone, optional email, address) and SHALL support create, update, and search by name or phone.</td></tr>
+          <tr><td class="code">Verification</td><td colspan="3">Unit + E2E; manual search smoke test (<span class="code">convex/customers.ts</span>, search indexes on name &amp; phone)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-02 · One-Stop Creation</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>CSR · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL allow a customer, their vehicle, and a job to be created in a single flow without leaving the form.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-03 · Repair History</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>CSR · Finance · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL show the full repair history for a customer (all jobs, vehicles, invoices, and statuses) on the customer detail page.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-04 · Walk-In Check-In</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>CSR · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL provide a 3-step check-in flow: locate/create the customer, locate/create the vehicle, capture the complaint and create the job in <span class="code">checkedIn</span> status with a timestamp.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-05 · Appointment Booking</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>CSR · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL support booking appointments with Today/Week/Month range views, SHALL reject past dates (server + client), and SHALL require vehicle make, model, plate, and complaint. Appointments move <span class="code">scheduled → checkedIn → cancelled</span>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-06 · Technician Job Intake</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>Technician · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL allow assignment of a technician, recording of a diagnosis, and transition of the job through the state machine. A technician SHALL only act on jobs assigned to them (admin/manager excepted).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-07 · Spare Parts Catalogue</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>Inventory Manager · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL support CRUD on parts (unique code, description, cost &amp; selling price, stock quantity, reorder level), one-click CSV import, a low-stock badge when <span class="code">stockQty &le; reorderLevel</span>, and an immutable stock-movement audit trail (in / out / adjust).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-08 · Labour Rate Configuration</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>Finance · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL maintain a lookup of job types to fixed prices (e.g., "Oil change = NGN 5,000") independent of technician or vehicle.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-09 · Invoice Generation</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>Finance · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL compute invoices from part + labour line items with a configurable VAT rate (default 7.5%), snapshot line items, support regeneration (re-sync) until paid, and require manager approval before the customer-facing copy is valid. Regeneration resets approval; a paid invoice is immutable.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-10 · Payment Recording</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>Finance · Manager · Admin</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL record payments by method (cash / transfer / card), support partial payments with running balance, and auto-mark the invoice paid when <span class="code">amountPaid &ge; grandTotal</span>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-11 · Job Progress (8-Status State Machine)</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>All staff per transition</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL model jobs as: <span class="code">checkedIn → assigned → diagnosed → inProgress → readyForPickup → completed → paid</span>, with <span class="code">waitingRelease</span> as a holding state when parts are needed. Each transition SHALL be guarded by <span class="code">canTransition</span> and SHALL record a per-status timestamp.</td></tr>
+          <tr><td class="code">Verification</td><td colspan="3"><span class="code">tests/unit/job-utils.test.ts</span> — 5 suites, full transition matrix</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-12 · Parts Request Workflow</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>Technician → Inventory → Finance</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL move a job to <span class="code">waitingRelease</span> when a technician requests parts, SHALL let Inventory approve/reject/dispatch, SHALL auto-decrement stock on dispatch, add part line items to the job, and re-sync the invoice. Reversal SHALL restore stock, remove line items, and re-sync the invoice. Work SHALL NOT start while approved/pending requests remain.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel avoid">
+      <h4>FR-SVC-13 / 14 · Printable Job Card &amp; Invoice</h4>
+      <table class="dt plain">
+        <tbody>
+          <tr><td class="code" style="width:110px">Priority</td><td><span class="badge info">P0</span></td><td class="code" style="width:110px">Actor</td><td>Manager · Technician · CSR · Admin / Finance</td></tr>
+          <tr><td class="code">Requirement</td><td colspan="3">The system SHALL render A4-printable job cards and invoices populated from backend data, hidden on screen and revealed only for print (<span class="code">hidden print:block</span>).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mod-sub">Sales Module</div>
+
+    <div class="grid grid-2">
+      <div class="panel avoid">
+        <h4>FR-SLS-01 · Vehicle Inventory</h4>
+        <table class="dt plain">
+          <tbody>
+            <tr><td class="code" style="width:100px">Priority</td><td><span class="badge info">P0</span></td></tr>
+            <tr><td class="code">Actor</td><td>Sales Rep · CSR · Manager · Admin</td></tr>
+            <tr><td class="code">Req</td><td>CRUD vehicles (make, model, year, colour, VIN, plate, cost, selling price) with status <span class="code">inStock / reserved / sold / customerOwned</span>, stock quantity, reorder level, and stock adjustment.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel avoid">
+        <h4>FR-SLS-02 · Customer Leads &amp; CRM</h4>
+        <table class="dt plain">
+          <tbody>
+            <tr><td class="code" style="width:100px">Priority</td><td><span class="badge info">P0</span></td></tr>
+            <tr><td class="code">Actor</td><td>Sales Rep · CSR · Manager · Admin</td></tr>
+            <tr><td class="code">Req</td><td>CRUD leads with stages <span class="code">new → contacted → qualified → won / lost</span>, follow-up notes timeline, and next-follow-up reminders.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel avoid">
+        <h4>FR-SLS-03 · Sales Orders</h4>
+        <table class="dt plain">
+          <tbody>
+            <tr><td class="code" style="width:100px">Priority</td><td><span class="badge info">P0</span></td></tr>
+            <tr><td class="code">Actor</td><td>Sales Rep · CSR · Manager · Admin</td></tr>
+            <tr><td class="code">Req</td><td>Create order (agreed price + deposit), auto-reserve vehicle, track balance &amp; payment log, complete only when balance is zero, cancel restores stock.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel avoid">
+        <h4>FR-SLS-04 · Delivery Handover</h4>
+        <table class="dt plain">
+          <tbody>
+            <tr><td class="code" style="width:100px">Priority</td><td><span class="badge info">P0</span></td></tr>
+            <tr><td class="code">Actor</td><td>Sales Rep · CSR · Manager · Admin</td></tr>
+            <tr><td class="code">Req</td><td>Record delivery checklist (keys, manual, toolkit, inspection) against the sales rep with a handover timestamp.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mod-sub">Administration</div>
+
+    <div class="grid grid-2">
+      <div class="panel avoid">
+        <h4>FR-ADM-01 · User Roles &amp; Management</h4>
+        <table class="dt plain">
+          <tbody>
+            <tr><td class="code" style="width:100px">Priority</td><td><span class="badge info">P0</span></td></tr>
+            <tr><td class="code">Actor</td><td>Admin</td></tr>
+            <tr><td class="code">Req</td><td>Admin SHALL list users, assign any of the 7 roles, activate/deactivate accounts. Deactivated users SHALL fail server-side auth checks. A one-time bootstrap promotes the first admin only when zero admins exist.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel avoid">
+        <h4>FR-ADM-02/03 · Settings</h4>
+        <table class="dt plain">
+          <tbody>
+            <tr><td class="code" style="width:100px">Priority</td><td><span class="badge info">P0</span></td></tr>
+            <tr><td class="code">Actor</td><td>Finance · Manager · Admin</td></tr>
+            <tr><td class="code">Req</td><td>Configure the VAT rate (default 7.5%) and manage labour types (name + fixed price).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mod-sub">Cross-Cutting</div>
+
+    <div class="grid grid-3">
+      <div class="panel avoid">
+        <h4>FR-XCT-01 · Audit Trail</h4>
+        <p class="small">Every mutation SHALL append an immutable audit record: user, action, entity, entity id, timestamp (<span class="code">convex/lib/audit.ts</span>).</p>
+      </div>
+      <div class="panel avoid">
+        <h4>FR-XCT-02 · RBAC</h4>
+        <p class="small">Server SHALL default-deny: a null role is never authorized, admin bypasses, every mutation guards its roles via <span class="code">requireRole</span>. UI reflects the same matrix.</p>
+      </div>
+      <div class="panel avoid">
+        <h4>FR-XCT-05 · Rate Limiting</h4>
+        <p class="small">Targeted fixed-window limiting on financial and write-heavy mutations is <b>proposed, not yet implemented</b> — see the <a href="throttling-plan.html">Throttling Plan</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 NON-FUNCTIONAL ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>05</em></div>
+      <h2 class="mod-title">Non-Functional Requirements</h2>
+    </div>
+
+    <table class="dt">
+      <thead><tr><th style="width:130px">Category</th><th style="width:90px">ID</th><th>Requirement</th></tr></thead>
+      <tbody>
+        <tr><td><b>Performance</b></td><td class="code">NFR-PER-01</td><td>Time-to-first-paint for authenticated routes &le; 2 s on a normal office connection; typecheck &le; 5 s (currently ~2 s with tsgo).</td></tr>
+        <tr><td><b>Performance</b></td><td class="code">NFR-PER-02</td><td>Read queries resolve &le; 500 ms for catalogues &le; 10,000 rows under normal load.</td></tr>
+        <tr><td><b>Scalability</b></td><td class="code">NFR-SCL-01</td><td>Support &ge; 50 concurrent staff sessions per site; Convex-backed realtime subscriptions without client pooling.</td></tr>
+        <tr><td><b>Availability</b></td><td class="code">NFR-AVA-01</td><td>99.5% availability for the hosted app; offline edits out of scope for v1.</td></tr>
+        <tr><td><b>Security</b></td><td class="code">NFR-SEC-01</td><td>All writes authorized server-side; default-deny on unknown roles; sensitive data not exposed to unauthorized roles.</td></tr>
+        <tr><td><b>Usability</b></td><td class="code">NFR-US-01</td><td>Core flows (check-in, invoice, order) completable in &le; 3 min by a trained CSR; responsive down to 360 px.</td></tr>
+        <tr><td><b>Reliability</b></td><td class="code">NFR-RLB-01</td><td>Monetary integrity is invariant: integer kobo arithmetic, VAT rounding to kobo, balance never negative.</td></tr>
+        <tr><td><b>Maintainability</b></td><td class="code">NFR-MNT-01</td><td>Shared typed modules (enums, schemas, job-utils) as single sources of truth; zero hardcoded colours in components.</td></tr>
+        <tr><td><b>Portability</b></td><td class="code">NFR-PRT-01</td><td>Deploys to Vercel via Nitro <span class="code">.output/</span>; runs with <span class="code">pnpm dev</span> locally against a Convex dev backend.</td></tr>
+        <tr><td><b>Compliance</b></td><td class="code">NFR-CMP-01</td><td>Tax-inclusive pricing per configurable NGN VAT; audit trail retained for review (retention per site policy).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 06 INTERFACES ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>06</em></div>
+      <h2 class="mod-title">Interface Specifications</h2>
+    </div>
+
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>User Interfaces</h4>
+        <table class="dt plain">
+          <thead><tr><th>Route</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td class="code">/</td><td>Dashboard (role-aware)</td></tr>
+            <tr><td class="code">/auth/login · reset-password</td><td>Auth</td></tr>
+            <tr><td class="code">/service/checkin</td><td>3-step walk-in</td></tr>
+            <tr><td class="code">/service/customers · customer/$id</td><td>Customers + history</td></tr>
+            <tr><td class="code">/service/jobs · job/$id</td><td>Job board + detail</td></tr>
+            <tr><td class="code">/service/appointments</td><td>Booking range view</td></tr>
+            <tr><td class="code">/service/parts · vehicles</td><td>Catalogue / vehicles</td></tr>
+            <tr><td class="code">/service/finance</td><td>Invoices, payments, settings</td></tr>
+            <tr><td class="code">/sales/inventory · leads · orders · lead/$id · order/$id</td><td>Sales pipeline</td></tr>
+            <tr><td class="code">/admin/users</td><td>User management</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h4>Software &amp; Hardware Interfaces</h4>
+        <ul class="small" style="margin:0">
+          <li><b>Convex backend</b> — typed queries/mutations via generated <span class="code">api</span> module; reactive subscriptions via <span class="code">@convex-dev/react-query</span></li>
+          <li><b>Convex Auth</b> — password provider; session via <span class="code">useConvexAuth</span></li>
+          <li><b>Auth HTTP routes</b> — <span class="code">convex/http.ts</span> mounts auth endpoints</li>
+          <li><b>CSV import</b> — parts bulk load via mutation</li>
+          <li><b>Printer</b> — browser print pipeline for job card / invoice (A4)</li>
+          <li><b>Email</b> — reset-password provider currently logs codes to console (see <span class="badge warn">security note</span>); SMTP provider is a planned interface</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 07 PERFORMANCE BENCHMARKS ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>07</em></div>
+      <h2 class="mod-title">Performance Benchmarks</h2>
+    </div>
+
+    <p class="lead">Targets below are baselines to hold the MVP at; the P1 track (Vite warmup, single-auth-roundtrip gating, query guards, lazy devtools, <span class="code">workers=2</span> Playwright) already lands several of them.</p>
+
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>Measured Today</h4>
+        <table class="dt plain">
+          <thead><tr><th>Metric</th><th>Baseline</th></tr></thead>
+          <tbody>
+            <tr><td>Typecheck (TS 7 / tsgo)</td><td class="num">~2 s</td></tr>
+            <tr><td>Guest redirect to login</td><td class="num">1 roundtrip</td></tr>
+            <tr><td>E2E workers</td><td class="num">2 (8 GB host)</td></tr>
+            <tr><td>E2E suite</td><td class="num">6/6 green</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h4>Targets</h4>
+        <table class="dt plain">
+          <thead><tr><th>Metric</th><th>Target</th></tr></thead>
+          <tbody>
+            <tr><td>First paint (authed route)</td><td class="num">&le; 2 s</td></tr>
+            <tr><td>Catalogue read</td><td class="num">&le; 500 ms</td></tr>
+            <tr><td>Write (check-in / invoice)</td><td class="num">&le; 400 ms</td></tr>
+            <tr><td>Concurrent staff</td><td class="num">&ge; 50</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 08 SECURITY ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>08</em></div>
+      <h2 class="mod-title">Security Requirements</h2>
+    </div>
+
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>Controls In Place</h4>
+        <ul class="small" style="margin:0">
+          <li><b>Authentication</b> — email + password via Convex Auth; reset-password route</li>
+          <li><b>Authorization</b> — <span class="code">requireUser</span> / <span class="code">requireRole</span> on every protected function; default-deny</li>
+          <li><b>Data isolation</b> — technicians scoped to assigned jobs; invoices hidden from technicians</li>
+          <li><b>Validation</b> — Zod v4 on every write, shared client/server</li>
+          <li><b>Monetary integrity</b> — integer kobo, no floats</li>
+          <li><b>Auditability</b> — immutable audit log on all mutations</li>
+          <li><b>State integrity</b> — transition guards + invoice immutability after payment</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4>Open Risks &amp; Mitigations</h4>
+        <table class="dt plain">
+          <thead><tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr><td>Reset tokens logged to console (<span class="code">convex/auth.ts</span>)</td><td><span class="badge fail">High</span></td><td>Swap console log for SMTP/SendGrid delivery before any production rollout</td></tr>
+            <tr><td>Overpayment beyond <span class="code">grandTotal</span> accepted by <span class="code">payments.record</span></td><td><span class="badge warn">Med</span></td><td>Cap payment amount at remaining balance (server)</td></tr>
+            <tr><td>No request rate limiting</td><td><span class="badge warn">Med</span></td><td>Adopt <a href="throttling-plan.html">Throttling Plan</a> (proposed)</td></tr>
+            <tr><td><span class="code">bootstrapFirstAdmin</span> race at first sign-up</td><td><span class="badge warn">Med</span></td><td>Guard verified by <span class="code">adminExists</span>; audit logged; restrict at deploy gate</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 09 VERIFICATION ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>09</em></div>
+      <h2 class="mod-title">Verification Methods</h2>
+    </div>
+
+    <table class="dt">
+      <thead><tr><th>Layer</th><th>Tooling</th><th>Covers</th></tr></thead>
+      <tbody>
+        <tr><td class="code">Unit</td><td>Vitest</td><td>Job state machine, invoice totals, auth-utils, schemas, formatting (<span class="code">tests/unit/</span>)</td></tr>
+        <tr><td class="code">Authz</td><td>Vitest vs live Convex</td><td>Anonymous rejection on queries/mutations; auto-skips without <span class="code">CONVEX_URL</span> (<span class="code">tests/convex/</span>)</td></tr>
+        <tr><td class="code">E2E</td><td>Playwright (2 workers)</td><td>Auth/nav flows (6/6 green), jobs CRUD, screenshots; hydration-robust with <span class="code">networkidle</span></td></tr>
+        <tr><td class="code">Manual</td><td>Smoke script</td><td>All 7 role accounts; check-in → parts request → dispatch → invoice → approve → pay path</td></tr>
+        <tr><td class="code">Print</td><td>Browser print</td><td>Job card &amp; invoice A4 rendering from live data</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note info avoid">
+      <span class="t">Acceptance Gate</span>
+      Release requires: unit + authz suites green, E2E auth/nav green, one end-to-end paid-job walkthrough on seeded data, and a printed job card + invoice matching the live record.
+    </div>
+  </section>
+
+  <!-- ============ 10 WORKFLOWS ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>10</em></div>
+      <h2 class="mod-title">User Workflows</h2>
+    </div>
+
+    <h3 class="mod-sub">W1 · Job Lifecycle — 8-Status State Machine</h3>
+    <div class="flow avoid">
+      <div class="node"><div class="n">Checked In</div><div class="d">csr</div></div><div class="arrow">→</div>
+      <div class="node"><div class="n">Assigned</div><div class="d">csr</div></div><div class="arrow">→</div>
+      <div class="node"><div class="n">Diagnosed</div><div class="d">tech</div></div><div class="arrow">→</div>
+      <div class="node"><div class="n">In Progress</div><div class="d">tech</div></div><div class="arrow">→</div>
+      <div class="node"><div class="n">Ready for Pickup</div><div class="d">tech</div></div><div class="arrow">→</div>
+      <div class="node"><div class="n">Completed</div><div class="d">mgr</div></div><div class="arrow">→</div>
+      <div class="node active"><div class="n">Paid</div><div class="d">finance</div></div>
+    </div>
+    <div class="branch avoid">
+      <div class="row"><span class="from">diagnosed</span><span class="arrow">⇢</span><span class="to">waitingRelease</span><span class="cause">— technician creates a parts request</span></div>
+      <div class="row"><span class="from">waitingRelease</span><span class="arrow">→</span><span class="to">inProgress</span><span class="cause">— parts dispatched (or request rejected/reversed)</span></div>
+      <div class="row"><span class="from">waitingRelease</span><span class="arrow">→</span><span class="to">diagnosed</span><span class="cause">— request rejected / reversed</span></div>
+      <div class="row"><span class="from">inProgress</span><span class="arrow">⇢</span><span class="to">waitingRelease</span><span class="cause">— further parts needed mid-job</span></div>
+      <div class="row"><span class="from">readyForPickup</span><span class="arrow">→</span><span class="to">waitingRelease</span><span class="cause">— rework / additional authorization</span></div>
+    </div>
+    <p class="small">Transitions are validated by <span class="code">canTransition</span> in <span class="code">src/lib/job-utils.ts</span>; role gates live in <span class="code">convex/jobs.ts</span>. Each transition stamps its own timestamp field.</p>
+
+    <h3 class="mod-sub">W2 · Walk-In Check-In (3-Step)</h3>
+    <ol class="ladder avoid">
+      <li><div class="step"></div><div class="body"><span class="actor">CSR</span><b>Locate or create the customer</b>Search by name or phone; returning customers auto-populate.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">CSR</span><b>Locate or create the vehicle</b>Plate lookup; duplicate plates rejected server-side.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">CSR</span><b>Capture complaint &amp; check in</b>Creates job in <span class="code">checkedIn</span> with <span class="code">checkInTs</span> and audits the action.</div></li>
+    </ol>
+
+    <h3 class="mod-sub">W3 · Parts Request → Dispatch</h3>
+    <ol class="ladder avoid">
+      <li><div class="step"></div><div class="body"><span class="actor">Technician</span><b>Request parts on an assigned job</b>Stock is validated at request time; the job moves to <span class="code">waitingRelease</span>.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Inventory Manager</span><b>Review request</b>Approve or reject (job returns to <span class="code">diagnosed</span> if rejected).</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Inventory Manager</span><b>Dispatch</b>Stock decremented, movements logged, part line items added, invoice re-synced, job resumes.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Inventory Manager</span><b>Reverse (correction)</b>Stock restored, items removed, invoice re-synced.</div></li>
+    </ol>
+
+    <h3 class="mod-sub">W4 · Invoice → Payment</h3>
+    <ol class="ladder avoid">
+      <li><div class="step"></div><div class="body"><span class="actor">Finance</span><b>Generate / regenerate invoice</b>Snapshot of part + labour items; VAT applied at configured rate.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Manager</span><b>Approve invoice</b>Required before payments or <span class="code">markPaid</span> are accepted.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Finance</span><b>Record payments</b>Cash / transfer / card; partial payments track balance.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Finance</span><b>Mark paid</b>Auto-flagged when fully settled; invoice becomes immutable.</div></li>
+    </ol>
+
+    <h3 class="mod-sub">W5 · Sales Order → Handover</h3>
+    <ol class="ladder avoid">
+      <li><div class="step"></div><div class="body"><span class="actor">Sales Rep</span><b>Create order from a lead</b>Agreed price + deposit; vehicle stock decremented and reserved when zero.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Sales Rep</span><b>Record payments</b>Balance tracked; payments capped at remaining balance.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Sales Rep</span><b>Complete order</b>Only when balance is zero; vehicle marked <span class="code">sold</span>.</div></li>
+      <li><div class="step"></div><div class="body"><span class="actor">Sales Rep</span><b>Delivery handover</b>Checklist: keys, manual, toolkit, inspection — recorded against the rep.</div></li>
+    </ol>
+  </section>
+
+  <!-- ============ 11 BUSINESS RULES & DATA ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>11</em></div>
+      <h2 class="mod-title">Business Rules &amp; Data Requirements</h2>
+    </div>
+
+    <h3 class="mod-sub">Business Rules</h3>
+    <table class="dt">
+      <thead><tr><th style="width:80px">Rule</th><th style="width:190px">Statement</th><th>Reference</th></tr></thead>
+      <tbody>
+        <tr><td class="code">BR-01</td><td>All money stored as integer kobo (100 kobo = NGN 1); no floats.</td><td class="code">schemas/common.ts</td></tr>
+        <tr><td class="code">BR-02</td><td>VAT applies at a configurable rate, default 7.5%, rounded to kobo.</td><td class="code">settings.ts · invoice.ts</td></tr>
+        <tr><td class="code">BR-03</td><td>Invoice line items are a snapshot; regeneration resets approval; paid invoices are immutable.</td><td class="code">invoices.ts</td></tr>
+        <tr><td class="code">BR-04</td><td>Job transitions follow <span class="code">canTransition</span>; illegal transitions are rejected server-side.</td><td class="code">job-utils.ts</td></tr>
+        <tr><td class="code">BR-05</td><td>Only Manager and Admin may complete a job.</td><td class="code">jobs.complete</td></tr>
+        <tr><td class="code">BR-06</td><td>A job is marked paid only when the invoice is approved and fully settled.</td><td class="code">jobs.markPaid</td></tr>
+        <tr><td class="code">BR-07</td><td>Part line items enter a job only via Inventory dispatch; manual part adds are blocked.</td><td class="code">jobs.addJobItem</td></tr>
+        <tr><td class="code">BR-08</td><td>Dispatch decrements stock; reversal restores stock and removes line items.</td><td class="code">partsRequests.ts</td></tr>
+        <tr><td class="code">BR-09</td><td>Work may not start while an approved/pending parts request exists.</td><td class="code">jobs.startWork</td></tr>
+        <tr><td class="code">BR-10</td><td>Sales orders require stock; completing requires zero balance; cancelling restores stock.</td><td class="code">salesOrders.ts</td></tr>
+        <tr><td class="code">BR-11</td><td>Appointments must be in the future; make/model/plate/complaint are mandatory.</td><td class="code">appointments.create</td></tr>
+        <tr><td class="code">BR-12</td><td>Technicians act only on jobs assigned to them (admin/manager excepted).</td><td class="code">jobs.ts</td></tr>
+        <tr><td class="code">BR-13</td><td>A part is low-stock when <span class="code">stockQty &le; reorderLevel</span>.</td><td class="code">parts.lowStock</td></tr>
+        <tr><td class="code">BR-14</td><td>Vehicle plates are unique (normalized lowercase) at creation.</td><td class="code">vehicles.create</td></tr>
+        <tr><td class="code">BR-15</td><td>Deactivated users fail all server-side checks.</td><td class="code">lib/auth.ts</td></tr>
+        <tr><td class="code">BR-16</td><td>Bootstrap admin promotion succeeds only when zero admins exist.</td><td class="code">users.bootstrapFirstAdmin</td></tr>
+        <tr><td class="code">BR-17</td><td>Every mutation records an audit entry (user, action, entity, timestamp).</td><td class="code">lib/audit.ts</td></tr>
+        <tr><td class="code">BR-18</td><td>Sales-order payments may not exceed the remaining balance.</td><td class="code">salesOrders.addPayment</td></tr>
+      </tbody>
+    </table>
+
+    <h3 class="mod-sub">Data Requirements</h3>
+    <div class="grid grid-2 avoid">
+      <div class="panel">
+        <h4>Entity Groups</h4>
+        <table class="dt plain">
+          <thead><tr><th>Table</th><th>Key fields</th><th>Indexes</th></tr></thead>
+          <tbody>
+            <tr><td class="code">customers</td><td>name, phone, email, address</td><td class="code">phone · name s</td></tr>
+            <tr><td class="code">vehicles</td><td>make, model, plate, status, stockQty</td><td class="code">status · owner · plate s</td></tr>
+            <tr><td class="code">jobs</td><td>status, complaint, 8 ts fields</td><td class="code">status · technicianId · customerId</td></tr>
+            <tr><td class="code">parts</td><td>code, prices, stockQty, reorderLevel</td><td class="code">code · search</td></tr>
+            <tr><td class="code">invoices</td><td>lineItems, totals, approved, paid</td><td class="code">jobId</td></tr>
+            <tr><td class="code">auditLogs</td><td>user, action, entity, ts</td><td class="code">entityId</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h4>Integrity &amp; Retention</h4>
+        <ul class="small" style="margin:0">
+          <li>Referential integrity via typed ids (<span class="code">v.id</span>) across jobs → vehicles/customers/users</li>
+          <li>Stock movements are append-only; part quantity is derived state</li>
+          <li>Audit log is append-only; no delete mutation exists</li>
+          <li>Seed data for demo: 45 parts, 18 customers, 19 vehicles, 7 jobs, 3 invoices, 3 leads, 2 sales orders</li>
+          <li>Retention: audit log and payments retained per site policy (backup + review); no auto-purge in v1</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12 TRACEABILITY ============ -->
+  <section class="mod">
+    <div class="mod-head">
+      <div class="mod-id"><em>12</em></div>
+      <h2 class="mod-title">Traceability Matrix</h2>
+    </div>
+
+    <table class="dt avoid">
+      <thead><tr><th>Requirement</th><th>Verification</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="code">FR-SVC-01..14</td><td>Unit + E2E + manual smoke</td><td><span class="badge ok">Verified</span></td></tr>
+        <tr><td class="code">FR-SLS-01..04</td><td>E2E + manual (sales module)</td><td><span class="badge warn">Partial</span></td></tr>
+        <tr><td class="code">FR-ADM-01..03</td><td>Manual role walkthrough</td><td><span class="badge ok">Verified</span></td></tr>
+        <tr><td class="code">FR-XCT-01/02</td><td>Authz tests + audit assertions</td><td><span class="badge ok">Verified</span></td></tr>
+        <tr><td class="code">FR-XCT-05 (throttling)</td><td>Planned — see throttling plan</td><td><span class="badge neutral">Proposed</span></td></tr>
+        <tr><td class="code">NFR-PER-*</td><td>Measured baselines</td><td><span class="badge warn">Partial</span></td></tr>
+        <tr><td class="code">NFR-RLB-01</td><td>Invoice unit tests</td><td><span class="badge ok">Verified</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="colophon">
+      <div class="brand">Cedric Masters Autos</div>
+      <div class="mono">CMA-SRS-001 · v1.0.0 · 07 Aug 2026</div>
+      <div class="small">Companion docs: <a href="code-review-report.html">Code Review</a> · <a href="throttling-plan.html">Throttling Plan</a> · <a href="rbac-matrix.html">RBAC Matrix</a></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
