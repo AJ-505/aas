@@ -30,6 +30,8 @@ import { useCurrentUser } from '~/lib/auth'
 import { jobQueries, userQueries, useBootstrapFirstAdminMutation } from '~/lib/queries'
 import { ROLES, ROLE_LABELS, type Role } from '~/lib/enums'
 import { cn } from '~/lib/utils'
+import { useInactivity } from '~/hooks/useInactivity'
+import { InactivityWarningModal } from '~/components/InactivityWarningModal'
 
 interface NavItem {
   label: string
@@ -195,6 +197,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <PendingRoleAssignment userId={user!._id} userName={user!.name} />
   }
 
+  const mustChange = !!(user as any).mustChangePassword
+  const totpEnabled = !!(user as any).totpEnabled
+  const lastTotpVerifiedTs = (user as any).lastTotpVerifiedTs as number | undefined
+  const needsTotp = totpEnabled && (!lastTotpVerifiedTs || Date.now() - lastTotpVerifiedTs > 30 * 60 * 1000)
+  const isVerifyRoute = pathname === "/auth/verify-2fa" || pathname === "/auth/change-password"
+  const isSecurityRoute = pathname.startsWith("/settings/security")
+  const inactivity = useInactivity(!!user?.role && !isLogin && !needsTotp && !mustChange)
+
+  if (mustChange && pathname !== "/auth/change-password") {
+    return <Navigate to="/auth/change-password" />
+  }
+  if (needsTotp && !isVerifyRoute && !isSecurityRoute) {
+    return <Navigate to="/auth/verify-2fa" />
+  }
+
+  // show expired banner if redirected with ?expired=1
+  const expiredBanner = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("expired") === "1"
+
   const role = user!.role
   const crumbs = breadcrumb(pathname)
 
@@ -355,9 +375,27 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="min-h-0 flex-1 overflow-auto">
+          {expiredBanner && (
+            <div className="mx-auto mt-4 w-full max-w-[1360px] px-10">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Session expired due to inactivity. Please sign in again.
+              </div>
+            </div>
+          )}
           <div className="mx-auto w-full max-w-[1360px] px-10 pb-20 pt-8">{children}</div>
         </main>
       </div>
+      {inactivity.showWarning && (
+        <InactivityWarningModal
+          secondsLeft={inactivity.secondsLeft}
+          onExtend={inactivity.extend}
+          onLogout={async () => {
+            await signOut();
+            await queryClient.invalidateQueries();
+            void router.navigate({ to: "/auth/login", search: { expired: "1" } as any });
+          }}
+        />
+      )}
     </div>
   )
 }

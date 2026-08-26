@@ -541,7 +541,7 @@ function InvoiceSection({ jobId, invoice, job, customer, vehicle, payments, hasI
   const regenerate = useRegenerateInvoiceMutation()
   const approve = useApproveInvoiceMutation()
   const recordPayment = useRecordPaymentMutation()
-  const [method, setMethod] = useState('cash')
+  const [method, setMethod] = useState<"cash" | "transfer" | "card" | "pos" | "bank">('cash')
 
   const canFinance = me?.role === 'finance' || me?.role === 'manager' || me?.role === 'admin'
 
@@ -644,7 +644,7 @@ function InvoiceSection({ jobId, invoice, job, customer, vehicle, payments, hasI
           <div className="flex items-end gap-3 border-t border-line-soft pt-4">
             <div className="w-44 space-y-2">
               <Label htmlFor="method">Method</Label>
-              <Select id="method" value={method} onChange={(e) => setMethod(e.target.value)}>
+              <Select id="method" value={method} onChange={(e) => setMethod(e.target.value as any)}>
                 <option value="cash">Cash</option>
                 <option value="transfer">Transfer</option>
                 <option value="card">Card</option>
@@ -652,7 +652,7 @@ function InvoiceSection({ jobId, invoice, job, customer, vehicle, payments, hasI
             </div>
             <Button onClick={() => {
               const amount = balance
-              recordPayment.mutate({ invoiceId: invoice._id, amount, method }, {
+              recordPayment.mutate({ invoiceId: invoice._id, amount, method: method as any }, {
                 onSuccess: () => { toast.success('Payment recorded.'); void queryClient.invalidateQueries() },
               })
             }} disabled={recordPayment.isPending}>

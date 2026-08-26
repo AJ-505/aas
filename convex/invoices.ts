@@ -1,6 +1,7 @@
 import { query, mutation } from './_generated/server'
 import { v, ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { computeInvoiceTotals, type InvoiceLineItem } from '../src/lib/schemas/invoice'
 
@@ -34,7 +35,7 @@ export const getById = query({
 export const generate = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['finance', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
 
@@ -118,7 +119,7 @@ export const generate = mutation({
 export const regenerate = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['finance', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
     const job = await ctx.db.get(args.jobId)
     if (!job) throw new ConvexError('Job not found.')
 
@@ -196,7 +197,7 @@ export const regenerate = mutation({
 export const approve = mutation({
   args: { invoiceId: v.id('invoices') },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['finance', 'manager', 'admin'])
+    const user = await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
     const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')
     if (invoice.approved) throw new ConvexError('Invoice is already approved.')

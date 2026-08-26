@@ -2,6 +2,7 @@ import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 
 export const list = query({
@@ -79,7 +80,7 @@ export const create = mutation({
     appointmentTs: v.number(),
   },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['csr', 'manager', 'admin'])
+    const user = await requireActiveSession(ctx, ['csr', 'manager', 'admin'])
     const customer = await ctx.db.get(args.customerId)
     if (!customer) throw new ConvexError('Customer not found.')
 
@@ -128,7 +129,7 @@ export const markCheckedIn = mutation({
     jobId: v.id('jobs'),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'manager', 'admin'])
     const appointment = await ctx.db.get(args.appointmentId)
     if (!appointment) throw new ConvexError('Appointment not found.')
     if (appointment.status !== 'scheduled') {
@@ -145,7 +146,7 @@ export const markCheckedIn = mutation({
 export const cancel = mutation({
   args: { appointmentId: v.id('appointments') },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'manager', 'admin'])
     const appointment = await ctx.db.get(args.appointmentId)
     if (!appointment) throw new ConvexError('Appointment not found.')
     await ctx.db.patch(args.appointmentId, { status: 'cancelled' })

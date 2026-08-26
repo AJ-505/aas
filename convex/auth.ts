@@ -17,13 +17,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         name: 'Password Reset',
         from: 'Cedric Masters Autos <noreply@cedricmastersautos.com>',
         maxAge: 60 * 60,
-        sendVerificationRequest: async ({ identifier, url, token }) => {
-          console.log(
-            `[PASSWORD RESET] Code for ${identifier}: ${token}`,
-          )
-          console.log(
-            `[PASSWORD RESET] URL for ${identifier}: ${url}`,
-          )
+        // CR-01 fix: never log tokens or URLs (they are secrets).
+        // In production we swallow them; audit logs the event without secret.
+        sendVerificationRequest: async () => {
+          // Intentionally no logging of identifier/token/url.
+          // If debug is needed, enable via CONVEX_DEBUG without secrets.
+          return;
         },
       },
     }),

@@ -2,8 +2,9 @@ import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
-import { createSalesOrderSchema } from '../src/lib/schemas'
+import { createSalesOrderSchema, addSalesOrderPaymentSchema } from '../src/lib/schemas'
 
 export const get = query({
   args: { salesOrderId: v.id('salesOrders') },
@@ -51,7 +52,7 @@ export const create = mutation({
     deposit: v.number(),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const vehicle = await ctx.db.get(args.vehicleId)
     if (!vehicle) throw new ConvexError('Vehicle not found.')
     const currentQty = vehicle.stockQty ?? 1
@@ -85,7 +86,7 @@ export const create = mutation({
 export const complete = mutation({
   args: { salesOrderId: v.id('salesOrders') },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const order = await ctx.db.get(args.salesOrderId)
     if (!order) throw new ConvexError('Sales order not found.')
     if (order.balance > 0) {
@@ -100,7 +101,7 @@ export const complete = mutation({
 export const cancel = mutation({
   args: { salesOrderId: v.id('salesOrders') },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const order = await ctx.db.get(args.salesOrderId)
     if (!order) throw new ConvexError('Sales order not found.')
     const vehicle = await ctx.db.get(order.vehicleId)
@@ -123,29 +124,30 @@ export const addPayment = mutation({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    if (args.amount <= 0) {
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    const parsed = addSalesOrderPaymentSchema.parse(args)
+    if (parsed.amount <= 0) {
       throw new ConvexError('Payment amount must be greater than 0.')
     }
-    const order = await ctx.db.get(args.salesOrderId)
+    const order = (await ctx.db.get(parsed.salesOrderId as any)) as any
     if (!order) throw new ConvexError('Sales order not found.')
     if (order.status !== 'pending') {
       throw new ConvexError('Payments can only be added to pending sales orders.')
     }
-    if (args.amount > order.balance) {
+    if (parsed.amount > order.balance) {
       throw new ConvexError('Payment amount cannot exceed remaining balance.')
     }
-    const newDeposit = order.deposit + args.amount
-    const newBalance = order.balance - args.amount
+    const newDeposit = order.deposit + parsed.amount
+    const newBalance = order.balance - parsed.amount
     const existingPayments = order.payments ?? []
-    const updatedPayments = [...existingPayments, { amount: args.amount, ts: Date.now() }]
+    const updatedPayments = [...existingPayments, { amount: parsed.amount, ts: Date.now() }]
 
-    await ctx.db.patch(args.salesOrderId, {
+    await ctx.db.patch(parsed.salesOrderId as any, {
       deposit: newDeposit,
       balance: newBalance,
       payments: updatedPayments,
     })
-    await audit(ctx, 'salesOrder.payment', 'salesOrders', args.salesOrderId)
+    await audit(ctx, 'salesOrder.payment', 'salesOrders', parsed.salesOrderId as any)
   },
 })
 

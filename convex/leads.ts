@@ -2,6 +2,7 @@ import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import {
   createLeadSchema,
@@ -62,7 +63,7 @@ export const create = mutation({
     nextFollowUpTs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const parsed = createLeadSchema.parse(args)
     const id = await ctx.db.insert('leads', {
       name: parsed.name,
@@ -84,7 +85,7 @@ export const updateStage = mutation({
     stage: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const parsed = updateLeadStageSchema.parse(args)
     await ctx.db.patch(args.leadId, { stage: parsed.stage })
     await audit(ctx, 'lead.updateStage', 'leads', args.leadId)
@@ -98,7 +99,7 @@ export const logFollowUp = mutation({
     nextFollowUpTs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ['csr', 'salesRep', 'manager', 'admin'])
+    await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
     const parsed = logFollowUpSchema.parse(args)
     const lead = await ctx.db.get(args.leadId)
     if (!lead) throw new ConvexError('Lead not found.')

@@ -1,6 +1,7 @@
 import { query, mutation } from './_generated/server'
 import { v } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { createPartSchema, updatePartSchema } from '../src/lib/schemas'
 import { STOCK_MOVEMENT_TYPES, type StockMovementType } from '../src/lib/enums'
@@ -106,7 +107,7 @@ export const createPart = mutation({
     category: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, PARTS_MUTATION_ROLES)
+    await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
     const rawCode = (args.code ?? args.partNumber ?? '').trim()
     if (!rawCode) throw new Error('Part Number is required')
     const parsed = createPartSchema.parse({
@@ -148,7 +149,7 @@ export const updatePart = mutation({
     category: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, PARTS_MUTATION_ROLES)
+    await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
     const { partId, ...patch } = args as Record<string, unknown> & { partId: any }
     const normalized: Record<string, unknown> = { ...patch }
     // alias: partNumber -> code
@@ -205,7 +206,7 @@ export const adjustStock = mutation({
     jobId: v.optional(v.id('jobs')),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, PARTS_MUTATION_ROLES)
+    await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
     const part = await ctx.db.get(args.partId)
     if (!part) throw new Error('Part not found')
 
@@ -258,7 +259,7 @@ export const importParts = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    await requireRole(ctx, PARTS_MUTATION_ROLES)
+    await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
     const inserted: string[] = []
     for (const p of args.parts) {
       const rawCode = (p.code ?? p.partNumber ?? '').trim()

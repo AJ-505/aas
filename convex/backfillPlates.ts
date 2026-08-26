@@ -1,5 +1,6 @@
 import { mutation } from './_generated/server'
 import { requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 
 const PLATE_REGEX = /^[A-Z0-9][A-Z0-9 -]{2,}$/
@@ -19,7 +20,7 @@ function normalizePlate(raw: string | undefined): string | undefined {
 export const backfillPlates = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, ['admin', 'manager'])
+    await requireActiveSession(ctx, ['admin', 'manager'])
     let vehicleUpdated = 0
     let vehicleSkipped = 0
     let appointmentUpdated = 0

@@ -2,6 +2,7 @@ import { query, mutation } from './_generated/server'
 import type { Id } from './_generated/dataModel'
 import { v, ConvexError } from 'convex/values'
 import { requireUser, requireRole } from './lib/auth'
+import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { recordPaymentSchema } from '../src/lib/schemas/invoice'
 
@@ -20,10 +21,10 @@ export const record = mutation({
   args: {
     invoiceId: v.id('invoices'),
     amount: v.number(),
-    method: v.string(),
+    method: v.union(v.literal("cash"), v.literal("transfer"), v.literal("card"), v.literal("pos"), v.literal("bank")),
   },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['finance', 'manager', 'admin'])
+    const user = await requireActiveSession(ctx, ['finance', 'manager', 'admin'])
     const parsed = recordPaymentSchema.parse(args)
     const invoice = await ctx.db.get(parsed.invoiceId as Id<'invoices'>)
     if (!invoice) throw new ConvexError('Invoice not found.')

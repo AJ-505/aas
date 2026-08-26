@@ -37,6 +37,13 @@ export default defineSchema({
     isAnonymous: v.optional(v.boolean()),
     role: v.optional(roleValidator),
     active: v.optional(v.boolean()),
+    // Security hardening (t3): TOTP 2FA + inactivity timeout
+    totpSecret: v.optional(v.string()),
+    totpEnabled: v.optional(v.boolean()),
+    backupCodes: v.optional(v.array(v.string())),
+    lastTotpVerifiedTs: v.optional(v.number()),
+    lastActiveTs: v.optional(v.number()),
+    mustChangePassword: v.optional(v.boolean()),
   }).index('email', ['email']),
 
   appointments: defineTable({
