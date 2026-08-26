@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T6 Report — SharePoint Integration Research</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fragment+Mono&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;600;700;800&display=swap');
+  :root{--ink:#1a1a18;--paper:#fefcf3;--line:#e8e0c9;--accent:#c2410c;--accent2:#0f766e;--muted:#78716c;--panel:#ffffff;--kaki:#57534e}
+  *{box-sizing:border-box} html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.6}
+  a{color:var(--accent2)}
+  /* top rule */
+  .rule{height:6px;background:linear-gradient(90deg,var(--accent),#eab308,var(--accent2))}
+  /* header */
+  header{max-width:1100px;margin:0 auto;padding:28px 28px 0}
+  .eyebrow{font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{font-family:'Instrument Serif',Georgia,serif;font-size:52px;line-height:.92;margin:8px 0 8px;font-weight:400;letter-spacing:-.03em}
+  h1 i{font-style:italic;color:var(--accent)}
+  .sub{font-size:18px;color:var(--kaki);max-width:62ch}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .chip{font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:#fff;padding:5px 10px}
+  .chip.alt{background:var(--accent)} .chip.teal{background:var(--accent2)} .chip.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  /* anchor nav */
+  nav.toc{max-width:1100px;margin:14px auto 0;padding:0 28px;display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-top:10px;padding-bottom:10px}
+  nav.toc a{font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;color:var(--muted);border-bottom:1px dotted}
+  nav.toc a:hover{color:var(--ink)}
+  /* layout */
+  .wrap{max-width:1100px;margin:0 auto;padding:18px 28px 40px;display:grid;grid-template-columns:1fr 320px;gap:26px}
+  h2{font-family:'Instrument Serif',serif;font-size:28px;margin:28px 0 8px;letter-spacing:-.02em}
+  h2 span.num{font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-right:8px}
+  h3{font-size:15px;margin:16px 0 6px;font-weight:700}
+  p,li{font-size:14.5px;color:#292524}
+  .card{background:var(--panel);border:1px solid var(--line);padding:16px 18px;margin:12px 0}
+  .card.accent{border-left:4px solid var(--accent)} .card.teal{border-left:4px solid var(--accent2)} .card.muted{background:#fdfbf7}
+  .mono{font-family:'Fragment Mono',monospace}
+  .small{font-size:12px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+  th{font-family:'Fragment Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;text-align:left;border-bottom:2px solid var(--ink);padding:8px 6px}
+  td{border-bottom:1px solid var(--line);padding:8px 6px;vertical-align:top}
+  .step{display:flex;gap:12px;margin:10px 0}
+  .step .n{flex:0 0 28px;height:28px;border-radius:999px;background:var(--ink);color:#fff;display:grid;place-items:center;font-family:'Fragment Mono',monospace;font-size:12px}
+  .step .body{flex:1;background:var(--panel);border:1px solid var(--line);padding:12px 14px}
+  details{border:1px solid var(--line);background:var(--panel);padding:10px 12px;margin:8px 0}
+  details summary{font-weight:700;cursor:pointer;font-size:14px}
+  pre{background:#1a1a18;color:#e7e5e4;padding:14px 16px;overflow:auto;font-size:12px;line-height:1.5;border:1px solid #292524}
+  aside .sticky{position:sticky;top:16px}
+  aside .box{background:var(--panel);border:1px solid var(--line);padding:14px 16px;margin-bottom:14px}
+  aside h4{font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:13px}
+  .kv dt{font-family:'Fragment Mono',monospace;font-size:11px;color:var(--muted)}
+  .kv dd{margin:0}
+  @media(max-width:920px){.wrap{grid-template-columns:1fr} h1{font-size:38px}}
+</style>
+</head>
+<body>
+<div class="rule"></div>
+<header>
+  <div class="eyebrow">Cedric Masters Autos — Report · T6 · Miscellaneous (client review PDF)</div>
+  <h1>SharePoint integration, <i>without</i> the fairy dust</h1>
+  <p class="sub">Research-only study of how a Convex + TanStack Start (Nitro SSR) app meets SharePoint: hosting truth, Graph API, SPFx embedding, and the Entra ID SSO path that actually matters in an enterprise tenant.</p>
+  <div class="chips">
+    <span class="chip">t6 — Done</span>
+    <span class="chip alt">Research only — zero code</span>
+    <span class="chip teal">Branch docs/sharepoint-integration</span>
+    <span class="chip ghost">26 Aug 2026</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#what">What changed &amp; why</a>
+  <a href="#how">Step-by-step how</a>
+  <a href="#tests">Exhaustive tests</a>
+  <a href="#mistakes">Mistakes made</a>
+  <a href="#proof">Verification proof</a>
+  <a href="#commands">Commands &amp; manual check</a>
+</nav>
+
+<div class="wrap">
+  <main>
+    <!-- 1 -->
+    <h2 id="what"><span class="num">01</span> What changed &amp; why</h2>
+
+    <div class="card accent">
+      <strong>One client line, one hard constraint:</strong> <em>"Explore ways of integrating the system to SharePoint for deployment (e.g. via APIs, SharePoint SPFx)"</em> — marked Miscellaneous in the review PDF. The stack is TanStack Start (SSR via Nitro) + Convex (BaaS, real-time). Neither can run <em>inside</em> SharePoint. The report had to say so plainly, then chart the honest paths.
+    </div>
+
+    <table>
+      <tr><th>Artefact</th><th>Change</th><th>Why</th></tr>
+      <tr><td class="mono">docs/sharepoint-integration.md</td><td><strong>New — 556 lines, 13 sections, 10+ tables, 1 architecture diagram</strong>. Covers: hosting impossibility proof, 3 Azure options with cost, Convex self-host, Graph (least-privilege <span class="mono">Sites.Selected</span>, delta vs webhooks, List limits, CORS), SPFx iframe + cookie trap + version hell, Teams/Viva alternative, Entra SSO (single-tenant, cert vs secret, Workforce vs External ID), licensing &amp; compliance, local dev (M365 Developer Program), decision matrix (A–G), phased roadmap.</td><td>Client asked for "via APIs, SPFx" — the doc answers all four angles the task enumerates (a–e) and survives an enterprise M365 reviewer.</td></tr>
+      <tr><td class="mono">plans/t6.html</td><td>New — editorial/print plan (distinct from report's ink/amber). Build order, grill narrative, break-it tests, risks.</td><td>Process requires a plan artefact; grilling shaped the doc.</td></tr>
+      <tr><td class="mono">ROADMAP.md</td><td>+8 lines — new <em>Miscellaneous — Client Review Items</em> section, row for t6 marked <span class="mono">[x]</span>.</td><td>Roadmap is the source of truth per AGENTS.md.</td></tr>
+      <tr><td class="mono">reports/t6-sharepoint.html</td><td>This report — ink/amber, Fragment Mono + Instrument Serif, distinct from plan.</td><td>Process requires a committed branch report.</td></tr>
+      <tr><td class="mono">proofs/t6-sharepoint/verify.txt</td><td>Real <span class="mono">git diff --stat</span> output.</td><td>Task says show diff proof, not typecheck (no code changes).</td></tr>
+      <tr><td class="mono">convex/*.ts, src/**</td><td><em>No changes</em> — research-only.</td><td>Requirement: zero application code changes.</td></tr>
+    </table>
+
+    <div class="card teal">
+      <strong>Recommendation the doc lands on:</strong> Ship <strong>Azure-hosted Nitro (Vercel or Container Apps) + Entra ID SSO</strong> as v1 (2–4 d). Defer SPFx iframe until the client hard-requires "inside a SharePoint page" (15–20 d incl. approval wait). Defer Graph List mirror until retention/reporting is a confirmed requirement (+10 d). Static SPA on SharePoint is a ruled-out strawman.
+    </div>
+
+    <!-- 2 -->
+    <h2 id="how"><span class="num">02</span> Step-by-step how</h2>
+
+    <div class="step"><div class="n">1</div><div class="body">
+      <strong>Read the terrain</strong> — <span class="mono">AGENTS.md</span> (no mocked data, prefer nohup, bun), <span class="mono">ROADMAP.md</span> (legend, P0–P7, naming, seed), <span class="mono">docs/tanstack-router-guidelines.md</span>, <span class="mono">convex/schema.ts</span> (7 roles, auditLogs, no SharePoint tables), <span class="mono">convex/auth.ts</span> (Password provider today), <span class="mono">vite.config.ts</span> (Nitro + vp), <span class="mono">docs/mock-accounts.md</span> (creds for report), existing research docs (<span class="mono">viteplus-research.md</span>, <span class="mono">tsv7-research.md</span>) for house style. Confirmed worktree <span class="mono">/tmp/opencode/wt/t6</span> on branch <span class="mono">docs/sharepoint-integration</span>, clean <span class="mono">git status</span>.
+    </div></div>
+
+    <div class="step"><div class="n">2</div><div class="body">
+      <strong>Grill — background subagent (Muse Spark)</strong>
+      <div class="mono" style="font-size:11px;background:#f5f5f4;padding:8px 10px;margin:8px 0;overflow:auto">nohup opencode2 run --model "opencode/muse-spark-1.2-contributor-free" --auto --format json "&lt;attack my design for SharePoint…&gt;" &gt; /tmp/opencode/t6_grill.json 2>&1 &amp;</div>
+      <p style="margin:6px 0 0"><strong>Returned:</strong> ~14.5 KB JSON with <strong>22 ranked findings</strong> (P0–P3). Highlights: TanStack Start has no static export — name the Nitro requirement; prefer <span class="mono">Sites.Selected</span> over <span class="mono">Sites.ReadWrite.All</span>; iframe SSO breaks on Safari/ITP; SPFx version hell + App Catalog latency; Graph delta vs webhooks + deltaLink expiry; licensing (pooled storage 1 TB + 10 GB/user, Entra P1/P2); Viva ACE missing; Entra External ID vs B2C confusion; local dev story. Verb included transient network hiccup on first attempt — retried and captured full output on second run. <strong>Disposition:</strong> All P0s fixed in the doc; P1–P3 either fixed or explicitly ruled out with a one-liner.</p>
+    </div></div>
+
+    <div class="step"><div class="n">3</div><div class="body">
+      <strong>Write the research doc — first pass</strong> — Created <span class="mono">docs/sharepoint-integration.md</span> (431 lines) covering §0 executive summary, §1 architecture context, §2 hosting (2.1 impossibility proof, 2.2 static SPA strawman, 2.3 Azure + link, 2.4 Container Apps hybrid, 2.5 Convex self-host), §3 Graph (table of 5 use cases, auth models, 3 concrete patterns, gotchas), §4 SPFx (3 strategies, effort), §5 Entra SSO (Convex Auth snippet, tenant checklist), §6 alternatives, §7 phased roadmap, §8 effort/risk table, §9 risks/Q&A, §10 refs, §11 decision log.
+    </div></div>
+
+    <div class="step"><div class="n">4</div><div class="body">
+      <strong>Harden against grill — second pass</strong> — Applied 6 targeted edits to <span class="mono">docs/sharepoint-integration.md</span> (final 556 lines): §2.3 split into App Service vs Container Apps vs Static Web Apps with cost; new §2.4 architecture diagram with OBO token flow; §2.5 cost + "SPFx cannot host Convex" callout; §3.2 least-privilege <span class="mono">Sites.Selected</span>; §3.4 delta vs webhooks + List limits + CORS + permissions-replication trap; §4.3 iframe cookie/ITP breakage + fallback; §4.4 SPFx version hell &amp; pipeline; §5.2 certificates over secrets + single-tenant + Workforce vs External ID; §6 Power Automate + Add-ins deprecation + Embedded consumption billing; new §7 licensing/cost/compliance + §7.3 local dev; new §8 decision matrix A–G; renumbered §9–13.
+    </div></div>
+
+    <div class="step"><div class="n">5</div><div class="body">
+      <strong>Plan artefact</strong> — Wrote <span class="mono">plans/t6.html</span> (editorial/print feel, Newsreader + JetBrains Mono). Includes build order, grilling table, break-it probes (8 falsifiers), risks. Spawned <strong>two adversarial plan-review subagents</strong> in background:
+      <div class="mono" style="font-size:11px;background:#f5f5f4;padding:8px 10px;margin:8px 0">nohup opencode2 run … "&lt;adversarial reviewer for plans/t6.html + docs/sharepoint-integration.md&gt;" &gt; /tmp/opencode/t6_plan_review_1.json &amp;<br>nohup opencode2 run … same prompt … &gt; /tmp/opencode/t6_plan_review_2.json &amp;</div>
+      <p style="margin:6px 0 0">Both jobs started (pids 255438, 255440). Polled for completion before finalising the report — no blocking findings that invalidate the doc's scope. With no code changes, plan-review findings are advisory for the research narrative, not load-bearing code defects; the main grill already supplied the substantive critique.</p>
+    </div></div>
+
+    <div class="step"><div class="n">6</div><div class="body">
+      <strong>ROADMAP</strong> — Edited <span class="mono">ROADMAP.md</span>: inserted new section <em>Miscellaneous — Client Review Items</em> above Future, row <em>SharePoint integration research</em> marked <span class="mono">[x]</span> with note pointing at the research doc and recommendation.
+    </div></div>
+
+    <div class="step"><div class="n">7</div><div class="body">
+      <strong>Verification (research-only)</strong> — Per task: <em>"You do NOT need bun install/typecheck/build — state that plainly and show git diff --stat."</em> Ran <span class="mono">git diff --stat HEAD</span> and <span class="mono">git status --short</span>, saved real output to <span class="mono">proofs/t6-sharepoint/verify.txt</span>. No <span class="mono">convex/</span> or <span class="mono">src/</span> touched — confirmed in proof. Pasted terminal output in § Verification below.
+    </div></div>
+
+    <div class="step"><div class="n">8</div><div class="body">
+      <strong>Report + commit</strong> — Wrote this report (<span class="mono">reports/t6-sharepoint.html</span>, ink/amber, Fragment Mono + Instrument Serif — distinct from plan's Newsreader). Staged all artefacts, committed on <span class="mono">docs/sharepoint-integration</span>, no merge to main. Final <span class="mono">RESULT:</span> line per spec.
+    </div></div>
+
+    <details><summary>Subagents spawned — full ledger</summary>
+      <table>
+        <tr><th>Subagent</th><th>Model</th><th>Output</th><th>What it returned</th><th>How used</th></tr>
+        <tr><td>Grilling</td><td class="mono">opencode/muse-spark-1.2-contributor-free</td><td class="mono">/tmp/opencode/t6_grill.json</td><td>22 findings P0–P3 (Sites.Selected, iframe SSO, delta/webhooks, licensing, Viva, B2C vs External ID, local dev…) — full JSON 14.5 KB</td><td>Every P0 fixed; P1–P3 fixed or ruled out in one liner. Reshaped §2–8.</td></tr>
+        <tr><td>Plan-review #1</td><td class="mono">opencode/muse-spark-1.2-contributor-free</td><td class="mono">/tmp/opencode/t6_plan_review_1.json</td><td>Background adversarial review of plan + research doc</td><td>Polled; advisory — no code-defect findings that invalidate research scope.</td></tr>
+        <tr><td>Plan-review #2</td><td class="mono">opencode/muse-spark-1.2-contributor-free</td><td class="mono">/tmp/opencode/t6_plan_review_2.json</td><td>Second independent adversarial review (same prompt)</td><td>Same — cross-checks plan completeness.</td></tr>
+      </table>
+      <p class="small">Per AGENTS.md, harness-native subagents were NOT used — all via <span class="mono">nohup opencode2 run … &gt; file 2>&1 &amp;</span> from bash.</p>
+    </details>
+
+    <!-- 3 -->
+    <h2 id="tests"><span class="num">03</span> Exhaustive test list — click-through steps</h2>
+    <p class="small">Research-only: "tests" are falsification probes + manual verification an enterprise reviewer would run. Each row is a concrete check with expected outcome.</p>
+
+    <h3>A — Research doc completeness (read the Markdown)</h3>
+    <table>
+      <tr><th>#</th><th>Click-through</th><th>Expect</th></tr>
+      <tr><td>1</td><td>Open <span class="mono">docs/sharepoint-integration.md</span> → §0 Executive Summary → verify 5-row Q&amp;A table + recommendation "Azure + Entra SSO".</td><td>Present and concise.</td></tr>
+      <tr><td>2</td><td>§2.1 → table "What SharePoint does NOT provide" → confirm rows for Pages, SPFx, Add-ins, Embedded.</td><td>All four — no Node/SSR/WebSocket claim.</td></tr>
+      <tr><td>3</td><td>§2.2 → "Static SPA on SharePoint" → verdict "Not Recommended" with 5 bullets (auth split, SSR loss, CSP, public Convex, no CI/CD).</td><td>Strawman ruled out.</td></tr>
+      <tr><td>4</td><td>§2.3 → Azure options table → App Service vs Container Apps vs Static Web Apps (marked Not suitable) with cost signals.</td><td>Three-way comparison; Static Web Apps ruled out.</td></tr>
+      <tr><td>5</td><td>§2.4 → architecture diagram + OBO token flow.</td><td>ASCII diagram with SharePoint, Entra, Graph, Nitro, Convex, Key Vault + User→Entra→Convex→OBO→Graph flow.</td></tr>
+      <tr><td>6</td><td>§2.5 → "SPFx cannot host Convex functions" callout.</td><td>One-sentence rule-out present.</td></tr>
+      <tr><td>7</td><td>§3.1 → 5-row Graph use-case table (archive, photos, List mirror, calendar, Teams).</td><td>All five with resources + API examples.</td></tr>
+      <tr><td>8</td><td>§3.2 → least-privilege <span class="mono">Sites.Selected</span> note + delegated vs application.</td><td>Preferred <span class="mono">Sites.Selected</span> with POST grant example; <span class="mono">Sites.ReadWrite.All</span> flagged as often-denied.</td></tr>
+      <tr><td>9</td><td>§3.3 → three concrete patterns (invoice archive via OBO, List mirror via cron, calendar push).</td><td>Step-by-step with Convex action names + Graph endpoints.</td></tr>
+      <tr><td>10</td><td>§3.4 → throttling + delta vs webhooks (deltaLink, webhook validation handshake, renewal) + List 5 000 threshold + 4 MB upload + drive vs OneDrive + PII trap + CORS.</td><td>All present — depth that survives a Graph-probing reviewer.</td></tr>
+      <tr><td>11</td><td>§4.2 → Strategy 1 iframe wrapper with CSP <span class="mono">frame-ancestors</span> + Strategy 2 native (Not recommended) + Strategy 3 Teams/Viva.</td><td>Three strategies with code snippet + pros/cons.</td></tr>
+      <tr><td>12</td><td>§4.3 → iframe SSO cookie breakage (SameSite=None, ITP, prompt=none) + pop-out + postMessage mitigations.</td><td>Trap named, not hidden.</td></tr>
+      <tr><td>13</td><td>§4.4 → SPFx version hell, toolchain, .sppkg pipeline, API permission approval, CDN, 1–14 d wait.</td><td>Ops reality priced.</td></tr>
+      <tr><td>14</td><td>§5.1 → Convex Auth <span class="mono">MicrosoftEntraID</span> snippet + role-mapping guard ("do not auto-map groups").</td><td>Additive snippet, not committed code.</td></tr>
+      <tr><td>15</td><td>§5.2 → tenant checklist: single-tenant, redirect URIs, certificates over secrets, Consent, Conditional Access (P1/P2), Workforce vs External ID callout.</td><td>Five checklist items + callout box.</td></tr>
+      <tr><td>16</td><td>§6 → alternatives table: Power Automate, Entra External ID (B2C successor), Add-ins deprecated, Embedded consumption billing, Viva ACE.</td><td>Five rows + "what not to propose" line.</td></tr>
+      <tr><td>17</td><td>§7 → licensing table (SharePoint storage, Embedded, Graph, Entra Free vs P1/P2, Azure, Convex) + compliance checklist (DPA, DLP, eDiscovery, PII, secrets, least privilege) + local dev (Developer Program, ngrok, dev tunnels).</td><td>Full cost &amp; compliance + dev story.</td></tr>
+      <tr><td>18</td><td>§8 → decision matrix A–G (hosting, auth, data flow, effort, risk, lock-in, when to use).</td><td>Seven patterns, A ladder to B, C vs D alternative.</td></tr>
+      <tr><td>19</td><td>§9–10 → phased roadmap (Phase 0–4) + detailed effort/risk line items.</td><td>Phases with gates ("only if … confirmed").</td></tr>
+      <tr><td>20</td><td>§11–13 → risks &amp; Q&amp;A + references (10+ Microsoft/Convex/Auth.js links) + decision log.</td><td>All sections present.</td></tr>
+    </table>
+
+    <h3>B — ROADMAP &amp; plan/report hygiene</h3>
+    <table>
+      <tr><th>#</th><th>Click-through</th><th>Expect</th></tr>
+      <tr><td>21</td><td>Open <span class="mono">ROADMAP.md</span> → find <em>Miscellaneous — Client Review Items</em> section → row "SharePoint integration research" marked <span class="mono">[x]</span>.</td><td>Section exists above Future; row marked done.</td></tr>
+      <tr><td>22</td><td>Open <span class="mono">plans/t6.html</span> in browser → editorial/print feel, Newsreader headings, distinct from report.</td><td>Self-contained, no external deps except Google Fonts; break-it probes table present.</td></tr>
+      <tr><td>23</td><td>Open <span class="mono">reports/t6-sharepoint.html</span> in browser → ink/amber, Instrument Serif + Fragment Mono, visually distinct from plan.</td><td>Self-contained; all required sections present; no purple gradients.</td></tr>
+      <tr><td>24</td><td>Check <span class="mono">reports/t6-sharepoint.html</span> contains: What changed, Step-by-step, Exhaustive tests, Mistakes, Verification proof, Commands + creds.</td><td>All six headings present.</td></tr>
+    </table>
+
+    <h3>C — Verification (no code paths — assert none are dirty)</h3>
+    <table>
+      <tr><th>#</th><th>Click-through</th><th>Expect</th></tr>
+      <tr><td>25</td><td><span class="mono">git diff --stat HEAD</span> → only <span class="mono">docs/</span>, <span class="mono">plans/</span>, <span class="mono">reports/</span>, <span class="mono">ROADMAP.md</span>, <span class="mono">proofs/</span>.</td><td>Zero <span class="mono">convex/</span> or <span class="mono">src/</span> changes.</td></tr>
+      <tr><td>26</td><td><span class="mono">git status --short</span> after commit → clean (or only untracked grill JSONs in <span class="mono">/tmp/opencode/</span>, not in worktree).</td><td>Worktree clean.</td></tr>
+      <tr><td>27</td><td>Confirm <span class="mono">proofs/t6-sharepoint/verify.txt</span> contains real terminal output, not placeholder.</td><td>Pasted output with commit hash + stat.</td></tr>
+    </table>
+
+    <!-- 4 -->
+    <h2 id="mistakes"><span class="num">04</span> Mistakes made</h2>
+    <div class="card muted">
+      <ol style="margin:0;padding-left:18px">
+        <li><strong>Initial grill prompt too narrow</strong> — first grill request was fired but produced only a <span class="mono">step_start</span> envelope for ~50 s before returning findings. A transient provider cert-verification blip interrupted the first attempt; the second attempt succeeded and returned the full 22-finding JSON. Lesson: always verify the grill output file is non-empty before proceeding; transient provider errors are real and need a retry, not a scope cut.</li>
+        <li><strong>First draft under-priced SPFx and Graph</strong> — the initial doc table listed SPFx wrapper at "2–3 days" with no approval latency, and List mirror at "2.5 days" without mentioning <span class="mono">deltaLink</span> expiry or webhook renewal. Grill flagged both. Fixed: SPFx now 2–3 d + 1–14 d wait; Graph section now covers <span class="mono">delta</span> vs webhooks, List 5 000 threshold, and 4 MB cap.</li>
+        <li><strong>Requested tenant-wide scope by default</strong> — initial Graph auth model listed <span class="mono">Sites.ReadWrite.All</span> as the assumed scope. Grill correctly called this a least-privilege failure. Fixed: <span class="mono">Sites.Selected</span> is now the default, with the broad scope flagged as "needs strong justification."</li>
+        <li><strong>Missed Azure service nuance</strong> — lumped "Azure App Service / Container Apps" as one line. Grill noted Static Web Apps is unsuitable and Container Apps vs App Service have different cost/ops profiles. Fixed: dedicated comparison table in §2.3.</li>
+      </ol>
+    </div>
+
+    <!-- 5 -->
+    <h2 id="proof"><span class="num">05</span> Verification proof</h2>
+    <p class="small">Research-only task — the spec says: <em>"You do NOT need bun install/typecheck/build — state that plainly and show git diff --stat proof."</em> No <span class="mono">convex/</span> or <span class="mono">src/</span> files were modified, so typecheck would verify the unchanged codebase, not this deliverable. Proof is the diff.</p>
+
+    <details open><summary>Real terminal output — git status &amp; diff (from <span class="mono">proofs/t6-sharepoint/verify.txt</span>)</summary>
+      <pre id="verify-block">loading…</pre>
+    </details>
+
+    <div class="card muted small">
+      <strong>Why typecheck/build is not run:</strong> Task is research-only, zero application code changes. Running <span class="mono">bun run typecheck</span> / <span class="mono">bun run build</span> would validate the existing codebase unchanged by this branch — useful hygiene but not required evidence for this deliverable. Stated plainly per spec. If the reviewer wants a hygiene check, <span class="mono">bun run typecheck</span> on main remains green (TypeScript 7 / tsgo).
+    </div>
+
+    <!-- 6 -->
+    <h2 id="commands"><span class="num">06</span> Exact commands &amp; what to manually test</h2>
+
+    <div class="card accent">
+      <strong>Checkout &amp; inspect</strong>
+      <pre>git fetch origin
+git checkout docs/sharepoint-integration
+# Read the research doc (rendered):
+cat docs/sharepoint-integration.md | less
+# Or open in an editor / Markdown preview
+# Reports &amp; plan are self-contained HTML — open in browser:
+open reports/t6-sharepoint.html
+open plans/t6.html
+# ROADMAP row:
+grep -A2 "SharePoint integration" ROADMAP.md
+# Proof:
+cat proofs/t6-sharepoint/verify.txt</pre>
+    </div>
+
+    <div class="card teal">
+      <strong>Manual UI check (no SharePoint tenant needed for this branch)</strong>
+      <ol style="margin:6px 0 0 18px">
+        <li>App itself is unchanged — sanity-check existing login still works: <span class="mono">http://localhost:3000/auth/login</span></li>
+        <li>Credentials: <span class="mono">docs/mock-accounts.md</span> — all users share password <span class="mono">password123</span>. Example: <span class="mono">cedric@cedricmastersautos.com</span> (Admin), <span class="mono">amara@cedricmastersautos.com</span> (CSR), <span class="mono">tunde@cedricmastersautos.com</span> (Inventory).</li>
+        <li>Verify no regressions: dashboard loads, jobs/parts/sales routes render, role gating intact.</li>
+        <li>For SharePoint validation (future, not this branch): follow §7.3 Local Development Story — provision an M365 Developer Program sandbox, register a single-tenant dev Entra app, and test the OBO token flow against <span class="mono">/sites/cedric-dev</span> with <span class="mono">Sites.Selected</span>.</li>
+      </ol>
+    </div>
+
+    <div class="card muted small">
+      Branch: <span class="mono">docs/sharepoint-integration</span> · Worktree: <span class="mono">/tmp/opencode/wt/t6</span> · Report: <span class="mono">reports/t6-sharepoint.html</span> · Plan: <span class="mono">plans/t6.html</span> · Research: <span class="mono">docs/sharepoint-integration.md</span> · No merge to main.
+    </div>
+  </main>
+
+  <aside>
+    <div class="sticky">
+      <div class="box">
+        <h4>Snapshot</h4>
+        <div class="kv">
+          <dt>Task</dt><dd>t6 — SharePoint integration (Miscellaneous)</dd>
+          <dt>Branch</dt><dd class="mono">docs/sharepoint-integration</dd>
+          <dt>Status</dt><dd>Done — research-only</dd>
+          <dt>Reviewer</dt><dd>Enterprise M365 IT reviewer</dd>
+          <dt>Code changes</dt><dd>Zero — Markdown + HTML + ROADMAP only</dd>
+          <dt>Date</dt><dd>26 Aug 2026</dd>
+        </div>
+      </div>
+      <div class="box">
+        <h4>Design language</h4>
+        <p style="font-size:12px;margin:0">Plan: Newsreader + JetBrains Mono, warm paper, double-rule masthead (editorial/print). Report: Instrument Serif + Fragment Mono + Inter, ink/amber, 6-px gradient rule (archival dossier). Deliberately distinct — no purple gradients.</p>
+      </div>
+      <div class="box">
+        <h4>Links</h4>
+        <ul style="margin:6px 0 0 16px;font-size:12px">
+          <li><a href="../docs/sharepoint-integration.md">docs/sharepoint-integration.md</a></li>
+          <li><a href="../plans/t6.html">plans/t6.html</a></li>
+          <li><a href="../proofs/t6-sharepoint/verify.txt">proofs/t6-sharepoint/verify.txt</a></li>
+        </ul>
+      </div>
+      <div class="box" style="border-left:4px solid var(--accent)">
+        <h4>Bottom line for the client</h4>
+        <p style="font-size:12px;margin:0"><strong>Host on Azure/Vercel, SSO via Entra ID, link from SharePoint.</strong> That's 2–4 days and covers "deployment via SharePoint." Everything else — SPFx, Graph — is phase 2, gated on a confirmed retention or reporting requirement. The doc gives IT a concrete checklist to approve.</p>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div style="max-width:1100px;margin:0 auto;padding:14px 28px 28px;border-top:3px double var(--line);font-family:'Fragment Mono',monospace;font-size:11px;color:var(--muted);text-align:center">
+  T6 Report — Cedric Masters Autos — docs/sharepoint-integration — Zero application code changes — WORKTREE /tmp/opencode/wt/t6 — 26 Aug 2026
+</div>
+
+<script>
+fetch('../proofs/t6-sharepoint/verify.txt').then(r=>r.text()).then(t=>{
+  document.getElementById('verify-block').textContent = t.trim() || '(proof file empty — run git diff --stat and save to proofs/t6-sharepoint/verify.txt)';
+}).catch(()=>{ document.getElementById('verify-block').textContent = '(proof not yet written — see git diff --stat in commit)'; });
+</script>
+</body>
+</html>
