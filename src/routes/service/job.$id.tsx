@@ -24,6 +24,7 @@ import {
   jobQueries,
   partQueries,
   labourTypeQueries,
+  invoiceQueries,
   useDiagnoseMutation,
   useMarkReadyMutation,
   useCompleteMutation,
@@ -32,6 +33,13 @@ import {
   useGenerateInvoiceMutation,
   useRegenerateInvoiceMutation,
   useApproveInvoiceMutation,
+  useCreateEstimateMutation,
+  useUpdateEstimateMutation,
+  useApproveEstimateMutation,
+  useRejectEstimateMutation,
+  useConvertEstimateMutation,
+  useAdminUnlockMutation,
+  useReverseReadyMutation,
   useRecordPaymentMutation,
   useMarkPaidMutation,
 } from '~/lib/queries'
@@ -270,15 +278,17 @@ function StatusStepper({ status }: { status: JobStatus }) {
 function StatusActions({ jobId, allowedNext }: { jobId: string; allowedNext: JobStatus[] }) {
   const queryClient = useQueryClient()
   const { data: me } = useCurrentUser()
+  const { data: detail } = useQuery(jobQueries.detail(jobId))
   const markReady = useMarkReadyMutation()
   const complete = useCompleteMutation()
+  const reverseReady = useReverseReadyMutation()
 
   function invalidate() {
     void queryClient.invalidateQueries()
   }
 
   function handleTransition(target: JobStatus) {
-    const opts = { onSuccess: () => { toast.success(`Job moved to ${JOB_STATUS_LABELS[target]}`); invalidate() } }
+    const opts = { onSuccess: () => { toast.success(`Job moved to ${JOB_STATUS_LABELS[target]}`); invalidate() }, onError: (e: any) => toast.error(e.message) }
     if (target === 'readyForPickup') markReady.mutate({ jobId: jobId as Id<'jobs'> }, opts)
     else if (target === 'completed') complete.mutate({ jobId: jobId as Id<'jobs'> }, opts)
   }
@@ -286,6 +296,8 @@ function StatusActions({ jobId, allowedNext }: { jobId: string; allowedNext: Job
   const role = me?.role
   const canMarkReady = role === 'inventoryManager' || role === 'manager' || role === 'admin'
   const canComplete = role === 'manager' || role === 'admin'
+  const canReverse = role === 'manager' || role === 'admin'
+  const isReady = detail?.job?.status === 'readyForPickup'
 
   return (
     <Card>
@@ -299,6 +311,11 @@ function StatusActions({ jobId, allowedNext }: { jobId: string; allowedNext: Job
         {allowedNext.includes('completed') && canComplete && (
           <Button onClick={() => handleTransition('completed')} disabled={complete.isPending}>
             {complete.isPending ? 'Completing...' : 'Mark Completed'}
+          </Button>
+        )}
+        {isReady && canReverse && (
+          <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => reverseReady.mutate({ jobId: jobId as Id<'jobs'> }, { onSuccess: () => { toast.success('Reversed — back to In Progress'); invalidate() }, onError: (e: any) => toast.error(e.message) })} disabled={reverseReady.isPending}>
+            {reverseReady.isPending ? 'Reversing...' : '↩ Reverse Ready for Pickup'}
           </Button>
         )}
       </CardContent>
@@ -537,146 +554,232 @@ function InvoiceSection({ jobId, invoice, job, customer, vehicle, payments, hasI
 }) {
   const queryClient = useQueryClient()
   const { data: me } = useCurrentUser()
+  const { data: invoiceList } = useQuery(invoiceQueries.listByJob(jobId))
   const generate = useGenerateInvoiceMutation()
   const regenerate = useRegenerateInvoiceMutation()
   const approve = useApproveInvoiceMutation()
+  const createEstimate = useCreateEstimateMutation()
+  const updateEstimate = useUpdateEstimateMutation()
+  const approveEstimate = useApproveEstimateMutation()
+  const rejectEstimate = useRejectEstimateMutation()
+  const convertEstimate = useConvertEstimateMutation()
+  const adminUnlock = useAdminUnlockMutation()
   const recordPayment = useRecordPaymentMutation()
   const [method, setMethod] = useState('cash')
+  const [rejectReason, setRejectReason] = useState('')
+  const [unlockReason, setUnlockReason] = useState('')
 
   const canFinance = me?.role === 'finance' || me?.role === 'manager' || me?.role === 'admin'
+  const canCsrEstimate = me?.role === 'csr' || me?.role === 'manager' || me?.role === 'admin'
+  const canApproveEstimate = canFinance
+  const isAdmin = me?.role === 'admin'
 
-  if (!invoice) {
+  const invoices: any[] = invoiceList ?? (invoice ? [invoice] : [])
+  const estimates = invoices.filter((i: any) => i.kind === 'estimate')
+  const finals = invoices.filter((i: any) => i.kind === 'final' || !i.kind)
+  const finalInvoice: any = finals[0] ?? null
+  const draftEstimate: any = estimates.find((e: any) => e.status === 'draft') ?? null
+  const approvedEstimate: any = estimates.find((e: any) => e.status === 'approved') ?? null
+
+  function invalidate() { void queryClient.invalidateQueries() }
+
+  // If no invoices at all
+  if (invoices.length === 0) {
     return (
-      <Card>
-        <CardHeader><CardTitle>Invoice</CardTitle></CardHeader>
-        <CardContent>
-          {!canFinance ? (
-            <p className="text-[13px] text-mute">Invoice has not been generated yet.</p>
-          ) : !hasItems ? (
-            <p className="text-[13px] text-mute">Add parts or labour before generating an invoice.</p>
-          ) : (
-            <Button onClick={() => generate.mutate({ jobId: jobId as Id<'jobs'> }, {
-              onSuccess: () => { toast.success('Invoice generated.'); void queryClient.invalidateQueries() },
-            })} disabled={generate.isPending}>
-              {generate.isPending ? 'Generating...' : 'Generate Invoice'}
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {/* Estimates empty state */}
+        <Card>
+          <CardHeader><CardTitle>Estimates & Invoices</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {canCsrEstimate && hasItems && (
+              <Button onClick={() => createEstimate.mutate({ jobId: jobId as Id<'jobs'>, domain: 'service' }, { onSuccess: () => { toast.success('Estimate created.'); invalidate() }, onError: (e: any) => toast.error(e.message) })} disabled={createEstimate.isPending}>
+                {createEstimate.isPending ? 'Creating...' : 'Create Estimate (CSR)'}
+              </Button>
+            )}
+            {canFinance && hasItems && (
+              <Button variant="outline" onClick={() => generate.mutate({ jobId: jobId as Id<'jobs'> }, { onSuccess: () => { toast.success('Final invoice generated.'); invalidate() }, onError: (e: any) => toast.error(e.message) })} disabled={generate.isPending}>
+                {generate.isPending ? 'Generating...' : 'Generate Final Invoice'}
+              </Button>
+            )}
+            {!hasItems && <p className="text-[13px] text-mute">Add parts or labour before invoicing. CSR can prepare estimates.</p>}
+            {!canCsrEstimate && !canFinance && <p className="text-[13px] text-mute">Invoice not yet generated.</p>}
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
-  const balance = invoice.grandTotal - invoice.amountPaid
-
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>Invoice</CardTitle>
-        <PrintableInvoice
-          invoice={invoice}
-          job={job}
-          customer={customer}
-          vehicle={vehicle}
-          payments={payments}
-        />
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="overflow-hidden rounded-[10px] border border-line-soft">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead className="text-right">Unit price</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoice.lineItems.map((li: any, idx: number) => (
-                <TableRow key={idx}>
-                  <TableCell className="text-body">{li.description}</TableCell>
-                  <TableCell className="[font-variant-numeric:tabular-nums]">{li.qty}</TableCell>
-                  <TableCell className="text-right [font-variant-numeric:tabular-nums]">{formatNaira(li.unitPrice)}</TableCell>
-                  <TableCell className="text-right font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(li.lineTotal)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="ml-auto w-full max-w-xs space-y-1.5 text-[13px]">
-          <div className="flex justify-between"><span className="text-mute">Parts total</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(invoice.partsTotal)}</span></div>
-          <div className="flex justify-between"><span className="text-mute">Labour total</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(invoice.labourTotal)}</span></div>
-          <div className="flex justify-between"><span className="text-mute">Subtotal</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(invoice.subtotal)}</span></div>
-          <div className="flex justify-between"><span className="text-mute">VAT</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(invoice.vat)}</span></div>
-          <div className="flex justify-between border-t border-line pt-1.5 text-sm font-extrabold text-ink"><span>Grand total</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(invoice.grandTotal)}</span></div>
-          <div className="flex justify-between font-semibold text-emerald-600"><span>Paid</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(invoice.amountPaid)}</span></div>
-          <div className="flex justify-between font-bold text-ink"><span>Balance</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(balance)}</span></div>
-        </div>
-
-        {/* approve / regenerate */}
-        {canFinance && (
-          <div className="flex flex-wrap gap-2 pt-2">
-            {!invoice.approved && (
-              <Button onClick={() => approve.mutate({ invoiceId: invoice._id }, {
-                onSuccess: () => { toast.success('Invoice approved.'); void queryClient.invalidateQueries() },
-              })} disabled={approve.isPending}>
-                {approve.isPending ? 'Approving...' : 'Approve Invoice'}
-              </Button>
-            )}
-
-            {!invoice.paid && (
-              <Button
-                variant="outline"
-                onClick={() => regenerate.mutate({ jobId: jobId as Id<'jobs'> }, {
-                  onSuccess: () => { toast.success('Invoice regenerated with current job items.'); void queryClient.invalidateQueries() },
-                })}
-                disabled={regenerate.isPending}
-              >
-                {regenerate.isPending ? 'Regenerating...' : 'Regenerate Invoice'}
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* record payment */}
-        {canFinance && invoice.approved && balance > 0 && (
-          <div className="flex items-end gap-3 border-t border-line-soft pt-4">
-            <div className="w-44 space-y-2">
-              <Label htmlFor="method">Method</Label>
-              <Select id="method" value={method} onChange={(e) => setMethod(e.target.value)}>
-                <option value="cash">Cash</option>
-                <option value="transfer">Transfer</option>
-                <option value="card">Card</option>
-              </Select>
-            </div>
-            <Button onClick={() => {
-              const amount = balance
-              recordPayment.mutate({ invoiceId: invoice._id, amount, method }, {
-                onSuccess: () => { toast.success('Payment recorded.'); void queryClient.invalidateQueries() },
-              })
-            }} disabled={recordPayment.isPending}>
-              {recordPayment.isPending ? 'Recording...' : `Record Full Payment (${formatNaira(balance)})`}
-            </Button>
-          </div>
-        )}
-
-        {/* payments history */}
-        {payments.length > 0 && (
-          <div className="border-t border-line-soft pt-3">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-mute">Payment history</p>
-            <div className="space-y-1">
-              {payments.map((pmt: any) => (
-                <div key={pmt._id} className="flex justify-between text-[13px]">
-                  <span className="text-body">{formatDateTime(pmt.ts)} · <span className="capitalize">{pmt.method}</span></span>
-                  <span className="font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(pmt.amount)}</span>
+    <div className="space-y-4">
+      {/* Estimates section */}
+      {estimates.length > 0 && (
+        <Card className="overflow-hidden border-amber-200">
+          <CardHeader className="flex-row items-center justify-between bg-amber-50/50">
+            <CardTitle className="flex items-center gap-2">Estimates <Badge variant="warning" className="bg-amber-100 text-amber-800 border-amber-200">ESTIMATE — NOT A TAX INVOICE</Badge></CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-4">
+            {estimates.map((est: any) => (
+              <div key={est._id} className="rounded-lg border border-line-soft p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[13px] font-bold text-ink">{est.invoiceNumber ?? `EST-temp-${est._id.slice(-4)}`}</span>
+                    <Badge variant={est.status === 'approved' ? 'success' : est.status === 'rejected' ? 'destructive' : est.status === 'converted' ? 'secondary' : 'warning'}>{est.status ?? (est.approved ? 'approved' : 'draft')}</Badge>
+                    {est.locked && <Badge variant="destructive">LOCKED</Badge>}
+                  </div>
+                  <span className="text-[12px] text-mute">{formatNaira(est.grandTotal)} · {est.approved ? 'Approved' : 'Draft'}</span>
                 </div>
-              ))}
+                <div className="text-[12px] text-mute">Parts {formatNaira(est.partsTotal)} · Labour {formatNaira(est.labourTotal)} · VAT {formatNaira(est.vat)}</div>
+                {est.rejectedReason && <p className="text-[12px] text-rose-600">Reason: {est.rejectedReason}</p>}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {est.status === 'draft' && canCsrEstimate && (
+                    <Button size="sm" variant="outline" onClick={() => updateEstimate.mutate({ invoiceId: est._id }, { onSuccess: () => { toast.success('Estimate refreshed from job items.'); invalidate() }, onError: (e: any) => toast.error(e.message) })} disabled={updateEstimate.isPending}>Refresh from job items</Button>
+                  )}
+                  {est.status === 'draft' && canApproveEstimate && (
+                    <>
+                      <Button size="sm" onClick={() => approveEstimate.mutate({ invoiceId: est._id }, { onSuccess: () => { toast.success('Estimate approved.'); invalidate() }, onError: (e: any) => toast.error(e.message) })}>Approve</Button>
+                      <div className="flex items-center gap-1">
+                        <Input placeholder="Reject reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} className="h-8 w-40" />
+                        <Button size="sm" variant="outline" className="text-rose-600" onClick={() => rejectEstimate.mutate({ invoiceId: est._id, reason: rejectReason }, { onSuccess: () => { toast.success('Estimate rejected.'); setRejectReason(''); invalidate() }, onError: (e: any) => toast.error(e.message) })}>Reject</Button>
+                      </div>
+                    </>
+                  )}
+                  {est.status === 'approved' && canApproveEstimate && (
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => convertEstimate.mutate({ invoiceId: est._id }, { onSuccess: () => { toast.success('Converted to final invoice.'); invalidate() }, onError: (e: any) => toast.error(e.message) })}>Convert to Final Invoice</Button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {canCsrEstimate && !draftEstimate && hasItems && (
+              <Button size="sm" variant="outline" onClick={() => createEstimate.mutate({ jobId: jobId as Id<'jobs'>, domain: 'service' }, { onSuccess: () => { toast.success('Estimate created.'); invalidate() }, onError: (e: any) => toast.error(e.message) })}>Create Another Estimate</Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No estimate yet but allow CSR to create */}
+      {estimates.length === 0 && canCsrEstimate && hasItems && (
+        <Card className="border-dashed">
+          <CardContent className="pt-4 flex gap-2">
+            <Button size="sm" onClick={() => createEstimate.mutate({ jobId: jobId as Id<'jobs'>, domain: 'service' }, { onSuccess: () => { toast.success('Estimate created.'); invalidate() }, onError: (e: any) => toast.error(e.message) })}>Create Estimate</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Final invoice section */}
+      {finalInvoice ? (
+        <Card className={`overflow-hidden ${finalInvoice.locked ? 'border-emerald-300' : ''}`}>
+          <CardHeader className="flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle>Invoice</CardTitle>
+              {finalInvoice.locked && <Badge variant="success" className="bg-emerald-100 text-emerald-800 border-emerald-200">LOCKED</Badge>}
+              {finalInvoice.invoiceNumber && <span className="font-mono text-xs font-bold text-mute">{finalInvoice.invoiceNumber}</span>}
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            <PrintableInvoice invoice={finalInvoice} job={job} customer={customer} vehicle={vehicle} payments={payments} />
+          </CardHeader>
+          {finalInvoice.locked && <div className="mx-4 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-[12px] font-semibold text-emerald-800">🔒 Locked — final invoice approved. Only Admin can unlock with reason.</div>}
+          <CardContent className="space-y-4 pt-4">
+            <div className="overflow-hidden rounded-[10px] border border-line-soft">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead className="text-right">Unit price</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {finalInvoice.lineItems.map((li: any, idx: number) => (
+                    <TableRow key={idx}>
+                      <TableCell className="text-body">{li.description}</TableCell>
+                      <TableCell className="[font-variant-numeric:tabular-nums]">{li.qty}</TableCell>
+                      <TableCell className="text-right [font-variant-numeric:tabular-nums]">{formatNaira(li.unitPrice)}</TableCell>
+                      <TableCell className="text-right font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(li.lineTotal)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="ml-auto w-full max-w-xs space-y-1.5 text-[13px]">
+              <div className="flex justify-between"><span className="text-mute">Parts total</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(finalInvoice.partsTotal)}</span></div>
+              <div className="flex justify-between"><span className="text-mute">Labour total</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(finalInvoice.labourTotal)}</span></div>
+              <div className="flex justify-between"><span className="text-mute">Subtotal</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(finalInvoice.subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-mute">VAT</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(finalInvoice.vat)}</span></div>
+              <div className="flex justify-between border-t border-line pt-1.5 text-sm font-extrabold text-ink"><span>Grand total</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(finalInvoice.grandTotal)}</span></div>
+              <div className="flex justify-between font-semibold text-emerald-600"><span>Paid</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(finalInvoice.amountPaid)}</span></div>
+              <div className="flex justify-between font-bold text-ink"><span>Balance</span><span className="[font-variant-numeric:tabular-nums]">{formatNaira(finalInvoice.grandTotal - finalInvoice.amountPaid)}</span></div>
+            </div>
+            {isAdmin && finalInvoice.generatedById && (
+              <p className="text-[11px] text-mute">Generated by: <span className="font-mono text-body">{String(finalInvoice.generatedById).slice(-6)}</span> {finalInvoice.approvedTs ? `· ${formatDateTime(finalInvoice.approvedTs)}` : ''}</p>
+            )}
+            {canFinance && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {!finalInvoice.approved && (
+                  <Button onClick={() => approve.mutate({ invoiceId: finalInvoice._id }, { onSuccess: () => { toast.success('Invoice approved & locked.'); invalidate() }, onError: (e: any) => toast.error(e.message) })} disabled={approve.isPending}>
+                    {approve.isPending ? 'Approving...' : 'Approve Invoice (will lock)'}
+                  </Button>
+                )}
+                {!finalInvoice.locked && !finalInvoice.paid && (
+                  <Button variant="outline" onClick={() => regenerate.mutate({ jobId: jobId as Id<'jobs'> }, { onSuccess: () => { toast.success('Invoice regenerated.'); invalidate() }, onError: (e: any) => toast.error(e.message) })} disabled={regenerate.isPending}>
+                    {regenerate.isPending ? 'Regenerating...' : 'Regenerate Invoice'}
+                  </Button>
+                )}
+              </div>
+            )}
+            {isAdmin && finalInvoice.locked && (
+              <div className="flex items-end gap-2 border-t border-line-soft pt-3">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-[11px]">Unlock reason (admin, ≥10 chars)</Label>
+                  <Input placeholder="Reason for unlocking..." value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} />
+                </div>
+                <Button variant="outline" className="text-amber-700" onClick={() => adminUnlock.mutate({ invoiceId: finalInvoice._id, reason: unlockReason }, { onSuccess: () => { toast.success('Invoice unlocked.'); setUnlockReason(''); invalidate() }, onError: (e: any) => toast.error(e.message) })}>Unlock</Button>
+              </div>
+            )}
+            {canFinance && finalInvoice.approved && (finalInvoice.grandTotal - finalInvoice.amountPaid) > 0 && (
+              <div className="flex items-end gap-3 border-t border-line-soft pt-4">
+                <div className="w-44 space-y-2">
+                  <Label htmlFor="method">Method</Label>
+                  <Select id="method" value={method} onChange={(e) => setMethod(e.target.value)}>
+                    <option value="cash">Cash</option>
+                    <option value="transfer">Transfer</option>
+                    <option value="card">Card</option>
+                  </Select>
+                </div>
+                <Button onClick={() => {
+                  const bal = finalInvoice.grandTotal - finalInvoice.amountPaid
+                  recordPayment.mutate({ invoiceId: finalInvoice._id, amount: bal, method }, { onSuccess: () => { toast.success('Payment recorded.'); invalidate() }, onError: (e: any) => toast.error(e.message) })
+                }} disabled={recordPayment.isPending}>
+                  {recordPayment.isPending ? 'Recording...' : `Record Full Payment (${formatNaira(finalInvoice.grandTotal - finalInvoice.amountPaid)})`}
+                </Button>
+              </div>
+            )}
+            {payments.length > 0 && (
+              <div className="border-t border-line-soft pt-3">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.07em] text-mute">Payment history</p>
+                <div className="space-y-1">
+                  {payments.map((pmt: any) => (
+                    <div key={pmt._id} className="flex justify-between text-[13px]">
+                      <span className="text-body">{formatDateTime(pmt.ts)} · <span className="capitalize">{pmt.method}</span></span>
+                      <span className="font-bold text-ink [font-variant-numeric:tabular-nums]">{formatNaira(pmt.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        canFinance && hasItems && (
+          <Card>
+            <CardContent className="pt-4">
+              <Button onClick={() => generate.mutate({ jobId: jobId as Id<'jobs'> }, { onSuccess: () => { toast.success('Final invoice generated.'); invalidate() }, onError: (e: any) => toast.error(e.message) })} disabled={generate.isPending}>
+                {generate.isPending ? 'Generating...' : 'Generate Final Invoice'}
+              </Button>
+            </CardContent>
+          </Card>
+        )
+      )}
+    </div>
   )
 }
 
