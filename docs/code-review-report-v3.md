@@ -1,10 +1,8 @@
 # Code review report v3
 
-Cedric Masters Autos. Engineering review of the full codebase at `main@ad58412`.
+This is an engineering review of the whole codebase: architecture, every public Convex function, table rules, auth, locks, rate limiting, and the things earlier reports missed. Every claim names a real file and symbol so you can verify it yourself.
 
-This is a census, not a story. Every claim names a real file and symbol so you can grep it. Symbols read as `file:symbol`, like `convex/invoices.ts:approve`. Where a validator or lock matters, I cite the literal line. No mocked data. No new behavior was added to produce this report.
-
-The v1 report (07 Aug 2026, commit 0a26911) found 0 critical, 1 high, 6 medium, 7 low issues. The v2 report (26 Aug 2026) documented fixes for all of those across t1 through t7. This v3 rewrites v2 in plain English and adds the legacy schema migration that shipped the same day. The old `docs/code-review-report.html` and `.pdf` files in the repo root are untouched.
+This version rewrites the earlier report in plain English, adds the legacy schema migration that shipped after it, and adds a new section on risks that v1 and v2 skipped over. The earlier report files in the repo root are untouched.
 
 ---
 
@@ -17,7 +15,8 @@ The v1 report (07 Aug 2026, commit 0a26911) found 0 critical, 1 high, 6 medium, 
 5. How Convex works
 6. Validators and locks
 7. Findings from v1, and where they stand now
-8. Verification
+8. Risks v1 and v2 skipped
+9. Verification
 
 ---
 
@@ -515,7 +514,72 @@ CMA-CRR-001 (07 Aug 2026) findings, reconciled at the current HEAD:
 
 ---
 
-## 8. Verification
+## 8. Risks v1 and v2 skipped
+
+The earlier reports cataloged what shipped and how it works. They did not flag the things below. Each is a real finding you can grep. None are blocking, but a reviewer should know about them.
+
+### Plaintext TOTP secrets in the users table
+
+`convex/lib/totp.ts` is upfront about this in its header comment. TOTP secrets sit in `users.totpSecret` as plain strings. Convex encrypts data at rest, but there is no per-field envelope encryption in this app. Anyone with direct read access to the database can read every secret and generate valid codes. The same applies to backup codes (`users.backupCodes`). The codebase never logs secrets and audit entries record only `userId + action`, so the leak path is DB read access, not logs. If the threat model includes an insider with DB access, this matters. If it does not, the current design is acceptable and matches the PRD scope cut.
+
+### Silent `catch {}` blocks
+
+12 `catch {}` blocks across `convex/` swallow errors with no logging:
+
+- `convex/twoFactor.ts:137-138` and `175-176` patch `totpSecret` and `backupCodes` to `undefined`, then swallow the result. The intent is to clear optional fields that Convex sometimes refuses to patch to `undefined`. The pattern works but hides real write failures.
+- `convex/users.ts:220` does the same for `mustChangePassword`.
+- `convex/parts.ts:193` and `196` clear `brand` and `category` the same way.
+- `convex/lib/rateLimit.ts:23` swallows settings read failures, defaulting to enabled.
+- `convex/lib/rateLimit.ts:85` swallows the best-effort `rateLimitEvents` insert on throw.
+
+If any of these silently fail, the app continues as if it worked. A reviewer should know that "clear field X" is not guaranteed to clear. The fix is low effort: log the swallowed error to `auditLogs` or an internal table before ignoring it.
+
+### `adminResetPassword` SHA-256 fallback
+
+`convex/users.ts:adminResetPassword` tries to reset the password through `@convex-dev/auth/server` `modifyAccountCredentials`, which hashes with Scrypt. If that throws, the fallback path at `convex/users.ts:157-166` patches `authAccounts.secret` directly with a SHA-256 hex hash. That hash will never verify against Scrypt, so the user cannot log in with the temp password. The code sets `mustChangePassword: true` and comments that the admin should use email reset instead. This is a known degraded path, not a bug. A reviewer should confirm the primary path works in their environment and treat the fallback as a last resort, not a normal flow.
+
+### Unbounded `collect()` reads
+
+Several queries call `collect()` on whole tables with no `take()` bound:
+
+- `convex/jobs.ts:100` and `113` collect all jobs for `dashboardSummary` and `openCount`.
+- `convex/migrations.ts:46` collects all jobs for cleanup.
+- `convex/jobs.ts:65` collects all jobs when no status filter is passed.
+
+The Convex guidelines in `convex/_generated/ai/guidelines.md:327` explicitly warn against this: "instead of using `.collect()` use `.take()` or paginate". At demo scale (12 jobs, 8 users, 45 parts) this is fast. It will not stay fast if the tables grow. The queries should be bounded with `take()` or replaced with a denormalized counter for `openCount`. The earlier reports noted CR-06 (parts search collect-then-filter) as "kept, fine at seed scale". The same caveat applies here but was not written down.
+
+### `as any` casts
+
+115 `as any` casts in `convex/`, concentrated in:
+
+- `convex/invoices.ts` (30)
+- `convex/twoFactor.ts` (26)
+- `convex/users.ts` (13)
+- `convex/lib/session.ts` (9)
+
+Most cast optional schema fields (`totpSecret`, `backupCodes`, `mustChangePassword`, `locked`) that were added in t3/t5 but are still typed `v.optional(v.*)`. The casts exist because the Convex codegen types a document field as `T | undefined`, and the handler wants to write `undefined` to clear it. This is a known Convex friction point. The casts are not hiding bugs, but they defeat the type system at the exact points where security fields live. A future cleanup would use a typed helper or wait for Convex to support `patch(doc, { field: undefined })` without a cast.
+
+### No HTTP security headers
+
+There is no `Content-Security-Policy`, `X-Frame-Options`, `Strict-Transport-Security`, or `Referrer-Policy` set anywhere in `src/` or the Vite/Nitro config. TanStack Start with Nitro does not set these by default. For an internal app this is low risk. For a public-facing app, add at least a CSP and HSTS. The earlier reports did not mention headers at all.
+
+### Auth HTTP not rate-limited
+
+CR-03 noted this and the report is honest about it. The sign-in HTTP endpoint (`POST /api/auth/signIn`) is not rate-limited because mutations have no `ctx.request` IP. The client uses `isPending` debounce. The earlier reports document this as a limitation. The concrete risk is credential stuffing against the password endpoint. A future fix would put a reverse proxy or Convex action in front that can see the IP and bucket by IP + identifier.
+
+### Test coverage is thin
+
+The repo has 10 test files under `tests/`:
+
+- `tests/unit/schemas.test.ts`, `job-utils.test.ts`, `auth-utils.test.ts`, `format.test.ts`, `invoice.test.ts`
+- `tests/convex/authz.test.ts`, `phase2-authz.test.ts`
+- `tests/e2e/jobs.spec.ts`, `screenshots.spec.ts`, `auth-nav.spec.ts`
+
+The unit tests cover pure helpers (Zod schemas, job status transitions, auth role checks, money formatting, invoice totals). The Convex tests cover authorization. There are no tests for the invoice lock path, rate limiting, 2FA flows, or the migrations. The earlier reports cited "35 pass, 10 skip" from t8 but never listed what is actually tested. A reviewer should know the lock trigger in section 6 is proven by code reading, not by a test.
+
+---
+
+## 9. Verification
 
 This report is read-and-document only. No `convex/*.ts`, `src/*`, or `convex/schema.ts` behavior changed to produce it.
 
