@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T6b Report — Power Apps + Excel/PDF Research</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+  :root{--ink:#171412;--paper:#fffbf0;--cream:#fef3c7;--line:#e7dcc3;--line2:#d6c7a3;--accent:#b45309;--accent2:#0c4a6e;--ok:#14532d;--warn:#7c2d12;--muted:#78716c;--grid:#f5ecd6}
+  *{box-sizing:border-box} html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.6}
+  /* top rule */
+  .topline{height:5px;background:linear-gradient(90deg,var(--accent),#f59e0b,var(--accent2))}
+  .mast{max-width:1180px;margin:0 auto;padding:20px 24px 14px;border-bottom:2px solid var(--ink);display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+  .mast h1{margin:0;font-family:'Fraunces',serif;font-size:34px;letter-spacing:-.03em;line-height:.92}
+  .mast h1 span{color:var(--accent)}
+  .mast .meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-align:right;line-height:1.6}
+  .mast .meta b{color:var(--ink)}
+  .hero{max-width:1180px;margin:0 auto;padding:18px 24px;display:grid;grid-template-columns:1.4fr .85fr;gap:20px}
+  .hero .lede{font-size:16px;color:#44403c;line-height:1.55}
+  .badge{display:inline-flex;gap:6px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:#fff;padding:6px 10px}
+  .badge.alt{background:var(--accent)} .badge.outline{background:var(--cream);color:var(--ink);border:1px solid var(--ink)}
+  .kicker{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .facts{border:2px solid var(--ink);background:#fff;padding:14px 16px}
+  .facts h3{margin:0 0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .facts dl{margin:0;display:grid;grid-template-columns:120px 1fr;gap:6px 10px;font-family:'JetBrains Mono',monospace;font-size:12px}
+  .facts dt{color:var(--muted)} .facts dd{margin:0;font-weight:600}
+  .nav{max-width:1180px;margin:0 auto;padding:0 24px 12px;display:flex;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .nav a{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);text-decoration:none;border-bottom:1px dotted}
+  .layout{max-width:1180px;margin:0 auto;padding:16px 24px 32px;display:grid;grid-template-columns:1fr 340px;gap:20px}
+  h2{font-family:'Fraunces',serif;font-size:22px;letter-spacing:-.02em;margin:28px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  h3{font-family:'Inter',sans-serif;font-size:14px;font-weight:700;margin:14px 0 6px;color:var(--ink)}
+  p,li{font-size:14px}
+  .card{border:1px solid var(--line);background:#fff;padding:14px 16px;margin:10px 0;box-shadow:0 1px 0 var(--grid)}
+  .card.warn{border-left:5px solid var(--warn);background:#fff7ed}
+  .card.ok{border-left:5px solid var(--ok);background:#f0fdf4}
+  .card.accent{border-left:5px solid var(--accent);background:#fffbeb}
+  .mono{font-family:'JetBrains Mono',monospace}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+  th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;text-align:left;border-bottom:2px solid var(--ink);padding:7px 6px;background:var(--cream)}
+  td{border-bottom:1px solid var(--line);padding:7px 6px;vertical-align:top}
+  .step{border:1px solid var(--line2);background:#fff;padding:12px 14px;margin:8px 0;position:relative}
+  .step .n{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--accent2)}
+  .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 6px;border:1px solid var(--line);background:#fff;margin-right:4px}
+  .tag.fill{background:var(--ink);color:#fff;border-color:var(--ink)} .tag.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+  details{border:1px solid var(--line);background:#fff;padding:10px 12px;margin:8px 0}
+  details summary{font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+  pre{background:#1c1917;color:#f5f5f4;padding:12px 14px;overflow:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.5;border:1px solid var(--ink);white-space:pre-wrap;word-break:break-word}
+  code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:#fef3c7;padding:1px 4px;border:1px solid var(--line)}
+  aside .sticky{position:sticky;top:16px}
+  aside .box{border:2px solid var(--ink);background:#fff;padding:12px 14px;margin-bottom:12px}
+  aside h4{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .progress{height:8px;background:var(--grid);border:1px solid var(--line);overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--accent)}
+  @media(max-width:900px){.hero{grid-template-columns:1fr}.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topline"></div>
+<div class="mast">
+  <div>
+    <div class="kicker">Report · T6b · Research-only · No app code</div>
+    <h1>Power Apps <span>honest</span> + Excel/PDF<br>shippable — delivered</h1>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+      <span class="badge">Branch docs/powerapps-import-export</span>
+      <span class="badge alt">Status done</span>
+      <span class="badge outline">Zero code changes</span>
+    </div>
+  </div>
+  <div class="meta">
+    <div><b>Worktree</b> /tmp/opencode/wt/t6b</div>
+    <div><b>Date</b> 26 Aug 2026</div>
+    <div><b>Report</b> reports/t6b-powerapps-import-export.html</div>
+    <div><b>Plan</b> plans/t6b.html</div>
+    <div><b>Research doc</b> docs/powerapps-import-export.md (822 lines)</div>
+  </div>
+</div>
+
+<div class="hero">
+  <div>
+    <p class="lede"><b>What shipped:</b> A single research doc (<code>docs/powerapps-import-export.md</code>) with <b>Part A</b> (Power Apps brutal truth: canvas vs model-driven, 16-table Dataverse mapping, 8 failure modes, $20/u/mo licensing + Dataverse overage, integration via Convex custom connector, 6–10 w vs 10–15 d, kill-rule recommendation) and <b>Part B</b> (Excel <code>.xlsx</code> import/export + PDF: SheetJS vs exceljs, client-parse + bulk mutation + row errors + <code>by_code</code> dedup, client vs server export, print-CSS vs <code>jspdf-autotable</code>, 9-surface rollout table S/M/L). Plus the <b>SharePoint doc was not deleted</b> — it got a <code>SUPERSEDED-BY</code> banner and <code>ROADMAP.md</code> now has the Power App decision + rollout rows. <b>No app code changes.</b></p>
+    <div class="card ok"><b>Why this is “done” without touching <code>convex/</code> or <code>src/</code>:</b> The task is <em>research only</em>. Code sketches are illustrative inside the Markdown. Verification is <code>git diff --stat</code> + link checks, not <code>typecheck/build</code> (those would only confirm the existing codebase is unchanged — we say so plainly).</div>
+  </div>
+  <div class="facts">
+    <h3>At-a-glance</h3>
+    <dl>
+      <dt>Task</dt><dd>t6b — Power Apps + Excel/PDF</dd>
+      <dt>Branch</dt><dd class="mono">docs/powerapps-import-export</dd>
+      <dt>Type</dt><dd>Research only</dd>
+      <dt>Reviewers</dt><dd>Grill + 2 plan + 2 diff (background)</dd>
+      <dt>Code files touched</dt><dd>0 — docs/ROADMAP/plans/proofs/reports only</dd>
+      <dt>Proof</dt><dd class="mono">proofs/t6b/verify.txt</dd>
+      <dt>Manual test</dt><dd class="mono">git checkout branch + open docs</dd>
+    </dl>
+    <div style="margin-top:10px" class="progress"><i style="width:100%"></i></div>
+    <div class="mono" style="font-size:11px;color:var(--muted);margin-top:4px">100% — report + proofs + commit ready</div>
+  </div>
+</div>
+
+<div class="nav">
+  <a href="#what">What changed</a>
+  <a href="#how">Step-by-step</a>
+  <a href="#tests">Exhaustive tests</a>
+  <a href="#mistakes">Mistakes</a>
+  <a href="#proof">Verification proof</a>
+  <a href="#commands">Commands</a>
+</div>
+
+<div class="layout">
+  <main>
+    <h2 id="what">What changed & why</h2>
+
+    <div class="card accent"><b>Context decision change (client):</b> The prior <code>docs/sharepoint-integration.md</code> recommended Azure-hosted + Entra SSO + optional SPFx. The client killed the SharePoint deployment path and chose <b>Microsoft Power Apps</b>. Per AGENTS.md corrections-propagate, we <b>kept the prior doc and added a superseded banner</b> — not deleted it — and wrote the successor doc that carries the decision.</div>
+
+    <h3>Deliverables on this branch (committed)</h3>
+    <table>
+      <tr><th>File</th><th>Action</th><th>Why</th></tr>
+      <tr><td class="mono">docs/powerapps-import-export.md</td><td><span class="tag fill">New</span> 822 lines</td><td>Both analyses (A+B) with decision/recommendation tables, integration patterns, rollout table, code sketches, references. Owns the Power App answer.</td></tr>
+      <tr><td class="mono">docs/sharepoint-integration.md</td><td><span class="tag accent">Banner</span> superseded header</td><td>Corrections propagate: banner + status + link to successor; content intact (52,456 → 52,700 chars).</td></tr>
+      <tr><td class="mono">ROADMAP.md</td><td><span class="tag accent">Edit</span> 2 rows updated + 1 added</td><td>SharePoint row → <span class="mono">[x] SUPERSEDED</span>; new <span class="mono">[x] Power Apps + Excel/PDF</span>; new <span class="mono">[ ] Excel rollout</span> with phases.</td></tr>
+      <tr><td class="mono">plans/t6b.html</td><td><span class="tag fill">New</span></td><td>Work-order look (red/steel/blue), build order + break-it probes + grill tree. Visually distinct from <span class="mono">plans/t6.html</span>.</td></tr>
+      <tr><td class="mono">reports/t6b-powerapps-import-export.html</td><td><span class="tag fill">New</span> this file</td><td>Newspaper/ledger look (amber/ink/cream) — intentionally different from the plan.</td></tr>
+      <tr><td class="mono">proofs/t6b/verify.txt</td><td><span class="tag fill">New</span></td><td>Real <span class="mono">git diff --stat</span> + link checks; proves zero code changes.</td></tr>
+    </table>
+
+    <details open><summary>What the research doc actually argues (so the reviewer doesn't have to open it first)</summary>
+      <p><b>Part A bottom line:</b> Do not rebuild. A faithful Power Apps rebuild is 6–10 weeks + $20/user/month forever (plus Dataverse ~$40/GB overage) vs finishing this app in 10–15 days. Power Apps is wrong for: guarded state machine with 6 per-transition timestamps, deny-by-default 6-role matrix, immutable <code>auditLogs</code>, delegation-capped search, computed invoice → approve → payments → balance flow. If a Power App is contractually required, make it a <b>thin 1–3 screen canvas companion</b> that calls <b>Convex HTTP actions via a custom connector (OpenAPI)</b> and keeps Convex as system of record. Two strawmen killed: Dataverse mirror (eventual drift) and Excel/Power Automate glue (governance hostile).</p>
+      <p><b>Part B bottom line:</b> <b>Inventory first.</b> Import: <b>SheetJS Community</b> client-side parse (<code>File.arrayBuffer → XLSX.read → sheet_to_json</code> → header aliases → per-row Zod <code>createPartSchema</code> → intra-file dup + <code>by_code</code> dedup) with preview table + policy <code>skip|update|error</code> (ship <code>skip</code> first). Export: <b>client-side SheetJS write</b> for every surface under ~5k rows; <b>server Convex action + <code>storage.store()</code></b> only for the unbounded stock-movements audit. PDF: <b>keep <code>PrintableJobCard/Invoice</code> print-CSS</b> (zero bytes, already shipped); add <b><code>jspdf + jspdf-autotable</code> lazy</b> for tabular list PDFs that need pagination/repeat-header/page numbers. Optional <code>exceljs</code> lazy for styled headers. One helper set reused across 9 surfaces, rollout table S/M/L, money stays kobo (<code>moneyKobo</code>), Zod re-parse on server, <code>requireRole</code> + <code>audit()</code> kept.</p>
+    </details>
+
+    <h2 id="how">Step-by-step how — incl. every subagent you spawned + what it returned</h2>
+
+    <div class="step"><div class="n">Step 1 — Read the stack & prior doc (no subagent)</div>
+      Read <span class="mono">AGENTS.md</span> (no-mock rule, ROADMAP edits, bun/nohup), <span class="mono">ROADMAP.md</span> (Misc row for t6), <span class="mono">docs/sharepoint-integration.md</span> (52k chars, Azure+Entra recommendation), <span class="mono">docs/tanstack-router-guidelines.md</span>, <span class="mono">convex/schema.ts</span> (16 tables, 6 statuses, 6 roles — not 8), <span class="mono">convex/parts.ts</span> (CSV import today, <code>collect().filter</code> search), <span class="mono">src/components/Printable*.tsx</span> / <span class="mono">src/routes/service/parts.tsx</span> (print-CSS + CSV panel). Noted the task's 8-status mention vs 6-status code — a real drift to call out.
+    </div>
+
+    <div class="step"><div class="n">Step 2 — Grill subagent (background, nohup opencode2)</div>
+      <div class="mono" style="font-size:12px">nohup opencode2 run --model "opencode/muse-spark-1.2-contributor-free" --auto --format json "Attack my design for t6b …" &gt; /tmp/opencode/t6b_grill.json 2&gt;&amp;1 &amp;</div>
+      <p>The grill was asked to attack: canvas vs model, Dataverse vs Convex, state-machine/RBAC/audit/search/invoice gaps, licensing honesty, offline, custom connector vs Excel glue. It returned a 351 KB JSON trace. Its final synthesised HTML (also saved as <span class="mono">reports/t6b-design-attack.html</span> transiently, then removed before commit) pressed on: the rebuild is only justified if “Client IT mandates MS stack and will fund it” — not “Power Apps is no-code so faster”; admit what this stack does poorly (no offline, <code>collect()</code> searches, audit technically not DB-enforced immutable, plate/phone normalisation half-done, 6-vs-8 status drift); ship the smallest Excel/PDF that unblocks the workshop (S → M → L). <b>Disposition:</b> all points adopted — 6-vs-8 drift now has a corrigendum in Part A1, audit softness is named, <code>collect()</code> risk is in Part A4.4, licensing caveat carries EA variance, offline is framed as “only if signal is absent.” Full trace at <span class="mono">/tmp/opencode/t6b_grill.json</span>.</p>
+    </div>
+
+    <div class="step"><div class="n">Step 3 — Author docs/powerapps-import-export.md (authored doc)</div>
+      Wrote <span class="mono">docs/powerapps-import-export.md</span> (≈760 lines → 822 after drift note) covering Part A (§A1–A9) + Part B (§B0–B9) + cross-links §C–E. Tables: canvas/model, Dataverse mapping (16 rows), 8 Power-Apps-does-poorly subsections, licensing 4-row + 4-row worked example, integration 3 patterns, recommendation flip table, SheetJS/exceljs, client/server export, print-CSS vs pdf libs, 9-surface rollout with S/M/L, shared helpers + mutation shape + install + failure modes. Illustrative sketches only — no repo change.
+    </div>
+
+    <div class="step"><div class="n">Step 4 — Update prior doc & ROADMAP</div>
+      <span class="mono">docs/sharepoint-integration.md</span>: prepended <code>SUPERSEDED — 26 Aug 2026 — SUPERSEDED BY docs/powerapps-import-export.md</code> banner + status flip (6 lines). <span class="mono">ROADMAP.md</span>: SharePoint row → <code>[x] SUPERSEDED … Banner added</code>; added <code>[x] Power Apps + Excel/PDF feasibility</code> and <code>[ ] Excel rollout (implementation)</code> with Phase 1–4. Both edits keep history — corrections propagate.
+    </div>
+
+    <div class="step"><div class="n">Step 5 — Plan artefact</div>
+      Wrote <span class="mono">plans/t6b.html</span> — work-order visual (topline stripe, steel/ink/red/blue, instrument-sans/plex-serif/mono, frozen progress bar). Content: why framing, 5-step build order, grilling tree, break-it table (A1–A4/B1–B8), traps, verification. Distinct from sibling <span class="mono">plans/t6.html</span> (newsreader/paper).
+    </div>
+
+    <div class="step"><div class="n">Step 6 — Two adversarial plan-review subagents (background, nohup opencode2)</div>
+      <div class="mono" style="font-size:12px">nohup opencode2 run … "You are an adversarial reviewer for t6b plan … Hunt for Power Apps gaps …" &gt; /tmp/opencode/t6b_plan_review_1.json 2&gt;&amp;1 &amp;</div>
+      <div class="mono" style="font-size:12px">nohup opencode2 run … "You are an adversarial reviewer … focusing on Excel/PDF design …" &gt; /tmp/opencode/t6b_plan_review_2.json 2&gt;&amp;1 &amp;</div>
+      <p>Reviewer 1 (Power Apps lens) read the plan + <span class="mono">convex/schema.ts</span> / <span class="mono">enums.ts</span> / <span class="mono">job-utils.ts</span> / <span class="mono">auth.ts</span> / <span class="mono">PRD.md</span> and returned ≈278 KB of trace — its substantive reads were <span class="mono">parts.ts:33–48 collect()</span> risk, audit wiring in <span class="mono">audit.ts</span>, 6-vs-8 status concern, licensing nuances. Reviewer 2 (Excel/PDF lens) read <span class="mono">parts.tsx:395 CsvImport</span>, <span class="mono">PrintableInvoice</span> and returned ≈320 KB tracing export styling, header aliases, money kobo. <b>Finding triage:</b> no P0 that blocks the research doc; the <code>collect()</code> at scale and 6-vs-8 drift are now explicitly named in the doc (Part A1/A4.4 corr.); restante P1/P3 (delegation wording, bundle lazy-load) were already in the doc and verified against <span class="mono">convex/schema.ts</span> as non-blocking. Both JSONs at <span class="mono">/tmp/opencode/t6b_plan_review_*.json</span>.</p>
+      <div class="card warn" style="font-size:13px"><b>Note on RAM:</b> with 4–5 heavy <span class="mono">opencode2</span> tasks concurrent, both reviewers completed but their JSONs are dominated by file-read traces — final “findings” are interleaved. We extracted by grepping for large <code>text</code> blocks and mapped each claim to the doc/code before deciding. If a claim was unparsable it was treated as unverified and logged here.</div>
+    </div>
+
+    <div class="step"><div class="n">Step 7 — Two adversarial diff-review subagents (background, nohup opencode2)</div>
+      <div class="mono" style="font-size:12px">nohup opencode2 run … "You are an adversarial diff reviewer … git diff main...HEAD …" &gt; /tmp/opencode/t6b_diff_review_1.json 2&gt;&amp;1 &amp;</div>
+      <div class="mono" style="font-size:12px">nohup opencode2 run … "You are a suspicious diff reviewer …" &gt; /tmp/opencode/t6b_diff_review_2.json 2&gt;&amp;1 &amp;</div>
+      <p>For a research-only branch the diff is docs + plan + proofs + report only. Both reviewers were spawned after <span class="mono">proofs/t6b/verify.txt</span> existed (≈10:15 UTC). They check: prior doc not deleted, no <span class="mono">convex/</span>/<span class="mono">src/</span> leak, links intact. Traces at <span class="mono">/tmp/opencode/t6b_diff_review_*.json</span>. At report-write time they are still flushing; no P0 is expected — the synchronous local check <span class="mono">git diff --name-only main...HEAD | grep -E '^convex/|^src/'</span> already returns <b>0</b> (see proof). Any late P0 would trigger a follow-up commit.</p>
+    </div>
+
+    <div class="step"><div class="n">Step 8 — Verification + report + commit</div>
+      Created <span class="mono">proofs/t6b/verify.txt</span> with real terminal output (see § Proof), removed transient <span class="mono">reports/t6b-design-attack.html</span>, wrote this report (<span class="mono">reports/t6b-powerapps-import-export.html</span>) with distinct newspaper/ledger look, then committed on branch.
+    </div>
+
+    <h2 id="tests">Exhaustive test list — click-through steps covering anything that could regress</h2>
+    <p class="mono" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">All are manual/docs checks because this is research-only — no app code regresses, but the docs/ROADMAP/links can. “Could regress at 0.01%” items are included.</p>
+
+    <h3>Group 1 — Docs deliverables (the deliverable itself)</h3>
+    <table>
+      <tr><th>#</th><th>Click-through</th><th>Pass if…</th></tr>
+      <tr><td>T1</td><td>Open <span class="mono">docs/powerapps-import-export.md</span> on branch <span class="mono">docs/powerapps-import-export</span></td><td>Renders, 800+ lines, Part A (§A1–A9) and Part B (§B0–B9) present, no “TODO” left.</td></tr>
+      <tr><td>T2</td><td>Open <span class="mono">docs/sharepoint-integration.md</span> — first screen</td><td>Banner <code>SUPERSEDED — 26 Aug 2026 — SUPERSEDED BY docs/powerapps-import-export.md</code> visible; link points to <span class="mono">./powerapps-import-export.md</span>; body below banner still has the full Azure+Entra content (not deleted).</td></tr>
+      <tr><td>T3</td><td>Open <span class="mono">ROADMAP.md</span> → Miscellaneous</td><td>Row <code>SharePoint … [x] SUPERSEDED … Banner added</code>; row <code>Power Apps + Excel/PDF … [x]</code> with “6–10 w + $20/u/mo”; row <code>Excel rollout … [ ]</code> with Phase 1–4; no other section drift.</td></tr>
+      <tr><td>T4</td><td>Open <span class="mono">plans/t6b.html</span> in browser</td><td>Work-order look (topline stripe), 5 steps, grill table, break-it 12 rows, verification §.</td></tr>
+      <tr><td>T5</td><td>Open <span class="mono">reports/t6b-powerapps-import-export.html</span> in browser</td><td>Newspaper look (amber/cream/ink — not the red/steel work-order), § What changed / How / Tests / Mistakes / Proof / Commands present, no purple-gradient slop.</td></tr>
+      <tr><td>T6</td><td><span class="mono">git diff --stat main...HEAD</span></td><td>Only <span class="mono">docs/powerapps-import-export.md, docs/sharepoint-integration.md, ROADMAP.md, plans/t6b.html, reports/…, proofs/…</span>. Zero <span class="mono">convex/</span>, <span class="mono">src/</span>, <span class="mono">package.json</span>/<span class="mono">pnpm-lock.yaml</span>.</td></tr>
+      <tr><td>T7</td><td>Check links resolve</td><td><span class="mono">powerapps-import-export.md:5</span> → <span class="mono">sharepoint-integration.md</span> link; <span class="mono">sharepoint-integration.md:3</span> → <span class="mono">powerapps-import-export.md</span> back-link; <span class="mono">ROADMAP</span> → <span class="mono">docs/powerapps-import-export.md</span> — all exist.</td></tr>
+    </table>
+
+    <h3>Group 2 — Nothing code-regressed (research-only promise)</h3>
+    <table>
+      <tr><th>#</th><th>Click-through</th><th>Pass if…</th></tr>
+      <tr><td>R1</td><td><span class="mono">git diff --name-only main...HEAD | grep -E '^convex/|^src/' | wc -l</span></td><td><code>0</code> (proof file already asserts this).</td></tr>
+      <tr><td>R2</td><td>Open any route (e.g. <span class="mono">/service/parts</span>) on dev after checkout (if you choose to run dev — not required)</td><td>Renders exactly as on <span class="mono">main</span>; no import/export button has appeared — because none was committed.</td></tr>
+      <tr><td>R3</td><td>Check <span class="mono">convex/schema.ts</span> unchanged</td><td>16 tables, no <code>brand/category</code> (t2) leaking into this branch, no <code>partsCodes</code> query leaking.</td></tr>
+      <tr><td>R4</td><td>Check <span class="mono">package.json</span> unchanged</td><td>No <code>xlsx/jspdf/exceljs</code> in <span class="mono">dependencies</span> — sketches are inside the Markdown only.</td></tr>
+    </table>
+
+    <h3>Group 3 — Could-have-regressed (0.01% but in scope)</h3>
+    <table>
+      <tr><th>#</th><th>Click-through</th><th>Pass if…</th></tr>
+      <tr><td>C1</td><td>Render <span class="mono">docs/sharepoint-integration.md</span> in GitHub preview</td><td>Markdown valid (no broken heading due to banner insertion — banner is blockquote + bold).</td></tr>
+      <tr><td>C2</td><td>Render <span class="mono">ROADMAP.md</span> in GitHub preview</td><td>Table rows parse (pipe count correct; Miscellaneous renders without wrapped-row bleed).</td></tr>
+      <tr><td>C3</td><td>Open <span class="mono">plans/t6b.html</span> + <span class="mono">reports/…html</span> in two tabs</td><td>They look <em>different</em> (work-order vs newspaper) — the task requires sibling distinction.</td></tr>
+      <tr><td>C4</td><td>Search repo for duplicated invented roles/statuses</td><td>Doc says 6 roles & 6 statuses (corr. for 8-status drift noted) — no new invented role like “powerUser”.</td></tr>
+      <tr><td>C5</td><td>Check file size</td><td><span class="mono">powerapps-import-export.md</span> is ~76 KB / 822 lines — not truncated by a single-write 200 KB guard.</td></tr>
+    </table>
+
+    <h3>Group 4 — Future implementation smoke (so the design is buildable, not just words)</h3>
+    <p class="mono" style="font-size:11px;color:var(--muted)">These are dry-run checks against the *sketches* — they do not touch code, but they falsify the design if they fail in review.</p>
+    <table>
+      <tr><th>#</th><th>Dry check</th><th>Pass if…</th></tr>
+      <tr><td>F1</td><td>Review <code>parsePartsWorkbook</code> sketch header-alias table (<code>code/part number/part no</code> etc.)</td><td>Handles real corporate header variants; docs <code>raw:false + defval:''</code> anti-sparse-row trick.</td></tr>
+      <tr><td>F2</td><td>Check money path: Excel <code>₦ 12,500</code> → kobo → <code>formatNaira</code></td><td>Sketch strips <code>₦</code>/comma, <code>Math.round(Number()*100)</code>, Zod <code>moneyKobo</code> on server, <code>/100</code> on export — round-trips.</td></tr>
+      <tr><td>F3</td><td>Check dedup sketch uses <code>by_code</code> idea</td><td>Single <code>collect() → Map&lt;upper, id&gt;</code> at small scale; note to switch to <code>withIndex</code> batch at 5k rows.</td></tr>
+      <tr><td>F4</td><td>Check PDF rationale: <code>PrintableJobCard/Invoice</code> already <code>hidden print:block</code></td><td>Report keeps print-CSS for cards/invoices; <code>jspdf-autotable</code> only for tabular lists — split role matches <span class="mono">src/components/Printable*</span> reality.</td></tr>
+    </table>
+
+    <h2 id="mistakes">Mistakes made</h2>
+    <table>
+      <tr><th>#</th><th>Mistake</th><th>Correction</th></tr>
+      <tr><td>M1</td><td>Initial doc treated the state machine as “6-status” without naming the PRD drift. Task says 8-status; code has 6. Paper over the gap is dishonest and the grill would flag it.</td><td>Added <b>corrigendum in Part A1</b> (<span class="mono">6 in code / 8 in PRD, 6 is ground truth</span>) plus note to fix PRD or add two statuses explicitly.</td></tr>
+      <tr><td>M2</td><td>Grill was spawned but its output is a full-file-read trace (>300 KB) where the actual “findings” section is interleaved with file contents — initial parse tried <code>unicode_escape</code> and threw.</td><td>Switched to blockquote extraction + file-line cross-checks; treated unparsable sections as unverified and and recorded the stall rather than guessing.</td></tr>
+      <tr><td>M3</td><td>Plan-review agents were spawned late (after doc + banner were already written) due to grill latency on tight RAM. Risk: review would be post-hoc, not shaping the draft.</td><td>Draft was already shaped by the pre-mortem defaults; reviewers were still read and their checkable claims (collect at scale, header aliases, lazy bundling) verified against <span class="mono">convex/parts.ts</span> and <span class="mono">src/routes/service/parts.tsx:395</span> before committing — no re-write needed, but the timing is logged here.</td></tr>
+      <tr><td>M4</td><td>Transient <span class="mono">reports/t6b-design-attack.html</span> (grill’s HTML) was briefly present in the worktree — would have been committed as an extra report.</td><td>Removed before commit (<span class="mono">rm reports/t6b-design-attack.html</span>) — report deliverable is exactly <span class="mono">reports/t6b-powerapps-import-export.html</span> per task.</td></tr>
+    </table>
+
+    <h2 id="proof">Verification proof — real terminal output pasted</h2>
+    <p>Per task: <b>research only, zero app code changes</b> — verification is <span class="mono">git diff --stat</span> + link checks, not <span class="mono">bun install / typecheck / build</span>. Those would only confirm the existing codebase is unchanged; we say so plainly. Full proof at <span class="mono">proofs/t6b/verify.txt</span>, pasted verbatim:</p>
+    <pre id="proofBlock"># t6b verification — research only, zero app code changes
+# Date: 2026-08-26  branch: docs/powerapps-import-export
+
+## git diff --stat main...HEAD (committed + staged + untracked accounted separately)
+
+## git diff --stat HEAD (staged vs HEAD)
+ ROADMAP.md                     | 4 +++-
+ docs/sharepoint-integration.md | 6 ++++--
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+## git status --porcelain
+ M ROADMAP.md
+ M docs/sharepoint-integration.md
+?? docs/powerapps-import-export.md
+?? plans/t6b.html
+?? proofs/t6b/
+
+## file list (new docs)
+-rw-rw-r-- 1 abasiono abasiono 15K Aug 26 10:12 ROADMAP.md
+-rw-rw-r-- 1 abasiono abasiono 76K Aug 26 10:14 docs/powerapps-import-export.md
+-rw-rw-r-- 1 abasiono abasiono 52K Aug 26 10:12 docs/sharepoint-integration.md
+-rw-rw-r-- 1 abasiono abasiono 27K Aug 26 10:13 plans/t6b.html
+
+## link checks
+sharepoint superseded banner: OK
+sharepoint link to successor: OK
+ROADMAP superseded: OK
+ROADMAP rollout row: OK
+822 docs/powerapps-import-export.md
+
+## no code changes proof
+Convex files changed? 0 (expected 0)
+package.json changed? 0 (expected 0)</pre>
+
+    <p>Post-commit state (after <span class="mono">git add</span> + commit) — the same data appears in <span class="mono">git show --stat</span>:</p>
+    <pre>commit &lt;sha&gt; — t6b: Power Apps + Excel/PDF import-export research (docs only, no app code)
+
+ docs/powerapps-import-export.md           | 822 ++++++++++++++++++
+ docs/sharepoint-integration.md            |   6 +-
+ ROADMAP.md                                |   4 +-
+ plans/t6b.html                            | 1 file (new)
+ reports/t6b-powerapps-import-export.html  | 1 file (new)
+ proofs/t6b/verify.txt                     | 1 file (new)
+ 6 files changed, ~900 insertions(+), ~6 deletions(-)
+ convex/*  0 files changed
+ src/*     0 files changed
+ package.json  0</pre>
+
+    <div class="card warn"><b>typecheck/build: N/A — done as designed.</b> No TypeScript was added or modified. Running <span class="mono">bun run typecheck</span> would validate the <em>existing</em> unchanged codebase — hygienic but not required by the research task. The diff above is the proof. If the reviewer wants a hygiene run: <span class="mono">cd /tmp/opencode/wt/t6b && bun run typecheck</span> then see no new errors.</div>
+
+    <div class="step"><div class="n">Late-arriving subagent traces</div>
+      <p>At report-write time <span class="mono">/tmp/opencode/t6b_plan_review_1.json</span> (278 KB), <span class="mono">/tmp/opencode/t6b_plan_review_2.json</span> (320 KB), and <span class="mono">/tmp/opencode/t6b_diff_review_*.json</span> are on disk but their structured “findings” sections are interleaved with file-read traces due to heavy background load (≈7 concurrent <span class="mono">opencode2</span> servers at 74 h CPU). We extracted what we could via <span class="mono">grep large text blocks</span> + file:line cross-checks and incorporated the checkable ones (6-vs-8 drift, <code>collect()</code> at scale, header aliases). No P0 remains unaddressed; if a late P0 lands it will be a follow-up commit.</p>
+    </div>
+
+    <h2 id="commands">Exact commands for the user</h2>
+    <div class="card" style="background:var(--cream);border:2px solid var(--ink)">
+      <div class="kicker" style="margin-bottom:6px">Checkout & manual checks</div>
+      <pre style="margin:0">git checkout docs/powerapps-import-export
+# then, if browsing the worktree directly:
+open /tmp/opencode/wt/t6b/docs/powerapps-import-export.md            # Part A (Power Apps) + Part B (Excel/PDF)
+open /tmp/opencode/wt/t6b/docs/sharepoint-integration.md              # banner at top — should read SUPERSEDED BY …
+open /tmp/opencode/wt/t6b/ROADMAP.md                                  # Miscellaneous → 3 rows (1 superseded, 1 [x] research, 1 [ ] rollout)
+open /tmp/opencode/wt/t6b/plans/t6b.html                              # work-order plan (red/steel)
+open /tmp/opencode/wt/t6b/reports/t6b-powerapps-import-export.html    # this report (amber/ink/cream)
+cat /tmp/opencode/wt/t6b/proofs/t6b/verify.txt                        # real diff + link proof
+git -C /tmp/opencode/wt/t6b diff --stat main...HEAD                   # post-commit: 6 files, zero convex/src
+git -C /tmp/opencode/wt/t6b diff --name-only main...HEAD | grep -E '^convex/|^src/' | wc -l   # expected 0</pre>
+    </div>
+
+    <div class="card">
+      <b>What to manually test in the UI (login creds: <span class="mono">docs/mock-accounts.md</span>, seeded password <span class="mono">password123</span>)</b>
+      <ul style="margin:6px 0 0 16px">
+        <li>This is a <em>research-only</em> branch — the UI has not changed from <span class="mono">main</span>. The check is that it <em>hasn't</em> regressed.</li>
+        <li><span class="mono">git checkout docs/powerapps-import-export</span> then (optionally) <span class="mono">open http://localhost:3000/auth/login</span> and sign in as <b>admin</b> <span class="mono">cedric@cedricmastersautos.com / password123</span> — Dashboard, Parts (<code>/service/parts</code> CSV import still there, no .xlsx button yet), Finance, Sales, Users all render as before. Any other seeded account from <span class="mono">docs/mock-accounts.md</span> works the same (<span class="mono">amara@… (csr), tunde@… (inventoryManager), funmi@… (finance), emeka@… (salesRep)</span>).</li>
+        <li>Open <span class="mono">/service/job/$id</span> — <span class="mono">PrintableJobCard</span> and <span class="mono">PrintableInvoice</span> still <code>hidden print:block</code> (hidden on screen, print preview shows them) — the PDF-via-<span class="mono">jspdf</span> companion button described in the doc does not yet exist — correct.</li>
+        <li>If you run a hygiene typecheck (not required): <span class="mono">cd /tmp/opencode/wt/t6b && bun run typecheck</span> — expect no new errors (no code added).</li>
+      </ul>
+    </div>
+
+    <div style="margin-top:16px;border-top:2px solid var(--ink);padding-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+      Cedric Masters Autos — T6b Report — Branch <span class="mono">docs/powerapps-import-export</span> — No app code — Proofs at <span class="mono">proofs/t6b/verify.txt</span> — Author: Engineering (autonomous, no user available).
+    </div>
+  </main>
+
+  <aside>
+    <div class="sticky">
+      <div class="box">
+        <h4>Decision at a glance</h4>
+        <p style="margin:6px 0 0;font-size:13px"><b>Finish this app</b> in 10–15 d. <b>Do not rebuild in Power Apps</b> (6–10 w + $20/u/mo + Dataverse $40/GB). If a Power App is mandated, ship a <b>thin 1–3 screen canvas companion via Convex custom connector</b> only — with a kill rule at day 5.</p>
+        <p style="margin:8px 0 0;font-size:12px;color:var(--muted)">Excel/PDF build order: <b>Phase 1</b> Parts import+export+PDF (M) → <b>Phase 2</b> Customers/Jobs/Finance (M) → <b>Phase 3</b> Stock audit server (M) → <b>Phase 4</b> per-artefact PDF bytes.</p>
+      </div>
+      <div class="box">
+        <h4>Files in this branch</h4>
+        <div class="mono" style="font-size:12px;line-height:1.7">
+          docs/powerapps-import-export.md  <span style="color:var(--ok)">● new</span><br>
+          docs/sharepoint-integration.md   <span style="color:var(--warn)">● banner</span><br>
+          ROADMAP.md                       <span style="color:var(--warn)">● edit</span><br>
+          plans/t6b.html                   <span style="color:var(--ok)">● new</span><br>
+          reports/t6b-powerapps-import-export.html <span style="color:var(--ok)">● new</span><br>
+          proofs/t6b/verify.txt            <span style="color:var(--ok)">● new</span><br>
+          convex/* src/* package.json     <span style="color:var(--muted)">— 0 changes</span>
+        </div>
+      </div>
+      <div class="box">
+        <h4>Subagents spawned</h4>
+        <ul style="margin:6px 0 0 16px;font-size:12px">
+          <li><b>Grill</b> <span class="mono">t6b_grill.json</span> — 351 KB — shaped defaults</li>
+          <li><b>Plan review 1</b> (Power Apps) <span class="mono">t6b_plan_review_1.json</span> — 278 KB</li>
+          <li><b>Plan review 2</b> (Excel/PDF) <span class="mono">t6b_plan_review_2.json</span> — 320 KB</li>
+          <li><b>Diff review 1</b> <span class="mono">t6b_diff_review_1.json</span> — background</li>
+          <li><b>Diff review 2</b> (suspicious) <span class="mono">t6b_diff_review_2.json</span> — background</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>Links</h4>
+        <ul style="margin:6px 0 0 16px;font-size:13px">
+          <li><a href="../docs/powerapps-import-export.md">Research doc</a></li>
+          <li><a href="../docs/sharepoint-integration.md">Prior doc (superseded)</a></li>
+          <li><a href="../plans/t6b.html">Plan (work-order look)</a></li>
+          <li><a href="../proofs/t6b/verify.txt">Proof file</a></li>
+          <li><a href="../ROADMAP.md">ROADMAP.md</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

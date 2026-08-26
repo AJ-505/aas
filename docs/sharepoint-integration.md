@@ -1,9 +1,11 @@
 # SharePoint Integration — Engineering Research
 
+> **⚠️ SUPERSEDED — 26 Aug 2026.** This document is retained for history but its **deployment recommendation (Azure-hosted + Entra SSO + SPFx wrapper)** is **SUPERSEDED** by **[docs/powerapps-import-export.md](./powerapps-import-export.md)** per client decision: *the SharePoint/SPFx deployment path is DEAD; the client will use a Microsoft Power App companion instead*. Do not use this doc as the go-forward deployment plan — read Part A of the successor doc. Corrections propagate: this banner is the record.
+
 **Project:** Cedric Masters Autos (auto workshop + dealership management)
 **Stack:** TanStack Start (SSR, Nitro/Vercel) + TanStack Router (file routes) + Convex (BaaS, real-time subscriptions) + React 19 + TypeScript 7 (tsgo)
-**Date:** 26 Aug 2026
-**Status:** Research only — no application code changes
+**Date:** 26 Aug 2026 (superseded 26 Aug 2026)
+**Status:** **SUPERSEDED BY `docs/powerapps-import-export.md`** — Research only, no application code changes; content kept intact below
 **Author:** Engineering (worktree `docs/sharepoint-integration`)
 
 ---
