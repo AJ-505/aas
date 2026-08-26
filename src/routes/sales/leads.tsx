@@ -53,7 +53,7 @@ function LeadsPage() {
   const [q, setQ] = useState(searchParams.q || '')
   const [showCreate, setShowCreate] = useState(false)
 
-  if (user?.role && !['salesRep', 'manager', 'admin'].includes(user.role)) {
+  if (user?.role && user.role !== 'audit' && !['salesRep', 'manager', 'admin'].includes(user.role)) {
     return <Navigate to="/" />
   }
   const { data: leads, isLoading } = useQuery(leadQueries.search(q))

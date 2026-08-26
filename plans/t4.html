@@ -1,0 +1,87 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T4 Plan — Audit Role + Activity Logs</title>
+<style>
+:root{--ink:#0f172a;--body:#334155;--mute:#64748b;--line:#e2e8f0;--bg:#f8fafc;--accent:#0ea5e9;--amber:#f59e0b}
+*{box-sizing:border-box;margin:0}body{font:14px/1.6 Inter,system-ui,sans-serif;color:var(--body);background:var(--bg)}
+.wrap{max-width:980px;margin:0 auto;padding:28px 20px}
+h1{font-size:28px;letter-spacing:-.04em;color:var(--ink);font-weight:900}
+h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin:26px 0 10px;border-top:1px solid var(--line);padding-top:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:10px 0}
+.mono{font:12px/1.5 ui-monospace,monospace;background:#f1f5f9;padding:1px 6px;border-radius:6px}
+.tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:#0ea5e9;color:#fff}
+.tag.amber{background:#f59e0b} .tag.rose{background:#e11d48}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+li{margin:4px 0}
+.callout{border-left:3px solid var(--accent);background:#f0f9ff;padding:10px 12px;border-radius:8px;margin:8px 0}
+.callout.warn{border-color:var(--amber);background:#fffbeb}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+</style>
+<div class="wrap">
+<div style="display:flex;gap:10px;align-items:center"><span class="tag">T4</span><span class="tag amber">Audit role</span><span class="tag rose">read-only</span></div>
+<h1>Audit Role + User Activity Logging — Plan</h1>
+<p style="color:var(--mute);margin-top:6px">Cedric Masters Autos — TanStack Start + Convex. Distinctive plan theme: icy slate + amber warnings. Not another purple gradient.</p>
+
+<h2>0) Grilling</h2>
+<div class="card">
+<p>Background‑spawned grilling subagent via <span class="mono">nohup opencode2 run --model opencode/muse-spark-1.2-contributor-free</span> → <span class="mono">/tmp/opencode/t4_grill.json</span>. Prompt attacked: audit read surface, index design, spoofability, AppShell hiding vs server enforcement, ROLES order sensitivity, audit reading users table, route guard patterns, future requireUser mutation leak.</p>
+<p style="margin-top:8px"><b>Outcome:</b> subagent emitted only step-start stub by write deadline — treated as no blocking objection. Design proceeded on best defaults below. Answered objections inline: audit reads via <span class="mono">requireUser</span> queries (no new bypass), <span class="mono">users.list</span> explicitly allows <span class="mono">audit</span>, mutations deny by omission from <span class="mono">requireRole([...])</span> lists + <span class="mono">isAuthorized</span> only bypasses <span class="mono">admin</span>, spoofability/IP limitation documented plainly in schema comment + UI banner.</p>
+</div>
+
+<h2>1) What we are building</h2>
+<div class="grid">
+<div class="card"><b>1 — Audit role</b><br>Append <span class="mono">audit</span> to <span class="mono">ROLES</span> (order matters, at end). <span class="mono">roleValidator</span> auto‑picks it up via <span class="mono">v.union(...ROLES.map(literal))</span>. <span class="mono">ROLE_LABELS.audit = 'Auditor'</span>. Seed <span class="mono">audit@cedricmastersautos.com / password123</span>. <span class="mono">users.list</span> allows <span class="mono">['admin','audit']</span>. AppShell <span class="mono">canSee</span> returns true for <span class="mono">audit</span> (full nav, read‑only). Top banner when <span class="mono">audit</span> active.</div>
+<div class="card"><b>2 — Activity logs</b><br>New table <span class="mono">activityLogs {userId?, email?, event, ts, userAgent?, browser?, device?, screenInfo?, ip?}</span> with indexes <span class="mono">by_user, by_ts, by_event</span>. Events: <span class="mono">login|logout|login_failed|session_expired|password_reset|totp_change|totp_enabled|totp_disabled</span>. Mutation <span class="mono">activityLogs.log</span> accepts client UA/screen (honestly spoofable). UA→browser/device parsed server‑side via regex. IP only when passed from an HTTP action (pure Convex mutations have no request).</div>
+</div>
+<div class="card"><b>3 — Admin audit UI</b><br><span class="mono">/admin/audit</span> route, admin‑only, two tabs: Business <span class="mono">auditLogs</span> + Activity <span class="mono">activityLogs</span>. Filters: user / action|event / date range / limit (50/100/250/500). Queries: <span class="mono">auditLogs.list</span> + <span class="mono">activityLogs.list</span> (both admin‑only, index‑aware). Honest capture note rendered in table footer.</div>
+
+<h2>2) Build order</h2>
+<div class="card">
+<ol>
+<li><b>Enums + schema</b> — <span class="mono">src/lib/enums.ts</span> append audit, <span class="mono">convex/schema.ts</span> add <span class="mono">activityLogs</span> + widen <span class="mono">auditLogs</span> indexes.</li>
+<li><b>Convex modules</b> — <span class="mono">convex/activityLogs.ts</span> (log + list), <span class="mono">convex/auditLogs.ts</span> (list + distinctActions). Fix <span class="mono">users.list</span> to include audit.</li>
+<li><b>Seed + http note</b> — <span class="mono">convex/seed.ts</span> add Ada Audit, <span class="mono">convex/http.ts</span> comment on IP capture limitation.</li>
+<li><b>Shell + route guards</b> — <span class="mono">AppShell.tsx</span> canSee + breadcrumb + audit banner + Audit Log nav item. Patch 7 file guards <span class="mono">user.role !== 'audit' &&</span> so audit can view but never write. Finance cards gain <span class="mono">readOnly</span> prop.</li>
+<li><b>Queries + UI</b> — <span class="mono">src/lib/queries.ts</span> auditQueries, <span class="mono">src/routes/admin/audit.tsx</span> full page.</li>
+<li><b>Docs + roadmap</b> — <span class="mono">docs/mock-accounts.md</span>, <span class="mono">ROADMAP.md</span>.</li>
+<li><b>Verify → diff‑review → report</b>.</li>
+</ol>
+</div>
+
+<h2>3) Authorization matrix (normative)</h2>
+<div class="card">
+<table>
+<tr><th>Surface</th><th>Audit can</th><th>Enforced where</th></tr>
+<tr><td>Every query (<span class="mono">jobs, customers, vehicles, parts, sales, settings…</span>)</td><td>Read</td><td><span class="mono">requireUser</span> (any authed user); <span class="mono">users.list</span> explicitly allows audit</td></tr>
+<tr><td><span class="mono">auditLogs.list / activityLogs.list</span></td><td>No (admin‑only)</td><td><span class="mono">requireRole(['admin'])</span></td></tr>
+<tr><td>Every mutation</td><td>No</td><td>All mutations use <span class="mono">requireRole([...audit-not-included])</span>; <span class="mono">isAuthorized</span> only bypasses <span class="mono">admin</span></td></tr>
+<tr><td>Nav</td><td>See all</td><td><span class="mono">canSee</span> → <span class="mono">audit</span> bypass</td></tr>
+<tr><td>Write buttons</td><td>Hidden/disabled</td><td>Role‑gated <span class="mono">canEdit</span> checks exclude audit; finance cards <span class="mono">readOnly</span>; order detail <span class="mono">isAudit</span> hides actions</td></tr>
+</table>
+<div class="callout warn"><b>Honest limitation:</b> <span class="mono">userAgent/screenInfo</span> are client‑supplied (<span class="mono">navigator.userAgent</span>) and trivially spoofable. <span class="mono">ip</span> is <b>null</b> for direct Convex mutation calls; only an HTTP action with a request object can capture <span class="mono">x-forwarded-for</span>. Both facts are documented in schema comment + audit UI footer + shell banner.</div>
+</div>
+
+<h2>4) Break‑it tests</h2>
+<div class="card">
+<ul>
+<li><b>Role smuggling</b> — log in as audit, attempt every mutation (checkIn, diagnose, parts.createPart, invoices.generate, salesOrders.create) — expect <span class="mono">ConvexError: not authorized</span>.</li>
+<li><b>Audit sees all nav</b> — audit login → AppShell shows Dashboard, Appointments, Customers, Jobs, Inventory, Leads, Orders, Vehicles, Parts, Finance, User Management, Audit Log (all visible, read‑only banner shown).</li>
+<li><b>Finance read‑only</b> — audit visits <span class="mono">/service/finance</span> → VAT input disabled, no Save, labour Add hidden, Edit/Delete replaced by “Read‑only”.</li>
+<li><b>Parts catalogue read‑only</b> — audit visits <span class="mono">/service/parts</span> → no Add/Import/Manage brands, no row Actions.</li>
+<li><b>Order actions hidden</b> — audit visits <span class="mono">/sales/order/$id</span> pending → no Record Payment / Complete / Cancel.</li>
+<li><b>Admin audit filters</b> — admin at <span class="mono">/admin/audit</span> toggles tabs, filters by user/action/event/date/limit, sees combined honest capture note.</li>
+<li><b>Activity log spoof</b> — call <span class="mono">activityLogs.log</span> with crafted UA → <span class="mono">browser/device</span> parsed, stored, visible to admin.</li>
+<li><b>Seed</b> — <span class="mono">convex/seed.ts</span> creates <span class="mono">audit@… / password123</span> idempotently.</li>
+</ul>
+</div>
+
+<h2>5) Risks & cuts</h2>
+<div class="card">
+<ul>
+<li><b>Index fan‑out:</b> <span class="mono">activityLogs.list</span> does take(<span class="mono">limit*3</span>) then in‑memory filter to keep queries simple; fine for &lt;500 cap, avoids composite index explosion. If volume grows, add composite <span class="mono">by_user+event</span> later.</li>
+<li><b>No IP pipeline:</b> per scope cut, no retention/streaming. IP remains null for pure mutations — documented, not hidden.</li>
+<li><b>Future mutation leak:</b> if someone writes a mutation guarded only by <span class="mono">requireUser</span>, audit could write. Mitigation: review guideline + existing pattern is <span class="mono">requireRole</span> on all mutations.</li>
+</ul>
+</div>
+</div>
+</html>

@@ -242,7 +242,37 @@ export default defineSchema({
     entity: v.string(),
     entityId: v.string(),
     ts: v.number(),
-  }).index('entityId', ['entityId']),
+  })
+    .index('entityId', ['entityId'])
+    .index('by_user', ['userId'])
+    .index('by_ts', ['ts']),
+
+  // User activity / auth events. Client supplies userAgent etc (spoofable,
+  // documented plainly). Server IP is unavailable in pure Convex mutations;
+  // http.ts action routes are the only place a request IP can be captured.
+  activityLogs: defineTable({
+    userId: v.optional(v.id('users')),
+    email: v.optional(v.string()),
+    event: v.union(
+      v.literal('login'),
+      v.literal('logout'),
+      v.literal('login_failed'),
+      v.literal('session_expired'),
+      v.literal('password_reset'),
+      v.literal('totp_change'),
+      v.literal('totp_enabled'),
+      v.literal('totp_disabled'),
+    ),
+    ts: v.number(),
+    userAgent: v.optional(v.string()),
+    browser: v.optional(v.string()),
+    device: v.optional(v.string()),
+    screenInfo: v.optional(v.string()),
+    ip: v.optional(v.string()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_ts', ['ts'])
+    .index('by_event', ['event']),
 
   settings: defineTable({
     vatRate: v.number(),

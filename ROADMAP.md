@@ -268,6 +268,16 @@
 | Wire parts.brand & vehicles.make to brand suggestions (dropdown + free-text fallback) | [x] | `/service/parts` BrandSuggestInput datalist + `/sales/inventory` make datalist; free-text always allowed |
 | Parts filtering by category, brand, part number (backend + UI) | [x] | `parts.search` now takes `{q, brand, category}` AND-combined; UI has text search + brand/category dropdowns + clear |
 
+## Audit Role & Activity Logging
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Audit role (read-only, full nav, no mutations) | [x] | `audit` appended to `ROLES` (end), `ROLE_LABELS`, `users.list` allows `admin|audit`, `AppShell` shows all nav read-only with banner, seed `audit@cedricmastersautos.com / password123` |
+| activityLogs table + indexes by_user/by_ts/by_event | [x] | `convex/schema.ts` activityLogs {userId?, email?, event, ts, userAgent, browser, device, screenInfo, ip?} with 3 indexes; honest capture documented (UA spoofable, IP null for pure mutations) |
+| activityLogs.log + list + auditLogs.list queries | [x] | `convex/activityLogs.ts` + `convex/auditLogs.ts` (admin-only list with filters, UA→browser/device parsing, limit 500, dead-code removed, distinctActions withIndex) |
+| Admin audit-log UI /admin/audit | [x] | `/admin/audit` admin-only, tabs auditLogs/activityLogs, filters user/action/event/date/limit, honest capture note footer, hooks-order fixed |
+| Disable/hide write buttons for audit | [x] | 7 route guards `user.role !== 'audit' &&`, finance readOnly, order detail isAudit hides actions, job detail can* excludes audit, parts/inventory canEdit excludes audit |
+
 ## Future (Post-MVP)
 
 - Customer portal (view history, download invoices, book appointments)

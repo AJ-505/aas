@@ -20,6 +20,31 @@ export const userQueries = {
   adminExists: () => convexQuery(api.users.adminExists, {}),
 }
 
+export const auditQueries = {
+  auditLogs: (filters: { userId?: string; action?: string; entity?: string; fromTs?: number; toTs?: number; limit?: number }) =>
+    convexQuery(api.auditLogs.list, {
+      userId: filters.userId as Id<'users'> | undefined,
+      action: filters.action,
+      entity: filters.entity,
+      fromTs: filters.fromTs,
+      toTs: filters.toTs,
+      limit: filters.limit,
+    }),
+  distinctActions: () => convexQuery(api.auditLogs.distinctActions, {}),
+  activityLogs: (filters: { userId?: string; event?: string; fromTs?: number; toTs?: number; limit?: number }) =>
+    convexQuery(api.activityLogs.list, {
+      userId: filters.userId as Id<'users'> | undefined,
+      event: filters.event,
+      fromTs: filters.fromTs,
+      toTs: filters.toTs,
+      limit: filters.limit,
+    }),
+}
+
+export function useLogActivityMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.activityLogs.log) })
+}
+
 // ---- Phase 2: Jobs ----
 export const jobQueries = {
   all: (status?: string) => convexQuery(api.jobs.byStatus, { status }),

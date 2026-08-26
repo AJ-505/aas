@@ -9,6 +9,8 @@
  */
 
 import type * as appointments from "../appointments.js";
+import type * as activityLogs from "../activityLogs.js";
+import type * as auditLogs from "../auditLogs.js";
 import type * as auth from "../auth.js";
 import type * as customers from "../customers.js";
 import type * as deliveries from "../deliveries.js";
@@ -37,7 +39,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activityLogs: typeof activityLogs;
   appointments: typeof appointments;
+  auditLogs: typeof auditLogs;
   auth: typeof auth;
   backfillPlates: typeof backfillPlates;
   customers: typeof customers;
