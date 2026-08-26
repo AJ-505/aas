@@ -11,22 +11,22 @@ function minsAgo(minutes: number) {
 
 const ADVANCED_MARKER_CODE = 'CLN-001'
 
-const NEW_PARTS = [
-  { code: 'CLN-001', description: 'Coolant/Antifreeze (Prestone) 4L', costPrice: kobo(25000), sellingPrice: kobo(38000), stockQty: 10, reorderLevel: 4 },
-  { code: 'ATF-001', description: 'Automatic Transmission Fluid 4L', costPrice: kobo(20000), sellingPrice: kobo(35000), stockQty: 8, reorderLevel: 3 },
-  { code: 'BRC-001', description: 'Brake Caliper - Front (Toyota/Lexus)', costPrice: kobo(22000), sellingPrice: kobo(38000), stockQty: 4, reorderLevel: 2 },
-  { code: 'WHB-001', description: 'Wheel Hub Bearing Assembly', costPrice: kobo(18000), sellingPrice: kobo(30000), stockQty: 6, reorderLevel: 3 },
-  { code: 'TRE-001', description: 'Tie Rod End (Outer) - Universal', costPrice: kobo(8000), sellingPrice: kobo(14000), stockQty: 8, reorderLevel: 4 },
-  { code: 'LCA-001', description: 'Lower Control Arm - Toyota Camry', costPrice: kobo(25000), sellingPrice: kobo(42000), stockQty: 4, reorderLevel: 2 },
-  { code: 'SWB-001', description: 'Sway Bar Link Kit - Universal', costPrice: kobo(6000), sellingPrice: kobo(11000), stockQty: 10, reorderLevel: 5 },
-  { code: 'CVJ-002', description: 'CV Axle Shaft - Toyota Camry', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 3, reorderLevel: 2 },
-  { code: 'THS-001', description: 'Thermostat with Housing - Universal', costPrice: kobo(8000), sellingPrice: kobo(15000), stockQty: 6, reorderLevel: 3 },
-  { code: 'RFN-001', description: 'Radiator Fan Assembly - Toyota', costPrice: kobo(30000), sellingPrice: kobo(50000), stockQty: 3, reorderLevel: 2 },
-  { code: 'MAP-001', description: 'MAP Sensor - Universal', costPrice: kobo(12000), sellingPrice: kobo(20000), stockQty: 5, reorderLevel: 3 },
-  { code: 'IGC-001', description: 'Ignition Coil Pack - Set of 4', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 4, reorderLevel: 2 },
-  { code: 'STM-001', description: 'Starter Motor - Toyota Camry', costPrice: kobo(45000), sellingPrice: kobo(70000), stockQty: 3, reorderLevel: 2 },
-  { code: 'ENG-001', description: 'Engine Mount (Hydraulic) - Set of 4', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 3, reorderLevel: 2 },
-  { code: 'GFL-001', description: 'Gearbox/Transmission Filter - Toyota', costPrice: kobo(6000), sellingPrice: kobo(12000), stockQty: 5, reorderLevel: 3 },
+const NEW_PARTS: Array<{ code: string; description: string; costPrice: number; sellingPrice: number; stockQty: number; reorderLevel: number; brand: string; category: string }> = [
+  { code: 'CLN-001', description: 'Coolant/Antifreeze (Prestone) 4L', costPrice: kobo(25000), sellingPrice: kobo(38000), stockQty: 10, reorderLevel: 4, brand: 'Generic', category: 'Cooling' },
+  { code: 'ATF-001', description: 'Automatic Transmission Fluid 4L', costPrice: kobo(20000), sellingPrice: kobo(35000), stockQty: 8, reorderLevel: 3, brand: 'Generic', category: 'Lubricants' },
+  { code: 'BRC-001', description: 'Brake Caliper - Front (Toyota/Lexus)', costPrice: kobo(22000), sellingPrice: kobo(38000), stockQty: 4, reorderLevel: 2, brand: 'Toyota', category: 'Braking' },
+  { code: 'WHB-001', description: 'Wheel Hub Bearing Assembly', costPrice: kobo(18000), sellingPrice: kobo(30000), stockQty: 6, reorderLevel: 3, brand: 'Generic', category: 'Suspension' },
+  { code: 'TRE-001', description: 'Tie Rod End (Outer) - Universal', costPrice: kobo(8000), sellingPrice: kobo(14000), stockQty: 8, reorderLevel: 4, brand: 'Generic', category: 'Suspension' },
+  { code: 'LCA-001', description: 'Lower Control Arm - Toyota Camry', costPrice: kobo(25000), sellingPrice: kobo(42000), stockQty: 4, reorderLevel: 2, brand: 'Toyota', category: 'Suspension' },
+  { code: 'SWB-001', description: 'Sway Bar Link Kit - Universal', costPrice: kobo(6000), sellingPrice: kobo(11000), stockQty: 10, reorderLevel: 5, brand: 'Generic', category: 'Suspension' },
+  { code: 'CVJ-002', description: 'CV Axle Shaft - Toyota Camry', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 3, reorderLevel: 2, brand: 'Toyota', category: 'Transmission' },
+  { code: 'THS-001', description: 'Thermostat with Housing - Universal', costPrice: kobo(8000), sellingPrice: kobo(15000), stockQty: 6, reorderLevel: 3, brand: 'Generic', category: 'Cooling' },
+  { code: 'RFN-001', description: 'Radiator Fan Assembly - Toyota', costPrice: kobo(30000), sellingPrice: kobo(50000), stockQty: 3, reorderLevel: 2, brand: 'Toyota', category: 'Cooling' },
+  { code: 'MAP-001', description: 'MAP Sensor - Universal', costPrice: kobo(12000), sellingPrice: kobo(20000), stockQty: 5, reorderLevel: 3, brand: 'Generic', category: 'Engine' },
+  { code: 'IGC-001', description: 'Ignition Coil Pack - Set of 4', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 4, reorderLevel: 2, brand: 'Generic', category: 'Engine' },
+  { code: 'STM-001', description: 'Starter Motor - Toyota Camry', costPrice: kobo(45000), sellingPrice: kobo(70000), stockQty: 3, reorderLevel: 2, brand: 'Toyota', category: 'Electrical' },
+  { code: 'ENG-001', description: 'Engine Mount (Hydraulic) - Set of 4', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 3, reorderLevel: 2, brand: 'Generic', category: 'Engine' },
+  { code: 'GFL-001', description: 'Gearbox/Transmission Filter - Toyota', costPrice: kobo(6000), sellingPrice: kobo(12000), stockQty: 5, reorderLevel: 3, brand: 'Toyota', category: 'Transmission' },
 ]
 
 const NEW_CUSTOMERS = [

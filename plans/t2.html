@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>t2 — Parts Catalogue Upgrade — Plan</title>
+<style>
+  :root{--ink:#0f1410;--body:#2b332c;--mute:#6f7a6f;--accent:#1a7a3a;--line:#d8ddd8;--bg:#f4f5f2;--card:#ffffff;--amber:#b45309;--rose:#be123c}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family: ui-sans-system, Inter, system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--body); line-height:1.5}
+  header{background:var(--ink); color:#e8ece8; padding:28px 32px 22px; border-bottom:4px solid var(--accent)}
+  header .kicker{font-family: ui-monospace, Menlo, monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#8fbf9a}
+  header h1{font-size:28px; font-weight:850; letter-spacing:-.03em; margin-top:6px}
+  header p{color:#b8c7b9; font-size:13.5px; margin-top:8px; max-width:760px}
+  .wrap{max-width:1120px; margin:0 auto; padding:22px 22px 40px}
+  .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px}
+  .card h2{font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:10px}
+  .card h3{font-size:14.5px; font-weight:750; color:var(--ink); margin:14px 0 6px}
+  .mono{font-family: ui-monospace, Menlo, monospace; font-size:12px}
+  .pill{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:4px 8px; border-radius:999px; background:#e6f0e8; color:var(--accent); border:1px solid #c7ddca}
+  .pill.warn{background:#fef3c7; color:var(--amber); border-color:#fde68a}
+  .pill.rose{background:#ffe4e6; color:var(--rose); border-color:#fecdd3}
+  ol,ul{padding-left:18px}
+  li{margin:4px 0; font-size:13.5px}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top}
+  th{background:#eef2ee; font-weight:700; color:var(--ink); font-size:12px; letter-spacing:.04em; text-transform:uppercase}
+  .callout{border-left:3px solid var(--accent); background:#edf5ee; padding:10px 12px; border-radius:8px; font-size:13px}
+  .callout.warn{border-color:var(--amber); background:#fffbeb}
+  code{background:#eef2ee; padding:1px 5px; border-radius:6px; font-family: ui-monospace, Menlo, monospace; font-size:12px}
+  details{border:1px solid var(--line); border-radius:10px; background:#fbfbf9; padding:10px 12px}
+  summary{cursor:pointer; font-weight:700; color:var(--ink); font-size:13px}
+  .foot{margin-top:18px; font-size:12px; color:var(--mute)}
+</style>
+<header>
+  <div class="kicker">Cedric Masters Autos — t2 · feat/parts-catalogue-upgrade</div>
+  <h1>Parts Catalogue Upgrade</h1>
+  <p>Rename <em>Code → Part Number</em> UI-only, add <code>brand</code> + <code>category</code> to parts, introduce <code>vehicleBrands</code> CRUD + brand-aware pickers, and ship filtered search on <code>/service/parts</code>. History-safe, backfill-free, demo-seeded.</p>
+</header>
+<div class="wrap">
+  <div class="grid">
+    <div class="card">
+      <h2>Design tree & decisions</h2>
+      <h3>1) Rename Code → Part Number</h3>
+      <p><span class="pill">Storage stays <code>code</code></span> <span class="pill warn">UI relabel only</span></p>
+      <ul>
+        <li>Convex field remains <code>parts.code</code>. No migration, invoices/jobItems keep referencing codes by string. History intact.</li>
+        <li>UI labels, table header, form labels, CSV header detection, validation messages say “Part Number”.</li>
+        <li>Mutation layer accepts <code>partNumber</code> as alias for <code>code</code> (Zod + Convex arg normalization) but persists to <code>code</code>. Optional back-compat, no dual-column storage.</li>
+        <li>CSV import recognizes <code>code</code> OR <code>part number</code> / <code>part_number</code> headers; docs strings updated.</li>
+      </ul>
+      <h3>2) brand + category on parts</h3>
+      <ul>
+        <li>Schema: <code>brand?: string</code>, <code>category?: string</code> optional during migration. No required bump. Defaults “Generic” / “Uncategorized” only in seed + UI fallback display (not DB default).</li>
+        <li>Indexes: <code>by_brand</code> and <code>by_category</code> optional, but initial impl filters in-memory (45 rows) to avoid index churn; add indexes only if pagination lands.</li>
+        <li>Zod: <code>brand</code>/<code>category</code> trimmed strings, 1–60 chars, optional. Empty → undefined persisted.</li>
+        <li>Seed: enrich existing 30 + 15 parts with plausible brand/category from prefix map (e.g. OIL→Lubricants/Generic-or-Toyota, BRK→Braking). New installs get values directly.</li>
+      </ul>
+      <h3>3) vehicleBrands table</h3>
+      <table>
+        <tr><th>Field</th><th>Type</th><th>Note</th></tr>
+        <tr><td><code>name</code></td><td>string</td><td>Display name exactly as typed</td></tr>
+        <tr><td><code>normalizedName</code></td><td>string</td><td>lower(trim(name)) for uniqueness check</td></tr>
+      </table>
+      <ul>
+        <li>Index <code>by_normalizedName</code> on normalizedName for O(1) dup guard.</li>
+        <li>Mutations: <code>list</code> (query, auth required), <code>create</code>/<code>update</code>/<code>remove</code> with <code>requireRole(['admin','manager'])</code> + <code>audit()</code> + case-insensitive uniqueness (409 via ConvexError).</li>
+        <li>Seed: distinct makes from seed.ts/seedAdvanced.ts + common Nigerian market set (~18 brands). Idempotent: skip if brand table non-empty or brand exists case-insensitively.</li>
+        <li>UI: small admin section on <code>/service/parts</code> (or <code>/admin/brands</code> if cleaner) with list + add/delete; guarded to admin/manager. Picker component <code>BrandSuggestInput</code> uses <code>&lt;datalist&gt;</code> + free-text fallback (no FK enforcement). Same component reused for <code>parts.brand</code> and <code>vehicles.make</code> (sales inventory add/edit).</li>
+      </ul>
+      <h3>4) Filtering</h3>
+      <ul>
+        <li>Backend: extend <code>parts.search</code> args to <code>{ q?: string, brand?: string, category?: string }</code>. Empty strings → no filter. Combine with AND. Keep <code>list</code> as unfiltered. Optional new <code>listFiltered</code> query if we want separation—but single <code>search</code> with optional args is simpler.</li>
+        <li>Frontend: in <code>/service/parts</code> add three controls: text search (part number/description), Brand dropdown (All + brands list + free-text?), Category dropdown (All + distinct categories). Debounced combined query via <code>partQueries.search(q, brand, category)</code>.</li>
+        <li>Category list derived from distinct <code>parts[].category</code> + static fallback set so filter works even before backfill fully propagated.</li>
+      </ul>
+      <div class="callout" style="margin-top:10px">
+        <strong>Grill objections answered:</strong> (1) Don't dual-store code/partNumber—alias at API boundary only. (2) Don't make brand/category required—optional with UI default keeps migration safe for old prod dumps. (3) Brands need normalized uniqueness + audit, not just naive string set. (4) Don't FK-constrain parts.brand/vehicles.make—suggest-only keeps legacy data valid. (5) CSV must stay backward compatible with old “code” headers. (6) Filters must compose (AND) not exclusive.
+      </div>
+    </div>
+    <div class="card">
+      <h2>Build order</h2>
+      <ol>
+        <li><strong>Schema + enums</strong> — add <code>brand</code>/<code>category</code> to <code>parts</code>, create <code>vehicleBrands</code> table + indexes.</li>
+        <li><strong>Zod schemas</strong> — <code>part.ts</code> add optional brand/category, vehicleBrand schema.</li>
+        <li><strong>Convex: vehicleBrands.ts</strong> — CRUD + seed helper, audit, guards.</li>
+        <li><strong>Convex: parts.ts</strong> — extend search/filter, create/update/import to handle brand/category + code alias, keep requireRole+audit.</li>
+        <li><strong>Convex: seed.ts / seedAdvanced.ts</strong> — backfill brand/category, seed vehicleBrands list.</li>
+        <li><strong>Frontend queries</strong> — add <code>vehicleBrandQueries</code>, extend <code>partQueries.search</code> signature.</li>
+        <li><strong>UI: /service/parts</strong> — relabel Code→Part Number, add Brand/Category inputs + filters, wire BrandSuggestInput, CSV header alias.</li>
+        <li><strong>UI: /sales/inventory</strong> — wire make picker to brands list (free-text fallback).</li>
+        <li><strong>Docs/ROADMAP</strong> — update roadmap row, note storage decision.</li>
+      </ol>
+      <h2 style="margin-top:14px">Scope cuts respected</h2>
+      <ul>
+        <li>No price-history, no supplier management.</li>
+        <li>No per-brand logos or images.</li>
+      </ul>
+      <h2 style="margin-top:14px">Risks & mitigations</h2>
+      <ul>
+        <li><em>Brand dup via case</em> → normalizedName index + lower check.</li>
+        <li><em>Empty brand/category breaks filters</em> → treat empty as “All”, undefined display as Generic/Uncategorized only visually.</li>
+        <li><em>CSV drift</em> → detect both code &amp; part number headers; brand/category are optional columns with defaults.</li>
+        <li><em>RAM</em> → verify with typecheck/build only, one heavy command at a time.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Break-it tests (must pass)</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+      <div>
+        <h3>Functional</h3>
+        <ul>
+          <li>Brand create duplicate (case-insensitive) → ConvexError “Brand already exists”.</li>
+          <li>Brand create by non-admin/manager → ConvexError unauthorized.</li>
+          <li>Part create with brand/category persists; part list shows Part Number column header, brand, category cells.</li>
+          <li>Part search with brand=Toyota returns only Toyota rows (and survives q filter).</li>
+          <li>Category filter + brand filter compose (AND).</li>
+          <li>CSV with header “part number” imports; CSV with old “code” still imports.</li>
+          <li>CSV with brand/category columns imports them; missing columns defaults gracefully.</li>
+          <li>Vehicles make picker shows brand suggestions but still allows free-text “CustomBrand 123”.</li>
+          <li>Seed idempotent: re-run seed/seedAdvanced does not duplicate brands/parts.</li>
+          <li>Renaming Code→Part Number: old invoice lines still render original code string (no migration reversal).</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Security / correctness</h3>
+        <ul>
+          <li>parts.create/update/import require inventoryManager|manager|admin; brand CRUD requires admin|manager.</li>
+          <li>Every mutation writes auditLogs entry.</li>
+          <li>Zod trims brand/category; empty string becomes undefined; too-long rejected.</li>
+          <li>Stock immutability not regressed by new fields.</li>
+          <li>No mocked frontend data; query invalidation works after brand/part writes.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Verification plan</h2>
+    <ul>
+      <li><code>bun run typecheck</code> — must be 0 errors after schema additions.</li>
+      <li><code>bun run build</code> — TanStack Start builds .output/ clean.</li>
+      <li><code>bun test</code> — add unit tests for part schema (brand/category optional, trim), brand uniqueness helper, CSV header alias parsing.</li>
+      <li>Manual UI smoke (user runs): login as cedric@cedricmastersautos.com / password123 → /service/parts → see Part Number label, filters, brand suggestions; /sales/inventory → make field suggests brands but accepts free text.</li>
+    </ul>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:14px">
+    <div class="pill mono">task t2</div>
+    <div class="pill mono" style="background:#0f1410; color:#e8ece8; border-color:#0f1410">branch feat/parts-catalogue-upgrade</div>
+    <div class="pill warn mono">no dev server</div>
+  </div>
+  <div class="foot">Plan authored for t2. Two adversarial plan-review subagents to be spawned next (nohup opencode2…). Findings verified against code before acting.</div>
+</div>
+</html>

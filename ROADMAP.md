@@ -256,6 +256,16 @@
 | Backfill idempotent for `vehicles.plate` + `appointments.vehiclePlate` | [x] | `convex/backfillPlates.ts` admin-guarded mutation, iterates both tables, uppercases if needed, audit-logged, safe to rerun |
 | Seed data uses uppercase plates | [x] | `convex/seed.ts` + `seedAdvanced.ts` flipped `toLowerCase → toUpperCase` |
 
+## Parts Catalogue Upgrade — Part Number, Brand & Category
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Rename Code → Part Number (UI-only, storage field `code` kept) | [x] | All UI labels, table header, form, CSV docs say Part Number; schema field stays `code`; mutations accept `partNumber` alias; old invoices/jobItems unchanged. Documented in report. |
+| Add `brand` + `category` optional fields to parts + seed defaults | [x] | `convex/schema.ts` optional fields + `by_brand`/`by_category` indexes; Zod trims & validates; seed backfills Generic/Uncategorized (seed.ts + seedAdvanced.ts) |
+| vehicleBrands table + CRUD + audit + case-insensitive uniqueness | [x] | `convex/vehicleBrands.ts` list/create/update/remove with requireRole admin|manager + audit + normalizedName index; seeded 18 brands |
+| Wire parts.brand & vehicles.make to brand suggestions (dropdown + free-text fallback) | [x] | `/service/parts` BrandSuggestInput datalist + `/sales/inventory` make datalist; free-text always allowed |
+| Parts filtering by category, brand, part number (backend + UI) | [x] | `parts.search` now takes `{q, brand, category}` AND-combined; UI has text search + brand/category dropdowns + clear |
+
 ## Future (Post-MVP)
 
 - Customer portal (view history, download invoices, book appointments)

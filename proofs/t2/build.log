@@ -1,0 +1,30 @@
+.output/server/_ssr/checkin-Blt07-JU.mjs                          10.79 kB │ gzip:   2.78 kB
+.output/server/_ssr/finance-BMlkGaLg.mjs                          10.88 kB │ gzip:   2.57 kB
+.output/server/_ssr/1-AMsK3AN3.mjs                                11.39 kB │ gzip:   2.61 kB
+.output/server/_libs/tanstack__history.mjs                        12.08 kB │ gzip:   3.47 kB
+.output/server/_ssr/queries-qlWDab3o.mjs                          12.19 kB │ gzip:   2.33 kB
+.output/server/_libs/react-hot-toast.mjs                          12.71 kB │ gzip:   4.26 kB
+.output/server/_ssr/orders-Dmj9E3_X.mjs                           13.14 kB │ gzip:   3.37 kB
+.output/server/_ssr/customer._id-uDWEoJvg.mjs                     13.72 kB │ gzip:   2.87 kB
+.output/server/_libs/@convex-dev/react-query+[...].mjs            15.95 kB │ gzip:   4.81 kB
+.output/server/_ssr/order._id-Cc-eN39Z.mjs                        16.24 kB │ gzip:   3.44 kB
+.output/server/index.mjs                                          17.44 kB │ gzip:   5.12 kB
+.output/server/_ssr/routes-BJRxuE6L.mjs                           19.17 kB │ gzip:   4.16 kB
+.output/server/_ssr/customers-B9_QXrma.mjs                        20.47 kB │ gzip:   4.39 kB
+.output/server/_ssr/appointments-B6sKOnIK.mjs                     26.60 kB │ gzip:   5.91 kB
+.output/server/_ssr/inventory-BKcCRplA.mjs                        27.96 kB │ gzip:   4.71 kB
+.output/server/_ssr/parts-DtC5b6N1.mjs                            30.27 kB │ gzip:   6.29 kB
+.output/server/_ssr/router-CSXwhcZ9.mjs                           33.26 kB │ gzip:   7.03 kB
+.output/server/_libs/h3+rou3+srvx.mjs                             47.73 kB │ gzip:  12.89 kB
+.output/server/_ssr/job._id-UZwyCzrd.mjs                          52.44 kB │ gzip:   8.10 kB
+.output/server/_ssr/ssr.mjs                                       57.30 kB │ gzip:  14.99 kB
+.output/server/_libs/tanstack__query-core.mjs                     62.44 kB │ gzip:  12.89 kB
+.output/server/_libs/@tanstack/router-core+[...].mjs              79.68 kB │ gzip:  20.09 kB
+.output/server/_libs/tailwind-merge.mjs                           88.12 kB │ gzip:  15.66 kB
+.output/server/_libs/@convex-dev/auth+[...].mjs                  171.98 kB │ gzip:  39.29 kB
+.output/server/_libs/@tanstack/react-router+[...].mjs            670.31 kB │ gzip: 140.72 kB
+
+✓ built in 433ms
+ℹ Generated .output/nitro.json
+
+[nitro] ✔ You can preview this build using npx vite preview

@@ -17,37 +17,42 @@ const ACCOUNTS = [
   { name: 'Emeka Okafor', email: 'emeka@cedricmastersautos.com', role: 'salesRep' as const },
 ]
 
-const PARTS = [
-  { code: 'OIL-001', description: 'Engine Oil (5W-30) - 4L', costPrice: kobo(12000), sellingPrice: kobo(18000), stockQty: 20, reorderLevel: 5 },
-  { code: 'OIL-002', description: 'Engine Oil (10W-40) - 4L', costPrice: kobo(11000), sellingPrice: kobo(16500), stockQty: 15, reorderLevel: 5 },
-  { code: 'FIL-001', description: 'Oil Filter - Toyota', costPrice: kobo(2000), sellingPrice: kobo(3500), stockQty: 30, reorderLevel: 10 },
-  { code: 'FIL-002', description: 'Oil Filter - Honda', costPrice: kobo(2000), sellingPrice: kobo(3500), stockQty: 25, reorderLevel: 10 },
-  { code: 'FIL-003', description: 'Air Filter - Universal', costPrice: kobo(3000), sellingPrice: kobo(5500), stockQty: 18, reorderLevel: 8 },
-  { code: 'FIL-004', description: 'Cabin Air Filter - Universal', costPrice: kobo(3500), sellingPrice: kobo(6000), stockQty: 12, reorderLevel: 5 },
-  { code: 'FIL-005', description: 'Fuel Filter - Universal', costPrice: kobo(4000), sellingPrice: kobo(7000), stockQty: 10, reorderLevel: 5 },
-  { code: 'BRK-001', description: 'Brake Pads - Front (Ceramic)', costPrice: kobo(10000), sellingPrice: kobo(18000), stockQty: 12, reorderLevel: 5 },
-  { code: 'BRK-002', description: 'Brake Pads - Rear (Ceramic)', costPrice: kobo(9000), sellingPrice: kobo(16000), stockQty: 12, reorderLevel: 5 },
-  { code: 'BRK-003', description: 'Brake Disc - Front', costPrice: kobo(15000), sellingPrice: kobo(25000), stockQty: 8, reorderLevel: 4 },
-  { code: 'BRK-004', description: 'Brake Fluid - 1L', costPrice: kobo(3000), sellingPrice: kobo(5000), stockQty: 15, reorderLevel: 6 },
-  { code: 'SPK-001', description: 'Spark Plug (Iridium) - Set of 4', costPrice: kobo(6000), sellingPrice: kobo(10000), stockQty: 14, reorderLevel: 6 },
-  { code: 'TMB-001', description: 'Timing Belt Kit - Toyota Camry', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 5, reorderLevel: 3 },
-  { code: 'TMB-002', description: 'Timing Belt Kit - Honda Accord', costPrice: kobo(28000), sellingPrice: kobo(45000), stockQty: 4, reorderLevel: 3 },
-  { code: 'SER-001', description: 'Serpentine Belt - Universal', costPrice: kobo(5000), sellingPrice: kobo(9000), stockQty: 10, reorderLevel: 4 },
-  { code: 'ALT-001', description: 'Alternator - Toyota Camry', costPrice: kobo(45000), sellingPrice: kobo(75000), stockQty: 3, reorderLevel: 2 },
-  { code: 'ALT-002', description: 'Alternator - Honda Accord', costPrice: kobo(42000), sellingPrice: kobo(70000), stockQty: 3, reorderLevel: 2 },
-  { code: 'RAD-001', description: 'Radiator - Toyota Camry', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 4, reorderLevel: 2 },
-  { code: 'ACC-001', description: 'AC Compressor - Universal', costPrice: kobo(65000), sellingPrice: kobo(100000), stockQty: 3, reorderLevel: 2 },
-  { code: 'ACG-001', description: 'AC Gas (R134a) - 500g', costPrice: kobo(5000), sellingPrice: kobo(10000), stockQty: 20, reorderLevel: 8 },
-  { code: 'SHK-001', description: 'Shock Absorber - Front (Toyota)', costPrice: kobo(20000), sellingPrice: kobo(35000), stockQty: 6, reorderLevel: 3 },
-  { code: 'SHK-002', description: 'Shock Absorber - Rear (Toyota)', costPrice: kobo(18000), sellingPrice: kobo(30000), stockQty: 6, reorderLevel: 3 },
-  { code: 'TYR-001', description: 'Tyre 205/55R16 - All Season', costPrice: kobo(30000), sellingPrice: kobo(50000), stockQty: 12, reorderLevel: 4 },
-  { code: 'TYR-002', description: 'Tyre 225/45R17 - All Season', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 10, reorderLevel: 4 },
-  { code: 'CLT-001', description: 'Clutch Kit - Toyota', costPrice: kobo(55000), sellingPrice: kobo(90000), stockQty: 3, reorderLevel: 2 },
-  { code: 'CVJ-001', description: 'CV Joint - Toyota', costPrice: kobo(12000), sellingPrice: kobo(22000), stockQty: 5, reorderLevel: 3 },
-  { code: 'BAT-001', description: 'Battery 60Ah - Maintenance Free', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 8, reorderLevel: 3 },
-  { code: 'BAT-002', description: 'Battery 80Ah - Heavy Duty', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 6, reorderLevel: 3 },
-  { code: 'WIP-001', description: 'Wiper Blades - Set (Pair)', costPrice: kobo(3000), sellingPrice: kobo(5500), stockQty: 20, reorderLevel: 8 },
-  { code: 'BUL-001', description: 'Headlight Bulb - H7 LED', costPrice: kobo(5000), sellingPrice: kobo(10000), stockQty: 15, reorderLevel: 6 },
+const PARTS: Array<{ code: string; description: string; costPrice: number; sellingPrice: number; stockQty: number; reorderLevel: number; brand: string; category: string }> = [
+  { code: 'OIL-001', description: 'Engine Oil (5W-30) - 4L', costPrice: kobo(12000), sellingPrice: kobo(18000), stockQty: 20, reorderLevel: 5, brand: 'Generic', category: 'Lubricants' },
+  { code: 'OIL-002', description: 'Engine Oil (10W-40) - 4L', costPrice: kobo(11000), sellingPrice: kobo(16500), stockQty: 15, reorderLevel: 5, brand: 'Generic', category: 'Lubricants' },
+  { code: 'FIL-001', description: 'Oil Filter - Toyota', costPrice: kobo(2000), sellingPrice: kobo(3500), stockQty: 30, reorderLevel: 10, brand: 'Toyota', category: 'Filters' },
+  { code: 'FIL-002', description: 'Oil Filter - Honda', costPrice: kobo(2000), sellingPrice: kobo(3500), stockQty: 25, reorderLevel: 10, brand: 'Honda', category: 'Filters' },
+  { code: 'FIL-003', description: 'Air Filter - Universal', costPrice: kobo(3000), sellingPrice: kobo(5500), stockQty: 18, reorderLevel: 8, brand: 'Generic', category: 'Filters' },
+  { code: 'FIL-004', description: 'Cabin Air Filter - Universal', costPrice: kobo(3500), sellingPrice: kobo(6000), stockQty: 12, reorderLevel: 5, brand: 'Generic', category: 'Filters' },
+  { code: 'FIL-005', description: 'Fuel Filter - Universal', costPrice: kobo(4000), sellingPrice: kobo(7000), stockQty: 10, reorderLevel: 5, brand: 'Generic', category: 'Filters' },
+  { code: 'BRK-001', description: 'Brake Pads - Front (Ceramic)', costPrice: kobo(10000), sellingPrice: kobo(18000), stockQty: 12, reorderLevel: 5, brand: 'Generic', category: 'Braking' },
+  { code: 'BRK-002', description: 'Brake Pads - Rear (Ceramic)', costPrice: kobo(9000), sellingPrice: kobo(16000), stockQty: 12, reorderLevel: 5, brand: 'Generic', category: 'Braking' },
+  { code: 'BRK-003', description: 'Brake Disc - Front', costPrice: kobo(15000), sellingPrice: kobo(25000), stockQty: 8, reorderLevel: 4, brand: 'Generic', category: 'Braking' },
+  { code: 'BRK-004', description: 'Brake Fluid - 1L', costPrice: kobo(3000), sellingPrice: kobo(5000), stockQty: 15, reorderLevel: 6, brand: 'Generic', category: 'Braking' },
+  { code: 'SPK-001', description: 'Spark Plug (Iridium) - Set of 4', costPrice: kobo(6000), sellingPrice: kobo(10000), stockQty: 14, reorderLevel: 6, brand: 'Generic', category: 'Engine' },
+  { code: 'TMB-001', description: 'Timing Belt Kit - Toyota Camry', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 5, reorderLevel: 3, brand: 'Toyota', category: 'Engine' },
+  { code: 'TMB-002', description: 'Timing Belt Kit - Honda Accord', costPrice: kobo(28000), sellingPrice: kobo(45000), stockQty: 4, reorderLevel: 3, brand: 'Honda', category: 'Engine' },
+  { code: 'SER-001', description: 'Serpentine Belt - Universal', costPrice: kobo(5000), sellingPrice: kobo(9000), stockQty: 10, reorderLevel: 4, brand: 'Generic', category: 'Engine' },
+  { code: 'ALT-001', description: 'Alternator - Toyota Camry', costPrice: kobo(45000), sellingPrice: kobo(75000), stockQty: 3, reorderLevel: 2, brand: 'Toyota', category: 'Electrical' },
+  { code: 'ALT-002', description: 'Alternator - Honda Accord', costPrice: kobo(42000), sellingPrice: kobo(70000), stockQty: 3, reorderLevel: 2, brand: 'Honda', category: 'Electrical' },
+  { code: 'RAD-001', description: 'Radiator - Toyota Camry', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 4, reorderLevel: 2, brand: 'Toyota', category: 'Cooling' },
+  { code: 'ACC-001', description: 'AC Compressor - Universal', costPrice: kobo(65000), sellingPrice: kobo(100000), stockQty: 3, reorderLevel: 2, brand: 'Generic', category: 'AC' },
+  { code: 'ACG-001', description: 'AC Gas (R134a) - 500g', costPrice: kobo(5000), sellingPrice: kobo(10000), stockQty: 20, reorderLevel: 8, brand: 'Generic', category: 'AC' },
+  { code: 'SHK-001', description: 'Shock Absorber - Front (Toyota)', costPrice: kobo(20000), sellingPrice: kobo(35000), stockQty: 6, reorderLevel: 3, brand: 'Toyota', category: 'Suspension' },
+  { code: 'SHK-002', description: 'Shock Absorber - Rear (Toyota)', costPrice: kobo(18000), sellingPrice: kobo(30000), stockQty: 6, reorderLevel: 3, brand: 'Toyota', category: 'Suspension' },
+  { code: 'TYR-001', description: 'Tyre 205/55R16 - All Season', costPrice: kobo(30000), sellingPrice: kobo(50000), stockQty: 12, reorderLevel: 4, brand: 'Generic', category: 'Tyres' },
+  { code: 'TYR-002', description: 'Tyre 225/45R17 - All Season', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 10, reorderLevel: 4, brand: 'Generic', category: 'Tyres' },
+  { code: 'CLT-001', description: 'Clutch Kit - Toyota', costPrice: kobo(55000), sellingPrice: kobo(90000), stockQty: 3, reorderLevel: 2, brand: 'Toyota', category: 'Transmission' },
+  { code: 'CVJ-001', description: 'CV Joint - Toyota', costPrice: kobo(12000), sellingPrice: kobo(22000), stockQty: 5, reorderLevel: 3, brand: 'Toyota', category: 'Transmission' },
+  { code: 'BAT-001', description: 'Battery 60Ah - Maintenance Free', costPrice: kobo(25000), sellingPrice: kobo(40000), stockQty: 8, reorderLevel: 3, brand: 'Generic', category: 'Electrical' },
+  { code: 'BAT-002', description: 'Battery 80Ah - Heavy Duty', costPrice: kobo(35000), sellingPrice: kobo(55000), stockQty: 6, reorderLevel: 3, brand: 'Generic', category: 'Electrical' },
+  { code: 'WIP-001', description: 'Wiper Blades - Set (Pair)', costPrice: kobo(3000), sellingPrice: kobo(5500), stockQty: 20, reorderLevel: 8, brand: 'Generic', category: 'Accessories' },
+  { code: 'BUL-001', description: 'Headlight Bulb - H7 LED', costPrice: kobo(5000), sellingPrice: kobo(10000), stockQty: 15, reorderLevel: 6, brand: 'Generic', category: 'Electrical' },
+]
+
+const VEHICLE_BRANDS_SEED = [
+  'Toyota', 'Honda', 'Mercedes-Benz', 'BMW', 'Lexus', 'Nissan', 'Hyundai', 'Ford',
+  'Kia', 'Mazda', 'Volkswagen', 'Audi', 'Peugeot', 'Suzuki', 'Mitsubishi', 'Chevrolet', 'Land Rover', 'Jeep',
 ]
 
 const LABOUR_TYPES = [
@@ -162,7 +167,44 @@ export const seedData = mutation({
       }
       results.push(`parts: inserted ${PARTS.length} parts`)
     } else {
-      results.push('parts: already exist (skipped)')
+      // Backfill brand/category for legacy parts that lack them
+      const allParts = await ctx.db.query('parts').collect()
+      let backfilled = 0
+      for (const part of allParts) {
+        if (part.brand === undefined || part.category === undefined) {
+          const seedMatch = PARTS.find((s) => s.code === part.code)
+          const patch: Record<string, string> = {}
+          if (part.brand === undefined) patch.brand = seedMatch?.brand ?? 'Generic'
+          if (part.category === undefined) patch.category = seedMatch?.category ?? 'Uncategorized'
+          await ctx.db.patch(part._id, patch)
+          backfilled++
+        }
+      }
+      if (backfilled > 0) results.push(`parts: backfilled ${backfilled} legacy parts with brand/category`)
+      else results.push('parts: already exist (skipped)')
+    }
+
+    // --- Vehicle Brands ---
+    const existingBrands = await ctx.db.query('vehicleBrands').first()
+    if (!existingBrands) {
+      for (const name of VEHICLE_BRANDS_SEED) {
+        await ctx.db.insert('vehicleBrands', { name, normalizedName: name.trim().toLowerCase() })
+      }
+      results.push(`vehicleBrands: inserted ${VEHICLE_BRANDS_SEED.length} brands`)
+    } else {
+      // Top-up missing seed brands (idempotent)
+      const allBrands = await ctx.db.query('vehicleBrands').collect()
+      const existingNorm = new Set(allBrands.map((b) => b.normalizedName))
+      let added = 0
+      for (const name of VEHICLE_BRANDS_SEED) {
+        const norm = name.trim().toLowerCase()
+        if (!existingNorm.has(norm)) {
+          await ctx.db.insert('vehicleBrands', { name, normalizedName: norm })
+          added++
+        }
+      }
+      if (added > 0) results.push(`vehicleBrands: added ${added} missing brands`)
+      else results.push('vehicleBrands: already exist (skipped)')
     }
 
     // --- Labour Types ---

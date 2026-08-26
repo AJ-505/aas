@@ -20,12 +20,14 @@ import type * as leads from "../leads.js";
 import type * as lib_audit from "../lib/audit.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as parts from "../parts.js";
+import type * as backfillPlates from "../backfillPlates.js";
 import type * as payments from "../payments.js";
 import type * as salesOrders from "../salesOrders.js";
 import type * as seed from "../seed.js";
 import type * as seedAdvanced from "../seedAdvanced.js";
 import type * as settings from "../settings.js";
 import type * as users from "../users.js";
+import type * as vehicleBrands from "../vehicleBrands.js";
 import type * as vehicles from "../vehicles.js";
 
 import type {
@@ -37,6 +39,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   auth: typeof auth;
+  backfillPlates: typeof backfillPlates;
   customers: typeof customers;
   deliveries: typeof deliveries;
   http: typeof http;
@@ -53,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   seedAdvanced: typeof seedAdvanced;
   settings: typeof settings;
   users: typeof users;
+  vehicleBrands: typeof vehicleBrands;
   vehicles: typeof vehicles;
 }>;
 

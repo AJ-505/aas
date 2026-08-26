@@ -20,6 +20,7 @@ import { Loader } from '~/components/Loader'
 import { IconPlus, IconSearch } from '~/components/icons'
 import {
   vehicleQueries,
+  vehicleBrandQueries,
   useCreateVehicleMutation,
   useUpdateVehicleMutation,
   useAdjustVehicleStockMutation,
@@ -289,6 +290,7 @@ function SalesInventoryPage() {
 function AddVehicleModal({ onDone }: { onDone: () => void }) {
   const queryClient = useQueryClient()
   const createVehicle = useCreateVehicleMutation()
+  const { data: brandList } = useQuery(vehicleBrandQueries.list())
 
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
@@ -347,8 +349,12 @@ function AddVehicleModal({ onDone }: { onDone: () => void }) {
                 value={make}
                 onChange={(e) => setMake(e.target.value)}
                 placeholder="e.g. Toyota"
+                list="add-vehicle-brands"
                 required
               />
+              <datalist id="add-vehicle-brands">
+                {(brandList ?? []).map((b: any) => <option key={b._id} value={b.name} />)}
+              </datalist>
             </div>
             <div>
               <Label htmlFor="model">Model *</Label>
@@ -443,6 +449,7 @@ function AddVehicleModal({ onDone }: { onDone: () => void }) {
 function EditVehicleModal({ vehicle, onDone }: { vehicle: any; onDone: () => void }) {
   const queryClient = useQueryClient()
   const updateVehicle = useUpdateVehicleMutation()
+  const { data: brandList2 } = useQuery(vehicleBrandQueries.list())
 
   const [make, setMake] = useState(vehicle.make ?? '')
   const [model, setModel] = useState(vehicle.model ?? '')
@@ -493,7 +500,10 @@ function EditVehicleModal({ vehicle, onDone }: { vehicle: any; onDone: () => voi
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <div>
               <Label htmlFor="edit-make">Make</Label>
-              <Input id="edit-make" value={make} onChange={(e) => setMake(e.target.value)} required />
+              <Input id="edit-make" value={make} onChange={(e) => setMake(e.target.value)} list="edit-vehicle-brands" required />
+              <datalist id="edit-vehicle-brands">
+                {(brandList2 ?? []).map((b: any) => <option key={b._id} value={b.name} />)}
+              </datalist>
             </div>
             <div>
               <Label htmlFor="edit-model">Model</Label>
