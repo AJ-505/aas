@@ -102,15 +102,15 @@ export const create = mutation({
     await enforce(ctx, "standard");const parsed = createCustomerSchema.parse(args)
     const trimmedPhone = parsed.phone.trim()
     const trimmedName = parsed.name.trim()
+    const normalizedEmail = parsed.email && parsed.email.trim().length > 0 ? parsed.email.trim().toLowerCase() : undefined
 
-    // Server-enforced duplicate guard: exact trimmed phone match OR same phone + very similar name
+    // Server-enforced duplicate guard: exact trimmed phone match OR same email
     const existingByPhone = await ctx.db
       .query('customers')
       .withIndex('by_phone', (q) => q.eq('phone', trimmedPhone))
       .first()
 
     if (existingByPhone) {
-      // exact phone match is duplicate regardless of name, but we also check name similarity for richer error
       const similar = isVerySimilarName(existingByPhone.name, trimmedName)
       throw new ConvexError({
         message: similar
@@ -122,13 +122,26 @@ export const create = mutation({
       } as any)
     }
 
-    // Also check for same phone with very similar name via full scan for near-duplicate phones that differ only by trim? Already exact, but per spec do second pass scanning same phone candidates (redundant safety)
-    // For completeness, if phone matches trimmed and name similar, we already threw above.
+    if (normalizedEmail) {
+      const existingByEmail = await ctx.db
+        .query('customers')
+        .withIndex('by_email', (q) => q.eq('email', normalizedEmail))
+        .first()
+
+      if (existingByEmail) {
+        throw new ConvexError({
+          message: `Duplicate customer: email ${normalizedEmail} already exists for ${existingByEmail.name}. Use existing customer.`,
+          existingCustomerId: existingByEmail._id,
+          existingName: existingByEmail.name,
+          existingPhone: existingByEmail.phone,
+        } as any)
+      }
+    }
 
     const id = await ctx.db.insert('customers', {
       name: trimmedName,
       phone: trimmedPhone,
-      email: parsed.email && parsed.email.length > 0 ? parsed.email.trim() : undefined,
+      email: normalizedEmail,
       address: parsed.address && parsed.address.length > 0 ? parsed.address.trim() : undefined,
     })
     await audit(ctx, 'customer.create', 'customers', id)
@@ -164,11 +177,27 @@ export const update = mutation({
           existingPhone: collision.phone,
         } as any)
       }
-      // Normalize to trimmed form before patch
       ;(parsed as any).phone = trimmedPhone
     }
     if (parsed.name !== undefined) (parsed as any).name = parsed.name.trim()
-    if (parsed.email !== undefined) (parsed as any).email = parsed.email.trim() || undefined
+    if (parsed.email !== undefined) {
+      const normalizedEmail = parsed.email.trim().toLowerCase() || undefined
+      if (normalizedEmail) {
+        const collision = await ctx.db
+          .query('customers')
+          .withIndex('by_email', (q) => q.eq('email', normalizedEmail))
+          .first()
+        if (collision && collision._id !== customerId) {
+          throw new ConvexError({
+            message: `Duplicate customer: email ${normalizedEmail} already exists for ${collision.name}. Use existing customer.`,
+            existingCustomerId: collision._id,
+            existingName: collision.name,
+            existingPhone: collision.phone,
+          } as any)
+        }
+      }
+      ;(parsed as any).email = normalizedEmail
+    }
     if (parsed.address !== undefined) (parsed as any).address = parsed.address.trim() || undefined
     const clean: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(parsed)) {

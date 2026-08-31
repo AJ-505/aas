@@ -4,6 +4,7 @@ import { createVehicleSchema } from '~/lib/schemas/vehicle'
 import { roleSchema } from '~/lib/schemas/user'
 import { createAppointmentSchema } from '~/lib/schemas/appointment'
 import { ROLES } from '~/lib/enums'
+import { normalizeCustomerCreateInput } from '~/lib/customer-create'
 
 describe('createCustomerSchema', () => {
   it('validates a valid customer', () => {
@@ -23,6 +24,22 @@ describe('createCustomerSchema', () => {
     expect(() =>
       createCustomerSchema.parse({ name: 'Ada', phone: '0803', email: 'not-email' }),
     ).toThrow()
+  })
+
+  it('normalizes email and address for inline customer creation', () => {
+    const parsed = normalizeCustomerCreateInput({
+      name: '  Ada Okafor  ',
+      phone: ' 0803 123 4567 ',
+      email: ' ADA@EXAMPLE.COM ',
+      address: ' 12 Main Street, Lagos ',
+    })
+
+    expect(parsed).toEqual({
+      name: 'Ada Okafor',
+      phone: '0803 123 4567',
+      email: 'ada@example.com',
+      address: '12 Main Street, Lagos',
+    })
   })
 })
 

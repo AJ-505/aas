@@ -1,10 +1,10 @@
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,57 +12,78 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '~/components/ui/table'
-import { Badge } from '~/components/ui/badge'
-import { Loader } from '~/components/Loader'
-import { Avatar } from '~/components/Avatar'
-import { IconChevronRight, IconMail, IconPhone } from '~/components/icons'
-import { useCurrentUser } from '~/lib/auth'
-import { Navigate } from '@tanstack/react-router'
-import { customerQueries, jobQueries, useCreateVehicleMutation } from '~/lib/queries'
-import { VEHICLE_STATUS_LABELS, JOB_STATUS_LABELS, type VehicleStatus, type JobStatus } from '~/lib/enums'
-import { VEHICLE_STATUS_VARIANTS, JOB_STATUS_VARIANTS } from '~/lib/status-ui'
-import type { Id } from 'convex/_generated/dataModel'
+} from "~/components/ui/table";
+import { Badge } from "~/components/ui/badge";
+import { Loader } from "~/components/Loader";
+import { Avatar } from "~/components/Avatar";
+import { IconChevronRight, IconMail, IconPhone } from "~/components/icons";
+import { useCurrentUser } from "~/lib/auth";
+import { Navigate } from "@tanstack/react-router";
+import {
+  customerQueries,
+  jobQueries,
+  useCreateVehicleMutation,
+} from "~/lib/queries";
+import {
+  VEHICLE_STATUS_LABELS,
+  JOB_STATUS_LABELS,
+  type VehicleStatus,
+  type JobStatus,
+} from "~/lib/enums";
+import { VEHICLE_STATUS_VARIANTS, JOB_STATUS_VARIANTS } from "~/lib/status-ui";
+import type { Id } from "convex/_generated/dataModel";
 
-export const Route = createFileRoute('/service/customer/$id')({
+export const Route = createFileRoute("/service/customer/$id")({
   component: CustomerDetailPage,
-})
+});
 
 function CustomerDetailPage() {
-  const { id: customerId } = Route.useParams()
-  const { data: user } = useCurrentUser()
-  const { data, isLoading, isError, error } = useQuery(customerQueries.detail(customerId))
-  const navigate = useNavigate()
-  const { data: jobHistory } = useQuery(jobQueries.byCustomer(customerId))
+  const { id: customerId } = Route.useParams();
+  const { data: user } = useCurrentUser();
+  const { data, isLoading, isError, error } = useQuery(
+    customerQueries.detail(customerId),
+  );
+  const navigate = useNavigate();
+  const { data: jobHistory } = useQuery(jobQueries.byCustomer(customerId));
 
-  if (user && user.role === 'salesRep') {
-    return <Navigate to="/" />
+  if (user && user.role === "salesRep") {
+    return <Navigate to="/" />;
   }
 
   if (isLoading) {
-    return <Loader />
+    return <Loader />;
   }
   if (isError) {
     return (
       <div className="space-y-4">
-        <p className="text-rose-600">Error loading customer: {error?.message ?? 'Unknown error'}</p>
-        <Link to="/service/customers" search={{}} className="text-[13px] font-semibold text-accent hover:underline">
+        <p className="text-rose-600">
+          Error loading customer: {error?.message ?? "Unknown error"}
+        </p>
+        <Link
+          to="/service/customers"
+          search={{}}
+          className="text-[13px] font-semibold text-accent hover:underline"
+        >
           &larr; Back to customers
         </Link>
       </div>
-    )
+    );
   }
   if (!data) {
     return (
       <div className="space-y-4">
         <p className="text-mute">Customer not found.</p>
-        <Link to="/service/customers" search={{}} className="text-[13px] font-semibold text-accent hover:underline">
+        <Link
+          to="/service/customers"
+          search={{}}
+          className="text-[13px] font-semibold text-accent hover:underline"
+        >
           &larr; Back to customers
         </Link>
       </div>
-    )
+    );
   }
-  const { customer, vehicles } = data
+  const { customer, vehicles } = data;
 
   return (
     <div className="space-y-5">
@@ -71,12 +92,22 @@ function CustomerDetailPage() {
         <div className="flex items-center gap-4">
           <Avatar name={customer.name} size={52} />
           <div>
-            <h1 className="text-[23px] font-extrabold tracking-tight text-ink">{customer.name}</h1>
+            <h1 className="text-[23px] font-extrabold tracking-tight text-ink">
+              {customer.name}
+            </h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-mute">
-              <span className="flex items-center gap-1.5"><IconPhone size={13} /> {customer.phone}</span>
-              {customer.email && <span className="flex items-center gap-1.5"><IconMail size={13} /> {customer.email}</span>}
+              <span className="flex items-center gap-1.5">
+                <IconPhone size={13} /> {customer.phone}
+              </span>
+              {customer.email && (
+                <span className="flex items-center gap-1.5">
+                  <IconMail size={13} /> {customer.email}
+                </span>
+              )}
             </div>
-            {customer.address && <p className="mt-1 text-[13px] text-mute">{customer.address}</p>}
+            {customer.address && (
+              <p className="mt-1 text-[13px] text-mute">{customer.address}</p>
+            )}
           </div>
         </div>
         <Link
@@ -84,7 +115,8 @@ function CustomerDetailPage() {
           search={{}}
           className="flex items-center gap-1 text-[12.5px] font-semibold text-mute transition-colors hover:text-accent"
         >
-          <IconChevronRight size={13} className="rotate-180" /> Back to customers
+          <IconChevronRight size={13} className="rotate-180" /> Back to
+          customers
         </Link>
       </div>
 
@@ -116,14 +148,20 @@ function CustomerDetailPage() {
               vehicles.map((v) => (
                 <TableRow key={v._id}>
                   <TableCell className="whitespace-nowrap font-semibold uppercase tracking-wide text-ink">
-                    {v.plate ?? '-'}
+                    {v.plate ?? "-"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-body">
                     {v.make} {v.model} ({v.year})
                   </TableCell>
                   <TableCell className="text-body">{v.color}</TableCell>
                   <TableCell>
-                    <Badge dot variant={VEHICLE_STATUS_VARIANTS[v.status as VehicleStatus] ?? 'secondary'}>
+                    <Badge
+                      dot
+                      variant={
+                        VEHICLE_STATUS_VARIANTS[v.status as VehicleStatus] ??
+                        "secondary"
+                      }
+                    >
                       {VEHICLE_STATUS_LABELS[v.status]}
                     </Badge>
                   </TableCell>
@@ -166,17 +204,29 @@ function CustomerDetailPage() {
                 <TableRow
                   key={j._id}
                   className="cursor-pointer"
-                  onClick={() => navigate({ to: '/service/job/$id', params: { id: j._id } })}
+                  onClick={() =>
+                    navigate({ to: "/service/job/$id", params: { id: j._id } })
+                  }
                 >
                   <TableCell className="whitespace-nowrap text-body">
                     {new Date(j.checkInTs).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-body">
-                    {j.vehicle ? `${j.vehicle.make} ${j.vehicle.model} (${j.vehicle.year})` : '-'}
+                    {j.vehicle
+                      ? `${j.vehicle.make} ${j.vehicle.model} (${j.vehicle.year})`
+                      : "-"}
                   </TableCell>
-                  <TableCell className="max-w-[240px] truncate text-mute">{j.complaint}</TableCell>
+                  <TableCell className="max-w-[240px] truncate text-mute">
+                    {j.complaint}
+                  </TableCell>
                   <TableCell>
-                    <Badge dot variant={JOB_STATUS_VARIANTS[j.status as JobStatus] ?? 'secondary'}>
+                    <Badge
+                      dot
+                      variant={
+                        JOB_STATUS_VARIANTS[j.status as JobStatus] ??
+                        "secondary"
+                      }
+                    >
                       {JOB_STATUS_LABELS[j.status]}
                     </Badge>
                   </TableCell>
@@ -190,50 +240,52 @@ function CustomerDetailPage() {
         </Table>
       </Card>
     </div>
-  )
+  );
 }
 
 function AddVehicleForm({ customerId }: { customerId: string }) {
-  const queryClient = useQueryClient()
-  const create = useCreateVehicleMutation()
+  const queryClient = useQueryClient();
+  const create = useCreateVehicleMutation();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const f = new FormData(event.currentTarget)
-    const make = (f.get('make') as string).trim()
-    const model = (f.get('model') as string).trim()
-    const color = (f.get('color') as string).trim()
-    const year = Number(f.get('year'))
-    const plate = (f.get('plate') as string).trim()
-    const vin = (f.get('vin') as string).trim()
+    event.preventDefault();
+    const f = new FormData(event.currentTarget);
+    const make = (f.get("make") as string).trim();
+    const model = (f.get("model") as string).trim();
+    const color = (f.get("color") as string).trim();
+    const year = Number(f.get("year"));
+    const plate = (f.get("plate") as string).trim();
+    const vin = (f.get("vin") as string).trim();
     if (!make || !model || !color || !year) {
-      toast.error('Make, model, colour and year are required.')
-      return
+      toast.error("Make, model, colour and year are required.");
+      return;
     }
     await create.mutateAsync(
       {
-        ownerId: customerId as Id<'customers'>,
+        ownerId: customerId as Id<"customers">,
         make,
         model,
         year,
         color,
         plate: plate || undefined,
         vin: vin || undefined,
-        status: 'customerOwned',
+        status: "customerOwned",
       },
       {
         onSuccess: () => {
-          toast.success('Vehicle added.')
-          void queryClient.invalidateQueries()
-          ;(event.target as HTMLFormElement).reset()
+          toast.success("Vehicle added.");
+          void queryClient.invalidateQueries();
+          (event.target as HTMLFormElement).reset();
         },
       },
-    )
+    );
   }
 
   return (
     <Card>
-      <CardHeader><CardTitle>Add vehicle</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>Add vehicle</CardTitle>
+      </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -254,19 +306,33 @@ function AddVehicleForm({ customerId }: { customerId: string }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="plate">Plate</Label>
-            <Input id="plate" name="plate" />
+            <Input
+              id="plate"
+              name="plate"
+              onInput={(e) => {
+                const target = e.currentTarget;
+                target.value = target.value.toUpperCase();
+              }}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="vin">VIN</Label>
-            <Input id="vin" name="vin" />
+            <Input
+              id="vin"
+              name="vin"
+              onInput={(e) => {
+                const target = e.currentTarget;
+                target.value = target.value.toUpperCase();
+              }}
+            />
           </div>
           <div className="sm:col-span-2">
             <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? 'Saving...' : 'Add vehicle'}
+              {create.isPending ? "Saving..." : "Add vehicle"}
             </Button>
           </div>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

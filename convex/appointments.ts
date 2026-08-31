@@ -73,10 +73,12 @@ export const create = mutation({
     // Legacy display fields: accepted but ignored — server derives from customer record
     name: v.optional(v.string()),
     phone: v.optional(v.string()),
-    email: v.optional(v.string()),
     vehicleMake: v.string(),
     vehicleModel: v.string(),
+    vehicleYear: v.optional(v.number()),
+    vehicleColor: v.optional(v.string()),
     vehiclePlate: v.string(),
+    vehicleVin: v.optional(v.string()),
     complaint: v.string(),
     appointmentTs: v.number(),
   },
@@ -102,8 +104,7 @@ export const create = mutation({
       throw new ConvexError('Plate must be 3+ chars, uppercase alphanumerics, spaces or hyphens (e.g. LSD-123-HG)')
     }
     // Server is source of truth for name/phone — ignore any client-provided name/phone
-    // to prevent display-field spoofing. Email can be overridden only if explicitly provided,
-    // otherwise fall back to customer.email.
+    // to prevent display-field spoofing.
     const displayName = customer.name
     const displayPhone = customer.phone
 
@@ -111,10 +112,13 @@ export const create = mutation({
       customerId: args.customerId,
       name: displayName,
       phone: displayPhone,
-      email: args.email?.trim() || customer.email || undefined,
+      email: customer.email || undefined,
       vehicleMake: args.vehicleMake.trim(),
       vehicleModel: args.vehicleModel.trim(),
+      vehicleYear: args.vehicleYear,
+      vehicleColor: args.vehicleColor?.trim() || undefined,
       vehiclePlate: normalizedPlate,
+      vehicleVin: args.vehicleVin?.trim() || undefined,
       complaint: args.complaint.trim(),
       appointmentTs: args.appointmentTs,
       status: 'scheduled',

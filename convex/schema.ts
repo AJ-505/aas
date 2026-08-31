@@ -53,7 +53,10 @@ export default defineSchema({
     email: v.optional(v.string()),
     vehicleMake: v.optional(v.string()),
     vehicleModel: v.optional(v.string()),
+    vehicleYear: v.optional(v.number()),
+    vehicleColor: v.optional(v.string()),
     vehiclePlate: v.optional(v.string()),
+    vehicleVin: v.optional(v.string()),
     complaint: v.optional(v.string()),
     appointmentTs: v.number(),
     status: v.union(v.literal('scheduled'), v.literal('checkedIn'), v.literal('cancelled')),
@@ -73,6 +76,7 @@ export default defineSchema({
     address: v.optional(v.string()),
   })
     .index('by_phone', ['phone'])
+    .index('by_email', ['email'])
     .searchIndex('name', { searchField: 'name' })
     .searchIndex('search_phone', { searchField: 'phone' }),
 

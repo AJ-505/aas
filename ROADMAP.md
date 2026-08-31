@@ -208,6 +208,7 @@
 | All 7 roles seeded | [x] | convex/seed.ts (seed action). Password: password123 |
 | Past date prevention | [x] | Date input `min` attribute + frontend & backend timestamp validation |
 | Mandatory appointment fields | [x] | Vehicle details (make, model, plate) and complaint required in UI & backend |
+| Appointment customer capture parity | [x] | Inline appointment customer creation now captures email + address like the standalone customer form |
 
 ## Jobs Module Fixes & Enhancements
 
