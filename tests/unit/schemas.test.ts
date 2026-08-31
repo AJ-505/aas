@@ -3,6 +3,7 @@ import { createCustomerSchema, updateCustomerSchema } from '~/lib/schemas/custom
 import { createVehicleSchema } from '~/lib/schemas/vehicle'
 import { roleSchema } from '~/lib/schemas/user'
 import { createAppointmentSchema } from '~/lib/schemas/appointment'
+import { addJobItemSchema } from '~/lib/schemas/job'
 import { ROLES } from '~/lib/enums'
 import { normalizeCustomerCreateInput } from '~/lib/customer-create'
 
@@ -95,6 +96,20 @@ describe('roleSchema', () => {
 
   it('rejects an unknown role', () => {
     expect(() => roleSchema.parse('superuser')).toThrow()
+  })
+})
+
+describe('addJobItemSchema', () => {
+  it('accepts large labour amounts without a hard-coded cap', () => {
+    const parsed = addJobItemSchema.parse({
+      jobId: 'job_1234567890',
+      type: 'labour',
+      labourTypeId: 'labour_1234567890',
+      qty: 1,
+      unitPrice: 250_000_000,
+    })
+
+    expect(parsed.unitPrice).toBe(250_000_000)
   })
 })
 

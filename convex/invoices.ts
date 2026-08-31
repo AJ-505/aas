@@ -521,6 +521,9 @@ export const adminUnlock = mutation({
     const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')
     if (!(invoice as any).locked) throw new ConvexError('Invoice is not locked.')
+    if ((invoice as any).paid || invoice.amountPaid > 0) {
+      throw new ConvexError('Cannot unlock an invoice after payment has been recorded.')
+    }
     await ctx.db.patch(args.invoiceId, { locked: false })
     await audit(ctx, `invoice.adminUnlock:${args.reason.trim().slice(0, 80)}`, 'invoices', args.invoiceId)
     return null

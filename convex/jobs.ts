@@ -4,7 +4,7 @@ import { v, ConvexError } from 'convex/values'
 import { requireUser } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
-import { canTransition } from '../src/lib/job-utils'
+import { canTransition, resolveJobStatusAfterInvoicePayment } from '../src/lib/job-utils'
 import type { JobStatus } from '../src/lib/enums'
 import { addJobItemSchema, checkInJobSchema } from '../src/lib/schemas'
 import { computeInvoiceTotals, type InvoiceLineItem } from '../src/lib/schemas/invoice'
@@ -315,9 +315,16 @@ export const complete = mutation({
       throw new ConvexError(`Cannot complete a job that is "${job.status}".`)
     }
 
+    const invoice = await ctx.db
+      .query('invoices')
+      .withIndex('jobId', (q: any) => q.eq('jobId', args.jobId))
+      .first()
+
+    const nextStatus = invoice && invoice.paid ? 'paid' : 'completed'
     await ctx.db.patch(args.jobId, {
-      status: 'completed',
+      status: nextStatus,
       completedTs: Date.now(),
+      paidTs: nextStatus === 'paid' ? Date.now() : undefined,
     })
     await audit(ctx, 'job.complete', 'jobs', args.jobId)
     return null
@@ -344,8 +351,9 @@ export const markPaid = mutation({
       throw new ConvexError('Invoice is not fully paid.')
     }
 
+    const resolvedStatus = resolveJobStatusAfterInvoicePayment(job.status, true)
     await ctx.db.patch(args.jobId, {
-      status: 'paid',
+      status: resolvedStatus,
       paidTs: Date.now(),
     })
     await ctx.db.patch(invoice._id, { paid: true })
@@ -438,7 +446,7 @@ export const addJobItem = mutation({
   handler: async (ctx, args) => {
     const parsed = addJobItemSchema.parse({ jobId: args.jobId, type: args.type, partId: args.partId as any, labourTypeId: args.labourTypeId as any, qty: args.qty, unitPrice: args.unitPrice })
     const user = await requireActiveSession(ctx, ['inventoryManager', 'finance', 'csr', 'manager', 'admin'])
-    
+
     await enforce(ctx, "standard");const job = await ctx.db.get(parsed.jobId as Id<'jobs'>)
     if (!job) throw new ConvexError('Job not found.')
     if (job.status === 'completed' || job.status === 'paid') {
@@ -454,12 +462,17 @@ export const addJobItem = mutation({
 
     const type = parsed.type as 'part' | 'labour'
     let description = ''
+    let itemId: Id<'jobItems'> | null = null
+
     if (type === 'part') {
       if (!parsed.partId) throw new ConvexError('Part items need a partId.')
-      // Only inventoryManager, manager, admin can add parts directly
       if (user.role !== 'inventoryManager' && user.role !== 'manager' && user.role !== 'admin') {
         throw new ConvexError('Only Inventory Manager, Manager, or Admin can add spare parts.')
       }
+      if (!job.diagnosis || !job.diagnosis.trim()) {
+        throw new ConvexError('Diagnosis is required before spare parts can be added to a job.')
+      }
+
       const part = await ctx.db.get(parsed.partId as Id<'parts'>)
       if (!part) throw new ConvexError('Part not found.')
       if (part.stockQty < parsed.qty) {
@@ -467,9 +480,29 @@ export const addJobItem = mutation({
       }
       description = `${part.code} - ${part.description}`
 
-      // Decrement stock
+      const jobItems = await ctx.db.query('jobItems').withIndex('jobId', (q: any) => q.eq('jobId', parsed.jobId)).collect()
+      const existing = jobItems.find((candidate: any) => candidate.type === 'part' && candidate.partId === parsed.partId)
+
+      if (existing) {
+        const nextQty = existing.qty + parsed.qty
+        await ctx.db.patch(existing._id, {
+          qty: nextQty,
+          unitPrice: parsed.unitPrice,
+          lineTotal: nextQty * parsed.unitPrice,
+        })
+        itemId = existing._id
+      } else {
+        itemId = await ctx.db.insert('jobItems', {
+          jobId: parsed.jobId as Id<'jobs'>,
+          type,
+          partId: parsed.partId as Id<'parts'>,
+          qty: parsed.qty,
+          unitPrice: parsed.unitPrice,
+          lineTotal: parsed.unitPrice * parsed.qty,
+        })
+      }
+
       await ctx.db.patch(parsed.partId as Id<'parts'>, { stockQty: part.stockQty - parsed.qty })
-      // Log stock movement
       await ctx.db.insert('stockMovements', {
         partId: parsed.partId as Id<'parts'>,
         qty: parsed.qty,
@@ -483,21 +516,21 @@ export const addJobItem = mutation({
       const lt = await ctx.db.get(parsed.labourTypeId as Id<'labourTypes'>)
       if (!lt) throw new ConvexError('Labour type not found.')
       description = lt.name
+      itemId = await ctx.db.insert('jobItems', {
+        jobId: parsed.jobId as Id<'jobs'>,
+        type,
+        labourTypeId: parsed.labourTypeId as Id<'labourTypes'>,
+        qty: parsed.qty,
+        unitPrice: parsed.unitPrice,
+        lineTotal: parsed.unitPrice * parsed.qty,
+      })
     }
 
-    const lineTotal = parsed.unitPrice * parsed.qty
-    const itemId = await ctx.db.insert('jobItems', {
-      jobId: parsed.jobId as Id<'jobs'>,
-      type,
-      partId: type === 'part' ? (parsed.partId as Id<'parts'>) : undefined,
-      labourTypeId: type === 'labour' ? (parsed.labourTypeId as Id<'labourTypes'>) : undefined,
-      qty: parsed.qty,
-      unitPrice: parsed.unitPrice,
-      lineTotal,
-    })
+    if (!itemId) {
+      throw new ConvexError('Unable to create job item.')
+    }
     await audit(ctx, 'job.addItem', 'jobItems', itemId)
 
-    // Auto-transition to inProgress when items are added
     if (job.status === 'checkedIn' || job.status === 'diagnosed') {
       await ctx.db.patch(parsed.jobId as Id<'jobs'>, {
         status: 'inProgress',
@@ -513,8 +546,8 @@ export const addJobItem = mutation({
 export const removeJobItem = mutation({
   args: { jobItemId: v.id('jobItems') },
   handler: async (ctx, args) => {
-    await requireActiveSession(ctx, ['finance', 'csr', 'manager', 'admin'])
-    
+    const user = await requireActiveSession(ctx, ['inventoryManager', 'finance', 'manager', 'admin'])
+
     await enforce(ctx, "standard");const item = await ctx.db.get(args.jobItemId)
     if (!item) throw new ConvexError('Job item not found.')
     const job = await ctx.db.get(item.jobId)
@@ -522,16 +555,28 @@ export const removeJobItem = mutation({
     if (job.status === 'completed' || job.status === 'paid') {
       throw new ConvexError('Cannot remove items from a job that is completed or paid.')
     }
-    // Locked guard
     {
       const approvedFinal = await findApprovedFinalForJob(ctx, item.jobId)
       if (approvedFinal) throw new ConvexError('Cannot remove items: final invoice is locked.')
       const allInvoices = await ctx.db.query('invoices').withIndex('jobId', (q: any) => q.eq('jobId', item.jobId)).collect()
       if (allInvoices.some((i: any) => i.locked)) throw new ConvexError('Cannot remove items: invoice is locked — unlock by Admin required.')
     }
-    if (item.type === 'part') {
-      throw new ConvexError('Dispatched parts items cannot be manually removed. Reversal must be done through Inventory Parts Request.')
+
+    if (item.type === 'part' && item.partId) {
+      const part = await ctx.db.get(item.partId)
+      if (part) {
+        await ctx.db.patch(item.partId, { stockQty: part.stockQty + item.qty })
+        await ctx.db.insert('stockMovements', {
+          partId: item.partId,
+          qty: item.qty,
+          type: 'in',
+          jobId: item.jobId,
+          ts: Date.now(),
+          userId: user._id,
+        })
+      }
     }
+
     await ctx.db.delete(args.jobItemId)
     await syncInvoiceForJob(ctx, item.jobId)
     return null

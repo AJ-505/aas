@@ -7,6 +7,7 @@ import {
   statusIndex,
   isBefore,
   isAtOrBefore,
+  resolveJobStatusAfterInvoicePayment,
 } from '~/lib/job-utils'
 
 describe('canTransition', () => {
@@ -63,6 +64,15 @@ describe('isBefore / isAtOrBefore', () => {
     expect(isBefore('inProgress', 'diagnosed')).toBe(false)
     expect(isAtOrBefore('diagnosed', 'diagnosed')).toBe(true)
     expect(isAtOrBefore('completed', 'inProgress')).toBe(false)
+  })
+})
+
+describe('resolveJobStatusAfterInvoicePayment', () => {
+  it('only advances a completed job to paid when the invoice is settled', () => {
+    expect(resolveJobStatusAfterInvoicePayment('completed', true)).toBe('paid')
+    expect(resolveJobStatusAfterInvoicePayment('completed', false)).toBe('completed')
+    expect(resolveJobStatusAfterInvoicePayment('readyForPickup', true)).toBe('readyForPickup')
+    expect(resolveJobStatusAfterInvoicePayment('paid', true)).toBe('paid')
   })
 })
 

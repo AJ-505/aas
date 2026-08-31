@@ -23,6 +23,12 @@ export function isTerminal(status: JobStatus): boolean {
   return TRANSITIONS[status].length === 0
 }
 
+export function resolveJobStatusAfterInvoicePayment(jobStatus: JobStatus, invoiceFullyPaid: boolean): JobStatus {
+  if (!invoiceFullyPaid || jobStatus === 'paid') return jobStatus
+  if (jobStatus === 'completed') return 'paid'
+  return jobStatus
+}
+
 export const JOB_FLOW: JobStatus[] = [
   'checkedIn',
   'diagnosed',

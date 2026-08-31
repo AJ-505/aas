@@ -20,7 +20,7 @@ export const addJobItemSchema = z
     partId: z.string().min(1).max(64).optional(),
     labourTypeId: z.string().min(1).max(64).optional(),
     qty: z.number().int().min(1).max(999).default(1),
-    unitPrice: z.number().int().min(0).max(10_000_000),
+    unitPrice: z.number().int().min(0),
   })
   .superRefine((v, ctx) => {
     if (v.type === "part" && !v.partId) ctx.addIssue({ code: "custom", message: "partId required for part items", path: ["partId"] })

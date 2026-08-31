@@ -5,6 +5,7 @@ import { requireUser, requireRole } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { recordPaymentSchema } from '../src/lib/schemas/invoice'
+import { resolveJobStatusAfterInvoicePayment } from '../src/lib/job-utils'
 import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const byInvoice = query({
@@ -49,12 +50,20 @@ export const record = mutation({
       recordedById: user._id,
     })
 
-    // Update amountPaid on invoice
     const newAmountPaid = invoice.amountPaid + parsed.amount
+    const invoiceFullyPaid = newAmountPaid >= invoice.grandTotal
     await ctx.db.patch(parsed.invoiceId as Id<'invoices'>, {
       amountPaid: newAmountPaid,
-      paid: newAmountPaid >= invoice.grandTotal,
+      paid: invoiceFullyPaid,
     })
+
+    const job = invoice.jobId ? await ctx.db.get(invoice.jobId as Id<'jobs'>) : null
+    if (job && job.status === 'completed' && invoiceFullyPaid) {
+      await ctx.db.patch(job._id, {
+        status: 'paid',
+        paidTs: Date.now(),
+      })
+    }
 
     await audit(ctx, 'payment.record', 'payments', paymentId)
     return paymentId
