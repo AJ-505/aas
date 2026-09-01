@@ -9,6 +9,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         return {
           email: params.email as string,
           name: (params.name as string) ?? undefined,
+          totpEnabled: true,
         }
       },
       reset: {

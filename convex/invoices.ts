@@ -44,16 +44,36 @@ export const listByJob = query({
       .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
       .collect()
     const sorted = all.sort((a, b) => b._creationTime - a._creationTime)
-    if (me.role !== 'admin') {
-      return sorted.map((inv: any) => {
+    return await Promise.all(sorted.map(async (inv: any) => {
+      const generationHistory = me.role === 'admin'
+        ? await (async () => {
+            const logs = await ctx.db
+              .query('auditLogs')
+              .withIndex('entityId', (q) => q.eq('entityId', inv._id))
+              .collect()
+            const generationLogs = logs.filter((log) =>
+              log.entity === 'invoices' &&
+              (log.action === 'invoice.generate' || log.action === 'invoice.regenerate'),
+            ).sort((a, b) => a.ts - b.ts)
+            return await Promise.all(generationLogs.map(async (log) => {
+              const actor: any = await ctx.db.get(log.userId)
+              return {
+                action: log.action === 'invoice.generate' ? 'generated' : 'regenerated',
+                ts: log.ts,
+                user: actor ? { _id: actor._id, name: actor.name ?? null, email: actor.email ?? null } : null,
+              }
+            }))
+          })()
+        : undefined
+      if (me.role !== 'admin') {
         if (inv.generatedById) {
           const { generatedById: _omit, ...rest } = inv
           return rest
         }
         return inv
-      })
-    }
-    return sorted
+      }
+      return { ...inv, generationHistory }
+    }))
   },
 })
 
@@ -233,7 +253,7 @@ export const regenerate = mutation({
       .query('invoices')
       .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
       .collect()
-    const existing = existingList.find((e: any) => e.kind === 'final' || !e.kind) ?? existingList[0]
+    const existing = existingList.find((e: any) => e.kind === 'final' || !e.kind)
     if (existing) {
       assertNotLocked(existing)
       if (existing.paid) throw new ConvexError('Cannot regenerate an invoice that is already paid.')
@@ -312,6 +332,13 @@ export const createEstimate = mutation({
     jobId: v.optional(v.id('jobs')),
     salesOrderId: v.optional(v.id('salesOrders')),
     domain: v.optional(v.union(v.literal('service'), v.literal('sales'))),
+    lineItems: v.optional(v.array(v.object({
+      type: v.union(v.literal('part'), v.literal('labour')),
+      description: v.string(),
+      qty: v.number(),
+      unitPrice: v.number(),
+      lineTotal: v.number(),
+    }))),
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ['csr', 'manager', 'admin', 'salesRep'])
@@ -321,7 +348,28 @@ export const createEstimate = mutation({
       if (!args.jobId) throw new ConvexError('jobId required for service estimates.')
       const job = await ctx.db.get(args.jobId)
       if (!job) throw new ConvexError('Job not found.')
-      const { lineItems, totals } = await prepareTotalsForJob(ctx, args.jobId)
+      const existingEstimates = await ctx.db.query('invoices').withIndex('jobId', (q) => q.eq('jobId', args.jobId!)).collect()
+      if (existingEstimates.some((estimate: any) => estimate.kind === 'estimate' && estimate.status === 'draft')) {
+        throw new ConvexError('Accept or reject the current estimate before creating another.')
+      }
+      let lineItems: InvoiceLineItem[]
+      let totals: ReturnType<typeof computeInvoiceTotals>
+      if (args.lineItems) {
+        lineItems = args.lineItems.map((item) => ({
+          ...item,
+          description: item.description.trim(),
+          lineTotal: item.qty * item.unitPrice,
+        }))
+        if (lineItems.length === 0 || lineItems.some((item) => !item.description || !Number.isInteger(item.qty) || item.qty <= 0 || item.unitPrice < 0)) {
+          throw new ConvexError('Manual estimates need a description, positive quantity, and non-negative unit price for every line.')
+        }
+        const settings = await ctx.db.query('settings').first()
+        totals = computeInvoiceTotals(lineItems, settings?.vatRate ?? 7.5)
+      } else {
+        const prepared = await prepareTotalsForJob(ctx, args.jobId)
+        lineItems = prepared.lineItems
+        totals = prepared.totals
+      }
       const invoiceNumber = await nextInvoiceNumber(ctx, 'estimate')
       const invoiceId = await ctx.db.insert('invoices', {
         jobId: args.jobId,
@@ -347,6 +395,10 @@ export const createEstimate = mutation({
       if (!args.salesOrderId) throw new ConvexError('salesOrderId required for sales estimates.')
       const order = await ctx.db.get(args.salesOrderId)
       if (!order) throw new ConvexError('Sales order not found.')
+      const existingEstimates = await ctx.db.query('invoices').withIndex('salesOrderId', (q) => q.eq('salesOrderId', args.salesOrderId!)).collect()
+      if (existingEstimates.some((estimate: any) => estimate.kind === 'estimate' && estimate.status === 'draft')) {
+        throw new ConvexError('Accept or reject the current estimate before creating another.')
+      }
       const { lineItems } = await buildLineItemsForSalesOrder(ctx, args.salesOrderId)
       const settings = await ctx.db.query('settings').first()
       const vatRate = settings?.vatRate ?? 7.5
@@ -380,37 +432,11 @@ export const updateEstimate = mutation({
   args: { invoiceId: v.id('invoices') },
   handler: async (ctx, args) => {
     await requireRole(ctx, ['csr', 'manager', 'admin', 'salesRep'])
-    
-    await enforce(ctx, "financial");const invoice = await ctx.db.get(args.invoiceId)
+
+    const invoice = await ctx.db.get(args.invoiceId)
     if (!invoice) throw new ConvexError('Invoice not found.')
-    if ((invoice as any).kind !== 'estimate') throw new ConvexError('Only estimates can be updated via this path.')
-    if ((invoice as any).status !== 'draft') throw new ConvexError('Estimate is not in editable window (must be draft).')
-    assertNotLocked(invoice)
-    // Rebuild lineItems from source (job or salesOrder)
-    let lineItems: InvoiceLineItem[]
-    let totals: ReturnType<typeof computeInvoiceTotals>
-    if ((invoice as any).domain === 'sales' && (invoice as any).salesOrderId) {
-      const res = await buildLineItemsForSalesOrder(ctx, (invoice as any).salesOrderId)
-      lineItems = res.lineItems
-      const settings = await ctx.db.query('settings').first()
-      totals = computeInvoiceTotals(lineItems, settings?.vatRate ?? 7.5)
-    } else if ((invoice as any).jobId) {
-      const prepared = await prepareTotalsForJob(ctx, (invoice as any).jobId)
-      lineItems = prepared.lineItems
-      totals = prepared.totals
-    } else {
-      throw new ConvexError('Estimate has no parent linkage.')
-    }
-    await ctx.db.patch(args.invoiceId, {
-      lineItems,
-      partsTotal: totals.partsTotal,
-      labourTotal: totals.labourTotal,
-      subtotal: totals.subtotal,
-      vat: totals.vat,
-      grandTotal: totals.grandTotal,
-    })
-    await audit(ctx, 'invoice.updateEstimate', 'invoices', args.invoiceId)
-    return null
+    if ((invoice as any).kind !== 'estimate') throw new ConvexError('Only estimates can be refreshed via this path.')
+    throw new ConvexError('Estimates are static snapshots and cannot be refreshed from current job items.')
   },
 })
 
@@ -456,58 +482,10 @@ export const rejectEstimate = mutation({
 export const convertEstimateToFinal = mutation({
   args: { invoiceId: v.id('invoices') },
   handler: async (ctx, args) => {
-    const user = await requireRole(ctx, ['finance', 'manager', 'admin'])
-    
-    await enforce(ctx, "financial");const estimate = await ctx.db.get(args.invoiceId)
+    const estimate = await ctx.db.get(args.invoiceId)
     if (!estimate) throw new ConvexError('Estimate not found.')
     if ((estimate as any).kind !== 'estimate') throw new ConvexError('Only estimates can be converted.')
-    if ((estimate as any).status !== 'approved') throw new ConvexError('Only approved estimates can be converted to final invoice.')
-    // Check no existing approved final already exists for same parent
-    if ((estimate as any).jobId) {
-      const approvedFinal = await ctx.db
-        .query('invoices')
-        .withIndex('jobId', (q: any) => q.eq('jobId', (estimate as any).jobId))
-        .collect()
-      if (approvedFinal.some((i: any) => i.kind === 'final' && i.approved)) {
-        throw new ConvexError('An approved final invoice already exists for this job.')
-      }
-    }
-    if ((estimate as any).salesOrderId) {
-      const approvedFinal = await ctx.db
-        .query('invoices')
-        .withIndex('salesOrderId', (q: any) => q.eq('salesOrderId', (estimate as any).salesOrderId))
-        .collect()
-      if (approvedFinal.some((i: any) => i.kind === 'final' && i.approved)) {
-        throw new ConvexError('An approved final invoice already exists for this order.')
-      }
-    }
-    const invoiceNumber = await nextInvoiceNumber(ctx, 'final')
-    const now = Date.now()
-    // Create new final invoice copying totals; keep estimate as converted history
-    const finalId = await ctx.db.insert('invoices', {
-      jobId: (estimate as any).jobId,
-      salesOrderId: (estimate as any).salesOrderId,
-      domain: (estimate as any).domain ?? 'service',
-      kind: 'final',
-      invoiceNumber,
-      status: 'draft',
-      lineItems: (estimate as any).lineItems,
-      partsTotal: estimate.partsTotal,
-      labourTotal: estimate.labourTotal,
-      subtotal: estimate.subtotal,
-      vat: estimate.vat,
-      grandTotal: estimate.grandTotal,
-      approved: false,
-      approvedTs: undefined,
-      paid: false,
-      amountPaid: 0,
-      locked: false,
-      generatedById: user._id,
-    })
-    await ctx.db.patch(args.invoiceId, { status: 'converted' })
-    await audit(ctx, 'invoice.convertEstimateToFinal', 'invoices', finalId)
-    await audit(ctx, 'invoice.estimateConverted', 'invoices', args.invoiceId)
-    return finalId
+    throw new ConvexError('Estimate-to-final conversion is disabled. Generate a fresh final invoice instead.')
   },
 })
 

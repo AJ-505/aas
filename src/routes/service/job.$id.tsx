@@ -39,10 +39,8 @@ import {
   useRegenerateInvoiceMutation,
   useApproveInvoiceMutation,
   useCreateEstimateMutation,
-  useUpdateEstimateMutation,
   useApproveEstimateMutation,
   useRejectEstimateMutation,
-  useConvertEstimateMutation,
   useAdminUnlockMutation,
   useReverseReadyMutation,
   useRecordPaymentMutation,
@@ -58,7 +56,7 @@ import {
 } from "~/lib/enums";
 import { JOB_STATUS_VARIANTS } from "~/lib/status-ui";
 import { nextStatuses } from "~/lib/job-utils";
-import { formatNaira, formatDateTime } from "~/lib/format";
+import { formatNaira, formatDateTime, nairaToKobo } from "~/lib/format";
 import { useCurrentUser } from "~/lib/auth";
 import { cn } from "~/lib/utils";
 import type { Id } from "convex/_generated/dataModel";
@@ -809,6 +807,12 @@ function InvoiceSection({
   payments: any[];
   hasItems: boolean;
 }) {
+  type ManualEstimateItem = {
+    type: "part" | "labour";
+    description: string;
+    amount: string;
+  };
+
   const queryClient = useQueryClient();
   const { data: me } = useCurrentUser();
   const { data: invoiceList } = useQuery(invoiceQueries.listByJob(jobId));
@@ -816,22 +820,29 @@ function InvoiceSection({
   const regenerate = useRegenerateInvoiceMutation();
   const approve = useApproveInvoiceMutation();
   const createEstimate = useCreateEstimateMutation();
-  const updateEstimate = useUpdateEstimateMutation();
   const approveEstimate = useApproveEstimateMutation();
   const rejectEstimate = useRejectEstimateMutation();
-  const convertEstimate = useConvertEstimateMutation();
   const adminUnlock = useAdminUnlockMutation();
   const recordPayment = useRecordPaymentMutation();
   const [method, setMethod] = useState<
     "cash" | "transfer" | "card" | "pos" | "bank"
   >("cash");
-  const [rejectReason, setRejectReason] = useState("");
+  const [rejectReasons, setRejectReasons] = useState<Record<string, string>>(
+    {},
+  );
   const [unlockReason, setUnlockReason] = useState("");
+  const [manualEstimateItems, setManualEstimateItems] = useState<
+    ManualEstimateItem[]
+  >([{ type: "labour", description: "", amount: "" }]);
+  const [showManualEstimate, setShowManualEstimate] = useState(false);
 
   const canFinance =
     me?.role === "finance" || me?.role === "manager" || me?.role === "admin";
   const canCsrEstimate =
-    me?.role === "csr" || me?.role === "manager" || me?.role === "admin";
+    me?.role === "csr" ||
+    me?.role === "manager" ||
+    me?.role === "admin" ||
+    me?.role === "salesRep";
   const canApproveEstimate = canFinance;
   const isAdmin = me?.role === "admin";
 
@@ -847,6 +858,119 @@ function InvoiceSection({
   function invalidate() {
     void queryClient.invalidateQueries();
   }
+
+  function createManualEstimate() {
+    const amounts = manualEstimateItems.map((item) =>
+      Number(item.amount.replace(/,/g, "")),
+    );
+    const lineItems = manualEstimateItems.map((item) => ({
+      type: item.type,
+      description: item.description.trim(),
+      qty: 1,
+      unitPrice: nairaToKobo(Number(item.amount.replace(/,/g, ""))),
+      lineTotal: nairaToKobo(Number(item.amount.replace(/,/g, ""))),
+    }));
+    if (
+      lineItems.some((item) => !item.description) ||
+      amounts.some((amount) => !Number.isSafeInteger(amount) || amount <= 0) ||
+      lineItems.some((item) => !Number.isSafeInteger(item.unitPrice))
+    ) {
+      toast.error(
+        "Enter a description and a whole-number amount greater than zero.",
+      );
+      return;
+    }
+    createEstimate.mutate(
+      { jobId: jobId as Id<"jobs">, domain: "service", lineItems },
+      {
+        onSuccess: () => {
+          toast.success("Manual estimate created.");
+          setShowManualEstimate(false);
+          setManualEstimateItems([
+            { type: "labour", description: "", amount: "" },
+          ]);
+          invalidate();
+        },
+        onError: (e: any) => toast.error(e.message),
+      },
+    );
+  }
+
+  const manualEstimateForm = showManualEstimate && !draftEstimate && (
+    <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3">
+      <p className="text-[13px] font-semibold text-ink">Manual estimate</p>
+      {manualEstimateItems.map((item, index) => (
+        <div key={index} className="grid gap-2 md:grid-cols-[120px_1fr_180px]">
+          <Select
+            value={item.type}
+            onChange={(e) =>
+              setManualEstimateItems((current) =>
+                current.map((line, lineIndex) =>
+                  lineIndex === index
+                    ? {
+                        ...line,
+                        type: e.target.value as ManualEstimateItem["type"],
+                      }
+                    : line,
+                ),
+              )
+            }
+          >
+            <option value="labour">Labour</option>
+            <option value="part">Part</option>
+          </Select>
+          <Input
+            placeholder="Description"
+            value={item.description}
+            onChange={(e) =>
+              setManualEstimateItems((current) =>
+                current.map((line, lineIndex) =>
+                  lineIndex === index
+                    ? { ...line, description: e.target.value }
+                    : line,
+                ),
+              )
+            }
+          />
+          <Input
+            inputMode="numeric"
+            placeholder="Amount (e.g. 20000)"
+            value={item.amount}
+            onChange={(e) =>
+              setManualEstimateItems((current) =>
+                current.map((line, lineIndex) =>
+                  lineIndex === index
+                    ? {
+                        ...line,
+                        amount: e.target.value.replace(/[^0-9,]/g, ""),
+                      }
+                    : line,
+                ),
+              )
+            }
+          />
+        </div>
+      ))}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          onClick={createManualEstimate}
+          disabled={createEstimate.isPending}
+        >
+          {createEstimate.isPending ? "Creating..." : "Save Manual Estimate"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => setShowManualEstimate(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
 
   // If no invoices at all
   if (invoices.length === 0) {
@@ -874,11 +998,18 @@ function InvoiceSection({
                 }
                 disabled={createEstimate.isPending}
               >
-                {createEstimate.isPending
-                  ? "Creating..."
-                  : "Create Estimate (CSR)"}
+                {createEstimate.isPending ? "Creating..." : "Create Estimate"}
               </Button>
             )}
+            {canCsrEstimate && !draftEstimate && !showManualEstimate && (
+              <Button
+                variant="outline"
+                onClick={() => setShowManualEstimate(true)}
+              >
+                Input Manual Estimate
+              </Button>
+            )}
+            {manualEstimateForm}
             {canFinance && hasItems && (
               <Button
                 variant="outline"
@@ -923,15 +1054,7 @@ function InvoiceSection({
       {estimates.length > 0 && (
         <Card className="overflow-hidden border-amber-200">
           <CardHeader className="flex-row items-center justify-between bg-amber-50/50">
-            <CardTitle className="flex items-center gap-2">
-              Estimates{" "}
-              <Badge
-                variant="warning"
-                className="bg-amber-100 text-amber-800 border-amber-200"
-              >
-                ESTIMATE — NOT A TAX INVOICE
-              </Badge>
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2">Estimates</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 pt-4">
             {estimates.map((est: any) => (
@@ -974,29 +1097,6 @@ function InvoiceSection({
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {est.status === "draft" && canCsrEstimate && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        updateEstimate.mutate(
-                          { invoiceId: est._id },
-                          {
-                            onSuccess: () => {
-                              toast.success(
-                                "Estimate refreshed from job items.",
-                              );
-                              invalidate();
-                            },
-                            onError: (e: any) => toast.error(e.message),
-                          },
-                        )
-                      }
-                      disabled={updateEstimate.isPending}
-                    >
-                      Refresh from job items
-                    </Button>
-                  )}
                   {est.status === "draft" && canApproveEstimate && (
                     <>
                       <Button
@@ -1019,8 +1119,13 @@ function InvoiceSection({
                       <div className="flex items-center gap-1">
                         <Input
                           placeholder="Reject reason"
-                          value={rejectReason}
-                          onChange={(e) => setRejectReason(e.target.value)}
+                          value={rejectReasons[est._id] ?? ""}
+                          onChange={(e) =>
+                            setRejectReasons((current) => ({
+                              ...current,
+                              [est._id]: e.target.value,
+                            }))
+                          }
                           className="h-8 w-40"
                         />
                         <Button
@@ -1029,11 +1134,18 @@ function InvoiceSection({
                           className="text-rose-600"
                           onClick={() =>
                             rejectEstimate.mutate(
-                              { invoiceId: est._id, reason: rejectReason },
+                              {
+                                invoiceId: est._id,
+                                reason: rejectReasons[est._id] ?? "",
+                              },
                               {
                                 onSuccess: () => {
                                   toast.success("Estimate rejected.");
-                                  setRejectReason("");
+                                  setRejectReasons((current) => {
+                                    const next = { ...current };
+                                    delete next[est._id];
+                                    return next;
+                                  });
                                   invalidate();
                                 },
                                 onError: (e: any) => toast.error(e.message),
@@ -1045,26 +1157,6 @@ function InvoiceSection({
                         </Button>
                       </div>
                     </>
-                  )}
-                  {est.status === "approved" && canApproveEstimate && (
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      onClick={() =>
-                        convertEstimate.mutate(
-                          { invoiceId: est._id },
-                          {
-                            onSuccess: () => {
-                              toast.success("Converted to final invoice.");
-                              invalidate();
-                            },
-                            onError: (e: any) => toast.error(e.message),
-                          },
-                        )
-                      }
-                    >
-                      Convert to Final Invoice
-                    </Button>
                   )}
                 </div>
               </div>
@@ -1086,34 +1178,56 @@ function InvoiceSection({
                   )
                 }
               >
-                Create Another Estimate
+                Generate Estimate from Job Items
               </Button>
             )}
+            {canCsrEstimate && !draftEstimate && !showManualEstimate && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowManualEstimate(true)}
+              >
+                Input Manual Estimate
+              </Button>
+            )}
+            {manualEstimateForm}
           </CardContent>
         </Card>
       )}
 
       {/* No estimate yet but allow CSR to create */}
-      {estimates.length === 0 && canCsrEstimate && hasItems && (
+      {estimates.length === 0 && canCsrEstimate && (
         <Card className="border-dashed">
           <CardContent className="pt-4 flex gap-2">
-            <Button
-              size="sm"
-              onClick={() =>
-                createEstimate.mutate(
-                  { jobId: jobId as Id<"jobs">, domain: "service" },
-                  {
-                    onSuccess: () => {
-                      toast.success("Estimate created.");
-                      invalidate();
+            {hasItems && (
+              <Button
+                size="sm"
+                onClick={() =>
+                  createEstimate.mutate(
+                    { jobId: jobId as Id<"jobs">, domain: "service" },
+                    {
+                      onSuccess: () => {
+                        toast.success("Estimate created.");
+                        invalidate();
+                      },
+                      onError: (e: any) => toast.error(e.message),
                     },
-                    onError: (e: any) => toast.error(e.message),
-                  },
-                )
-              }
-            >
-              Create Estimate
-            </Button>
+                  )
+                }
+              >
+                Create Estimate
+              </Button>
+            )}
+            {!showManualEstimate && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowManualEstimate(true)}
+              >
+                Input Manual Estimate
+              </Button>
+            )}
+            {manualEstimateForm}
           </CardContent>
         </Card>
       )}
@@ -1231,17 +1345,43 @@ function InvoiceSection({
                 </span>
               </div>
             </div>
-            {isAdmin && finalInvoice.generatedById && (
-              <p className="text-[11px] text-mute">
-                Generated by:{" "}
-                <span className="font-mono text-body">
-                  {String(finalInvoice.generatedById).slice(-6)}
-                </span>{" "}
-                {finalInvoice.approvedTs
-                  ? `· ${formatDateTime(finalInvoice.approvedTs)}`
-                  : ""}
-              </p>
-            )}
+            {isAdmin &&
+              (finalInvoice.generatedById ||
+                finalInvoice.generationHistory?.length > 0) && (
+                <div className="space-y-1 text-[11px] text-mute">
+                  {finalInvoice.generatedById && (
+                    <p>
+                      Generated by:{" "}
+                      <span className="font-mono text-body">
+                        {String(finalInvoice.generatedById).slice(-6)}
+                      </span>{" "}
+                      {finalInvoice.approvedTs
+                        ? `· ${formatDateTime(finalInvoice.approvedTs)}`
+                        : ""}
+                    </p>
+                  )}
+                  {finalInvoice.generationHistory?.length > 0 && (
+                    <div className="space-y-0.5 border-l-2 border-line-soft pl-2">
+                      {finalInvoice.generationHistory.map(
+                        (entry: any, index: number) => (
+                          <p key={`${entry.ts}-${index}`}>
+                            {entry.action === "generated"
+                              ? "Generated"
+                              : "Regenerated"}{" "}
+                            by{" "}
+                            <span className="text-body">
+                              {entry.user?.name ||
+                                entry.user?.email ||
+                                "Unknown user"}
+                            </span>{" "}
+                            · {formatDateTime(entry.ts)}
+                          </p>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             {canFinance && (
               <div className="flex flex-wrap gap-2 pt-2">
                 {!finalInvoice.approved && (
@@ -1274,7 +1414,10 @@ function InvoiceSection({
                         {
                           onSuccess: () => {
                             toast.success("Invoice regenerated.");
-                            invalidate();
+                            void queryClient.invalidateQueries({
+                              queryKey:
+                                invoiceQueries.listByJob(jobId).queryKey,
+                            });
                           },
                           onError: (e: any) => toast.error(e.message),
                         },

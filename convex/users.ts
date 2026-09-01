@@ -21,6 +21,7 @@ export const me = query({
       active: user.active ?? true,
       // security flags
       totpEnabled: !!u.totpEnabled,
+      hasTotpSecret: !!u.totpSecret,
       mustChangePassword: !!u.mustChangePassword,
       lastActiveTs: (u.lastActiveTs as number | undefined) ?? null,
       lastTotpVerifiedTs: (u.lastTotpVerifiedTs as number | undefined) ?? null,

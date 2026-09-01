@@ -5,6 +5,7 @@ import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { createPartSchema, updatePartSchema } from '../src/lib/schemas'
 import { STOCK_MOVEMENT_TYPES, type StockMovementType } from '../src/lib/enums'
+import { LUBRICANT_SUBCATEGORIES, normalizePartCategory } from '../src/lib/catalogue-defaults'
 import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const list = query({
@@ -42,11 +43,16 @@ export const search = query({
     await requireUser(ctx)
     const q = (args.q ?? '').trim().toLowerCase()
     const brandFilter = (args.brand ?? '').trim()
-    const categoryFilter = (args.category ?? '').trim()
+    const categoryFilter = normalizePartCategory(args.category ?? '') ?? ''
     const all = await ctx.db.query('parts').collect()
     return all.filter((p) => {
       if (brandFilter && (p.brand ?? '') !== brandFilter) return false
-      if (categoryFilter && (p.category ?? '') !== categoryFilter) return false
+      if (categoryFilter) {
+        const partCategory = normalizePartCategory(p.category ?? '') ?? ''
+        const matchesLubricantGroup = categoryFilter === 'Lubricants' && LUBRICANT_SUBCATEGORIES.some((sub) => normalizePartCategory(sub) === partCategory)
+        const matchesSpecificCategory = partCategory === categoryFilter
+        if (!matchesLubricantGroup && !matchesSpecificCategory) return false
+      }
       if (!q) return true
       return p.code.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
     })
@@ -95,6 +101,10 @@ function normalizeBrandCategory(v: string | undefined): string | undefined {
   return t.length > 0 ? t : undefined
 }
 
+function normalizeStoredPartCategory(v: string | undefined): string | undefined {
+  return normalizePartCategory(v)
+}
+
 export const createPart = mutation({
   args: {
     code: v.optional(v.string()),
@@ -130,7 +140,7 @@ export const createPart = mutation({
       stockQty: parsed.stockQty,
       reorderLevel: parsed.reorderLevel,
       brand: normalizeBrandCategory(parsed.brand),
-      category: normalizeBrandCategory(parsed.category),
+      category: normalizeStoredPartCategory(parsed.category),
     })
     await audit(ctx, 'parts.create', 'parts', id)
     return id
@@ -167,6 +177,10 @@ export const updatePart = mutation({
       if (val === undefined) continue
       if ((k === 'brand' || k === 'category') && typeof val === 'string' && val.trim() === '') {
         clean[k] = undefined
+        continue
+      }
+      if (k === 'category' && typeof val === 'string') {
+        clean[k] = normalizeStoredPartCategory(val)
         continue
       }
       clean[k] = val

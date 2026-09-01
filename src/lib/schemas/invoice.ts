@@ -27,6 +27,13 @@ export const createEstimateSchema = z.object({
   jobId: z.string().optional(),
   salesOrderId: z.string().optional(),
   domain: z.enum(['service', 'sales']).default('service'),
+  lineItems: z.array(z.object({
+    type: z.enum(['part', 'labour']),
+    description: z.string().trim().min(1),
+    qty: z.number().int().positive(),
+    unitPrice: moneyKobo,
+    lineTotal: moneyKobo,
+  })).optional(),
 })
 
 export const updateEstimateSchema = z.object({
@@ -42,6 +49,14 @@ export const adminUnlockSchema = z.object({
   invoiceId: z.string().min(1),
   reason: z.string().trim().min(10).max(300),
 })
+
+export function estimateRefreshAllowed(): boolean {
+  return false
+}
+
+export function estimateConversionAllowed(): boolean {
+  return false
+}
 
 // Pure helper used by both client previews and Convex invoice generation.
 export const invoiceLineItemSchema = z.object({

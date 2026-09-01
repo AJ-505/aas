@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import { getCurrentUser } from "./auth";
 import type { MutationCtx } from "../_generated/server";
+import { internal } from "../_generated/api";
 
 export type RateLimitClass = "admin" | "financial" | "bulk" | "standard";
 
@@ -60,29 +61,17 @@ export async function enforce(
 
   if (existing.count >= limit) {
     const retryAfterMs = ws + windowMs - now;
-    // Observability: try to persist event. Note: in Convex a thrown mutation rolls back
-    // all writes, so this insert is best-effort for test harnesses. For production
-    // the structured ConvexError (code RATE_LIMITED + retryAfterMs) is the primary
-    // signal, plus client-side reporting and audit logging via separate call.
-    // We attempt an insert before throwing so convex-test (which may not roll back
-    // on caught errors) can assert, while documenting the rollback limitation.
-    try {
-      await ctx.db.insert("rateLimitEvents", {
-        key,
-        actionClass,
-        ts: now,
-        limit,
-        windowMs,
-        retryAfterMs,
-        userId: user._id as any,
-      } as any);
-    } catch {
-      // table may not exist yet before schema migration
-    }
-    try {
-      const { audit } = await import("./audit.js");
-      await audit(ctx, `rateLimit.hit:${actionClass}`, "rateLimits", key);
-    } catch {}
+    // This must run outside the rejected transaction; otherwise the thrown
+    // rate-limit error rolls the observability write back as well.
+    await ctx.scheduler.runAfter(0, internal.rateLimit.logEvent, {
+      key,
+      actionClass,
+      ts: now,
+      limit,
+      windowMs,
+      retryAfterMs,
+      userId: user._id,
+    });
 
     throw new ConvexError({
       code: "RATE_LIMITED",

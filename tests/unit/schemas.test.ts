@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest'
+import { normalizeEmailForAuth } from '../../convex/lib/auth'
 import { createCustomerSchema, updateCustomerSchema } from '~/lib/schemas/customer'
 import { createVehicleSchema } from '~/lib/schemas/vehicle'
 import { roleSchema } from '~/lib/schemas/user'
 import { createAppointmentSchema } from '~/lib/schemas/appointment'
 import { addJobItemSchema } from '~/lib/schemas/job'
+import { createEstimateSchema, estimateRefreshAllowed, estimateConversionAllowed } from '~/lib/schemas/invoice'
 import { ROLES } from '~/lib/enums'
 import { normalizeCustomerCreateInput } from '~/lib/customer-create'
+import { LUBRICANT_SUBCATEGORIES, PART_CATEGORY_DEFAULTS, VEHICLE_BRAND_DEFAULTS } from '~/lib/catalogue-defaults'
 
 describe('createCustomerSchema', () => {
   it('validates a valid customer', () => {
@@ -110,6 +113,78 @@ describe('addJobItemSchema', () => {
     })
 
     expect(parsed.unitPrice).toBe(250_000_000)
+  })
+})
+
+describe('estimate lifecycle guardrails', () => {
+  it('locks estimates as static snapshots and disables conversion', () => {
+    expect(estimateRefreshAllowed()).toBe(false)
+    expect(estimateConversionAllowed()).toBe(false)
+  })
+
+  it('accepts manual estimate line items', () => {
+    const parsed = createEstimateSchema.parse({
+      jobId: 'job_1234567890',
+      domain: 'service',
+      lineItems: [{
+        type: 'labour',
+        description: 'Brake inspection',
+        qty: 1,
+        unitPrice: 25000,
+        lineTotal: 25000,
+      }],
+    })
+    expect(parsed.lineItems?.[0]?.description).toBe('Brake inspection')
+  })
+})
+
+describe('catalogue defaults', () => {
+  it('uses the requested default vehicle brands and part categories', () => {
+    expect(VEHICLE_BRAND_DEFAULTS).toEqual([
+      'Jim Isuzu',
+      'Toyota',
+      'Hyundai',
+      'Honda',
+      'BYD',
+      'Nissan',
+      'Jet move',
+      'Roar',
+      'Changan',
+      'Gac',
+      'Jac',
+      'Mercedes-Benz',
+      'BMW',
+      'Kia',
+      'Mitsubishi',
+      'Ford',
+      'Volkswagen',
+    ])
+
+    expect(PART_CATEGORY_DEFAULTS).toEqual([
+      'Lubricants',
+      'Engine',
+      'Transmission',
+      'Suspension',
+      'Electrical',
+      'Body',
+      'HVAC - Air Condition',
+    ])
+
+    expect(LUBRICANT_SUBCATEGORIES).toEqual([
+      'Engine Oil',
+      'Gear Oil',
+      'Transmission Fluid',
+      'Power Steering',
+      'Automotive Grease',
+    ])
+  })
+})
+
+describe('password auth identifier normalization', () => {
+  it('normalizes email addresses before password auth lookups', () => {
+    expect(normalizeEmailForAuth(' User@Example.COM ')).toBe('user@example.com')
+    expect(normalizeEmailForAuth('   ')).toBeUndefined()
+    expect(normalizeEmailForAuth(undefined)).toBeUndefined()
   })
 })
 

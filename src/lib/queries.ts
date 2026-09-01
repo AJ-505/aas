@@ -188,17 +188,11 @@ export function useApproveInvoiceMutation() {
 export function useCreateEstimateMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.createEstimate) })
 }
-export function useUpdateEstimateMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.invoices.updateEstimate) })
-}
 export function useApproveEstimateMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.approveEstimate) })
 }
 export function useRejectEstimateMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.rejectEstimate) })
-}
-export function useConvertEstimateMutation() {
-  return useMutation({ mutationFn: useConvexMutation(api.invoices.convertEstimateToFinal) })
 }
 export function useAdminUnlockMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.invoices.adminUnlock) })

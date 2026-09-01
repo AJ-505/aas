@@ -3,6 +3,7 @@ import { useConvexMutation } from "@convex-dev/react-query";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
+import { clearLoginSession } from "~/lib/two-factor-session";
 
 const INACTIVITY_MS = 30 * 60 * 1000;
 const WARNING_MS = 25 * 60 * 1000;
@@ -13,6 +14,7 @@ export function useInactivity(enabled: boolean) {
   const { signOut } = useAuthActions();
   const router = useRouter();
   const heartbeatMut = useConvexMutation(api.users.heartbeat);
+  const logActivity = useConvexMutation(api.activityLogs.log);
   const lastActiveRef = useRef<number>(Date.now());
   const lastHeartbeatRef = useRef<number>(0);
   const [showWarning, setShowWarning] = useState(false);
@@ -60,7 +62,15 @@ export function useInactivity(enabled: boolean) {
       if (idle >= INACTIVITY_MS) {
         window.clearInterval(hbInterval);
         window.clearInterval(checkInterval);
-        try { await signOut(); } catch {}
+        try {
+          await (logActivity as any)({
+            event: "session_expired",
+            userAgent: navigator.userAgent,
+            screenInfo: `${window.screen.width}x${window.screen.height}`,
+          });
+          clearLoginSession();
+          await signOut();
+        } catch {}
         router.navigate({ to: "/auth/login", search: { expired: "1" } as any });
       } else if (idle >= WARNING_MS) {
         setShowWarning(true);
@@ -76,7 +86,7 @@ export function useInactivity(enabled: boolean) {
       window.clearInterval(checkInterval);
       if (debounce) window.clearTimeout(debounce as any);
     };
-  }, [enabled, doHeartbeat, signOut, router, touch]);
+  }, [enabled, doHeartbeat, logActivity, signOut, router, touch]);
 
   // countdown ticker when warning shown
   useEffect(() => {

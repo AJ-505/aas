@@ -7,7 +7,6 @@ import { audit } from './lib/audit'
 import { canTransition, resolveJobStatusAfterInvoicePayment } from '../src/lib/job-utils'
 import type { JobStatus } from '../src/lib/enums'
 import { addJobItemSchema, checkInJobSchema } from '../src/lib/schemas'
-import { computeInvoiceTotals, type InvoiceLineItem } from '../src/lib/schemas/invoice'
 import { findApprovedFinalForJob } from './lib/invoiceHelpers'
 import { enforce, enforceDedup } from "./lib/rateLimit";
 
@@ -362,54 +361,6 @@ export const markPaid = mutation({
   },
 })
 
-export async function syncInvoiceForJob(ctx: any, jobId: Id<'jobs'>) {
-  const existing = await ctx.db
-    .query('invoices')
-    .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
-    .first()
-  if (!existing || existing.paid) return
-  if ((existing as any).locked) return
-
-  const jobItems = await ctx.db
-    .query('jobItems')
-    .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
-    .collect()
-
-  const lineItems: InvoiceLineItem[] = jobItems.map((item: any) => ({
-    type: item.type,
-    description: '',
-    qty: item.qty,
-    unitPrice: item.unitPrice,
-    lineTotal: item.lineTotal,
-  }))
-
-  for (const [i, item] of jobItems.entries()) {
-    const li = lineItems[i]
-    if (!li) continue
-    if (item.type === 'part' && item.partId) {
-      const part = await ctx.db.get(item.partId)
-      if (part) li.description = `${part.code} - ${part.description}`
-    } else if (item.type === 'labour' && item.labourTypeId) {
-      const lt = await ctx.db.get(item.labourTypeId)
-      if (lt) li.description = lt.name
-    }
-  }
-
-  const settings = await ctx.db.query('settings').first()
-  const vatRate = settings?.vatRate ?? 7.5
-  const totals = computeInvoiceTotals(lineItems, vatRate)
-
-  await ctx.db.patch(existing._id, {
-    lineItems,
-    partsTotal: totals.partsTotal,
-    labourTotal: totals.labourTotal,
-    subtotal: totals.subtotal,
-    vat: totals.vat,
-    grandTotal: totals.grandTotal,
-    approved: false,
-  })
-}
-
 export const reverseReady = mutation({
   args: { jobId: v.id('jobs') },
   handler: async (ctx, args) => {
@@ -538,7 +489,6 @@ export const addJobItem = mutation({
       })
     }
 
-    await syncInvoiceForJob(ctx, parsed.jobId as Id<'jobs'>)
     return itemId
   },
 })
@@ -578,7 +528,6 @@ export const removeJobItem = mutation({
     }
 
     await ctx.db.delete(args.jobItemId)
-    await syncInvoiceForJob(ctx, item.jobId)
     return null
   },
 })

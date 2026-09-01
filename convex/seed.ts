@@ -52,8 +52,23 @@ const PARTS: Array<{ code: string; description: string; costPrice: number; selli
 ]
 
 const VEHICLE_BRANDS_SEED = [
-  'Toyota', 'Honda', 'Mercedes-Benz', 'BMW', 'Lexus', 'Nissan', 'Hyundai', 'Ford',
-  'Kia', 'Mazda', 'Volkswagen', 'Audi', 'Peugeot', 'Suzuki', 'Mitsubishi', 'Chevrolet', 'Land Rover', 'Jeep',
+  'Jim Isuzu',
+  'Toyota',
+  'Hyundai',
+  'Honda',
+  'BYD',
+  'Nissan',
+  'Jet move',
+  'Roar',
+  'Changan',
+  'Gac',
+  'Jac',
+  'Mercedes-Benz',
+  'BMW',
+  'Kia',
+  'Mitsubishi',
+  'Ford',
+  'Volkswagen',
 ]
 
 const LABOUR_TYPES = [

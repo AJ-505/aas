@@ -29,8 +29,9 @@ export const setup = mutation({
   handler: async (ctx) => {
     const user = await requireUser(ctx);
     await enforce(ctx, "admin");
-    // If already enabled, require disable first to prevent secret overwrite confusion
-    if ((user as any).totpEnabled) {
+    // Allow initial setup when the account was defaulted to enabled but no secret has been enrolled yet.
+    const existingSecret = (user as any).totpSecret as string | undefined;
+    if ((user as any).totpEnabled && existingSecret) {
       throw new ConvexError("Two-factor is already enabled. Disable it first to re-enroll.");
     }
     const secret = generateSecret();
@@ -50,7 +51,9 @@ export const verifySetup = mutation({
     await enforce(ctx, "standard");
     const secret = (user as any).totpSecret as string | undefined;
     if (!secret) throw new ConvexError("No pending 2FA setup. Call setup first.");
-    if ((user as any).totpEnabled) throw new ConvexError("Two-factor is already enabled.");
+    if ((user as any).totpEnabled && !!(user as any).totpSecret) {
+      throw new ConvexError("Two-factor is already enabled.");
+    }
     const code = args.code.trim();
     if (!totpVerify(secret, code)) {
       throw new ConvexError("Invalid verification code. Check your authenticator and try again.");

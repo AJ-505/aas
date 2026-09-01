@@ -217,6 +217,8 @@
 | Technician Add Items Gating | [x] | Technicians restricted from viewing/adding/removing parts and labour on job cards |
 | Technician Invoice Gating | [x] | Invoices hidden from Technicians |
 | CSR Completion Access Scope | [x] | CSR write access ends after check-in; completion transition restricted to Manager and Admin |
+| Inventory job-item merge + diagnosis gate | [x] | Matching spare parts now aggregate quantity on the same job row, diagnosis is required before part add-ons, and labour caps were removed |
+| Manual part removal without dispatched lock | [x] | Part rows can be removed until invoice lock; stock is reversed on delete without the dispatched-only guard |
 | Printable Dynamic Job Card | [x] | Printable Job Card component populated dynamically from backend data (`PrintableJobCard.tsx`) |
 | Printable Dynamic Invoice | [x] | Printable Invoice component populated dynamically from backend data (`PrintableInvoice.tsx`) |
 | Parts Request Dispatch Confirmation | [x] | Inventory Manager confirmation modal with stock status verification |
