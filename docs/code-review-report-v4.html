@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code Review Report — Cedric Masters Autos Workshop and Dealership Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="_doc.css" />
+<style>
+  /* Markdown fallback tweaks to align with _doc.css design system */
+  .mod p { margin: 10px 0; }
+  .mod ul, .mod ol { margin: 8px 0; padding-left: 20px; }
+  .mod li { margin: 4px 0; }
+  .mod li::marker { color: var(--brand-2); }
+  .mod h3 {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 13pt;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--brand-ink);
+    margin: 18px 0 8px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
+  }
+  .mod h4 {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 11pt;
+    color: var(--brand-2);
+    margin: 14px 0 6px;
+  }
+  .mod code {
+    font-family: var(--mono);
+    font-size: 8.5pt;
+    background: #f0f1ee;
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+  }
+  .mod pre.code code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font-size: 8.25pt;
+  }
+  .mod hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+  .mod blockquote {
+    border-left: 3px solid var(--amber);
+    background: var(--amber-soft);
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 var(--r) var(--r) 0;
+    font-size: 9.5pt;
+    color: var(--ink-2);
+  }
+  .mod table.dt td.code { white-space: normal; word-break: break-word; }
+  /* Ensure long tables break nicely in print */
+  @media print {
+    .mod { break-before: page; }
+    .mod.first { break-before: auto; }
+    .avoid { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <header class="cover">
+    <div class="kicker on-dark">Engineering Review</div>
+    <h1 class="display xl">Code Review Report<br /></h1>
+    <p class="sub">This is an engineering review of the whole codebase: architecture, every public Convex function, table rules, auth, locks, and rate limiting.</p>
+
+    <div class="specplate" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="cell"><div class="k">Document ID</div><div class="v">CMA-CRR-004</div></div>
+      <div class="cell"><div class="k">Date</div><div class="v"><span style="color:#ffcf7a">01 Sep 2026</span></div></div>
+    </div>
+  </header>
+
+
+  <section class="mod first">
+    <div class="mod-head">
+      <div class="mod-id"><em>00</em></div>
+      <h2 class="mod-title">Contents</h2>
+    </div>
+    <div class="toc"><a href="#s1"><span>1</span> Architecture overview</a><a href="#s2"><span>2</span> Function inventory</a><a href="#s3"><span>3</span> Encapsulation and inheritance</a><a href="#s4"><span>4</span> Table rules</a><a href="#s5"><span>5</span> How Convex works</a><a href="#s6"><span>6</span> Validators and locks</a></div>
+    <div class="note info avoid" style="margin-top:14px">
+      <span class="t">How to read</span>
+      Every claim names a real file and symbol so you can verify it yourself. Tables list the authoritative source in <span class="code">convex/</span> and <span class="code">src/lib/</span>.
+    </div>
+  </section>
+
+
+  <section class="mod" id="s1">
+    <div class="mod-head">
+      <div class="mod-id"><em>1</em></div>
+      <h2 class="mod-title">Architecture overview</h2>
+    </div>
+    <h3>Stack</h3>
+<p>The app is React 19 with TanStack Start on the frontend and Convex on the backend. TypeScript throughout (tsgo, version 7). Bun is the runner. Vite with the Nitro/Vercel adapter handles SSR.</p>
+<pre class="code"><code>Browser                          Edge / SSR                         Data plane
+─────────                        ──────────                         ─────────
+React 19 + TanStack Start   →    TanStack Router file routes    →   Convex backend
+(TypeScript tsgo, Tailwind   →   src/routes/*.tsx (+ layout)   →   convex/*.ts
+ v4 tokens via app.css)           loaders call Convex queries       documents + indexes
+                                 mutations via useMutation           queries / mutations / actions
+                                 Convex Auth Password provider       authTables (sessions, accounts)
+</code></pre>
+<p><strong>File routes.</strong> Every file under <code>src/routes</code> is a route. <code>src/routes/service/job.$id.tsx</code> is the job detail page. <code>src/routes/admin/audit.tsx</code> is the audit log. <code>src/routes/auth/login.tsx</code> is login. The router tree is generated in <code>src/routeTree.gen.ts</code> and never hand-edited. Layouts in <code>__root.tsx</code> and <code>_app.tsx</code> provide the app shell, auth gating via <code>useConvexAuth</code> and <code>useCurrentUser</code>, and the inactivity warning modal. Route loaders read <code>convex/users.ts:me</code> and <code>sessionFlags</code> to force redirects for <code>mustChangePassword</code> and <code>totpExpired</code>.</p>
+<p><strong>Styling.</strong> Tailwind v4 tokens live in <code>src/app.css</code> as semantic CSS variables: <code>ink</code>, <code>body</code>, <code>mute</code>, <code>accent</code>, <code>bg</code>, <code>surface</code>, <code>line</code>, with <code>.dark</code> overrides. No hard-coded hex in components.</p>
+<p><strong>Backend.</strong> One file per domain in <code>convex/</code>, plus shared helpers in <code>convex/lib/</code>. The full map is below.</p>
+<h3>Request lifecycle</h3>
+<p>Here is what happens when someone clicks a button that writes data, say &ldquo;Generate Final Invoice&rdquo;:</p>
+<ol>
+<li>
+<p><strong>UI call.</strong> The component calls <code>useGenerateInvoiceMutation()</code> from <code>src/lib/queries.ts</code>, which wraps <code>useMutation(api.invoices.generate)</code>. Reads work the same way: <code>useQuery(jobQueries.detail(jobId))</code> subscribes to <code>convex/jobs.ts:getDetail</code>.</p>
+</li>
+<li>
+<p><strong>Convex client.</strong> The Convex React client (set up in <code>src/lib/convex.ts</code>) sends the call over WebSocket or HTTP to the deployment, with the auth JWT from Convex Auth attached.</p>
+</li>
+<li>
+<p><strong>Auth.</strong> The first line of the handler is almost always <code>await requireActiveSession(ctx, [...])</code> or <code>await requireRole(ctx, [...])</code> or at least <code>await requireUser(ctx)</code>. These call <code>getAuthUserId(ctx)</code>, fetch the user document, and check <code>active !== false</code>, the <code>lastActiveTs</code> inactivity window, and 2FA status. On failure they throw a <code>ConvexError</code> and the client gets a typed error.</p>
+</li>
+<li>
+<p><strong>Rate limit.</strong> Right after auth: <code>await enforce(ctx, class)</code>. This reads <code>rateLimits.by_key_window</code> for the user, class, and current window. If the bucket is full it throws <code>ConvexError({code:'RATE_LIMITED', retryAfterMs})</code>. No writes have happened yet at this point.</p>
+</li>
+<li>
+<p><strong>Validation.</strong> Zod <code>Schema.parse(args)</code> from <code>src/lib/schemas/*</code> runs inside the handler. Convex <code>v.*</code> validators on the function args run even earlier, before the handler body starts. If either fails, the mutation throws before touching the database.</p>
+</li>
+<li>
+<p><strong>Business guards.</strong> Things like <code>findApprovedFinalForJob</code>, <code>assertNotLocked</code>, <code>canTransition</code>, plate regex, stock checks, name similarity dedup. Thrown <code>ConvexError</code>s become toasts on the client.</p>
+</li>
+<li>
+<p><strong>Writes.</strong> <code>ctx.db.insert</code>, <code>patch</code>, or <code>delete</code>. Each mutation is one ACID transaction. If any throw happens after a write, the whole thing rolls back. One documented caveat: the best-effort <code>rateLimitEvents</code> insert also rolls back, so the durable signal for a rate-limited call is the thrown error, not the event row.</p>
+</li>
+<li>
+<p><strong>Audit.</strong> <code>await audit(ctx, action, entity, entityId)</code> inserts into <code>auditLogs</code>, still inside the same transaction, so it commits with the business write.</p>
+</li>
+<li>
+<p><strong>Return and reactivity.</strong> The return value goes back to the caller. <code>queryClient.invalidateQueries()</code> refreshes TanStack Query caches. Convex subscriptions also push updated query results to every subscribed client automatically.</p>
+</li>
+</ol>
+<pre class="code"><code>Button click → useMutation(api.x.y) → Convex client (+JWT)
+  → handler: require* → enforce → Zod+v → business guard → db.* → audit → return
+  → TanStack invalidation + Convex subscription push → UI re-renders
+</code></pre>
+<h3><code>convex/</code> module map</h3>
+<table class="dt">
+<thead>
+<tr>
+<th>File</th>
+<th>Domain</th>
+<th>Exports</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>convex/schema.ts</code></td>
+<td>schema</td>
+<td>All tables, indexes, searchIndexes</td>
+</tr>
+<tr>
+<td><code>convex/lib/auth.ts</code></td>
+<td>auth</td>
+<td><code>getCurrentUser</code>, <code>requireUser</code>, <code>requireRole</code>, <code>isValidRole</code></td>
+</tr>
+<tr>
+<td><code>convex/lib/session.ts</code></td>
+<td>session/2FA</td>
+<td><code>heartbeat</code>, <code>requireActiveSession</code>, <code>sessionFlags</code></td>
+</tr>
+<tr>
+<td><code>convex/lib/audit.ts</code></td>
+<td>audit</td>
+<td><code>audit</code> logging function</td>
+</tr>
+<tr>
+<td><code>convex/lib/rateLimit.ts</code></td>
+<td>throttling</td>
+<td><code>enforce</code>, <code>enforceDedup</code>, <code>windowStartFor</code>, <code>isRateLimitEnabled</code></td>
+</tr>
+<tr>
+<td><code>convex/lib/invoiceHelpers.ts</code></td>
+<td>invoicing</td>
+<td><code>buildLineItemsForJob</code>, <code>nextInvoiceNumber</code>, <code>assertNotLocked</code>, <code>findApprovedFinalForJob</code></td>
+</tr>
+<tr>
+<td><code>convex/lib/totp.ts</code></td>
+<td>2FA crypto</td>
+<td>TOTP generation, verification, and backup codes</td>
+</tr>
+<tr>
+<td><code>convex/auth.ts</code></td>
+<td>Convex Auth</td>
+<td><code>convexAuth({providers:[Password]})</code></td>
+</tr>
+<tr>
+<td><code>convex/auth.config.ts</code></td>
+<td>auth config</td>
+<td>Auth provider config</td>
+</tr>
+<tr>
+<td><code>convex/http.ts</code></td>
+<td>HTTP router</td>
+<td><code>httpRouter</code>, auth HTTP routes</td>
+</tr>
+<tr>
+<td><code>convex/crons.ts</code></td>
+<td>crons</td>
+<td>Rate limit cleanup daily at 03:00 UTC</td>
+</tr>
+<tr>
+<td><code>convex/migrations.ts</code></td>
+<td>migrations</td>
+<td>Schema cleanup helpers (legacy fields)</td>
+</tr>
+<tr>
+<td><code>convex/users.ts</code></td>
+<td>users/admin</td>
+<td>User queries and admin mutations</td>
+</tr>
+<tr>
+<td><code>convex/twoFactor.ts</code></td>
+<td>2FA flows</td>
+<td>TOTP setup, verify, disable, backup codes</td>
+</tr>
+<tr>
+<td><code>convex/customers.ts</code></td>
+<td>service/customers</td>
+<td>Customer CRUD with phone dedup</td>
+</tr>
+<tr>
+<td><code>convex/vehicles.ts</code></td>
+<td>inventory</td>
+<td>Vehicle CRUD with plate normalization</td>
+</tr>
+<tr>
+<td><code>convex/vehicleBrands.ts</code></td>
+<td>brands</td>
+<td>Brand management</td>
+</tr>
+<tr>
+<td><code>convex/parts.ts</code></td>
+<td>parts</td>
+<td>Parts inventory and stock movements</td>
+</tr>
+<tr>
+<td><code>convex/jobs.ts</code></td>
+<td>jobs</td>
+<td>Service jobs lifecycle</td>
+</tr>
+<tr>
+<td><code>convex/appointments.ts</code></td>
+<td>appointments</td>
+<td>Appointment scheduling</td>
+</tr>
+<tr>
+<td><code>convex/invoices.ts</code></td>
+<td>invoicing</td>
+<td>Invoice generation, approval, locking</td>
+</tr>
+<tr>
+<td><code>convex/payments.ts</code></td>
+<td>payments</td>
+<td>Payment recording</td>
+</tr>
+<tr>
+<td><code>convex/leads.ts</code></td>
+<td>sales/leads</td>
+<td>Sales lead management</td>
+</tr>
+<tr>
+<td><code>convex/salesOrders.ts</code></td>
+<td>sales/orders</td>
+<td>Sales order lifecycle</td>
+</tr>
+<tr>
+<td><code>convex/deliveries.ts</code></td>
+<td>sales/deliveries</td>
+<td>Delivery completion</td>
+</tr>
+<tr>
+<td><code>convex/labourTypes.ts</code></td>
+<td>labour</td>
+<td>Labour type management</td>
+</tr>
+<tr>
+<td><code>convex/settings.ts</code></td>
+<td>settings</td>
+<td>Global settings (VAT rate)</td>
+</tr>
+<tr>
+<td><code>convex/rateLimit.ts</code></td>
+<td>throttling admin</td>
+<td>Rate limit inspection and control</td>
+</tr>
+<tr>
+<td><code>convex/activityLogs.ts</code></td>
+<td>activity</td>
+<td>Activity logging and audit</td>
+</tr>
+<tr>
+<td><code>convex/auditLogs.ts</code></td>
+<td>audit</td>
+<td>Audit log inspection</td>
+</tr>
+<tr>
+<td><code>convex/seed.ts</code></td>
+<td>demo data</td>
+<td>Seed data for development</td>
+</tr>
+<tr>
+<td><code>convex/backfillPlates.ts</code></td>
+<td>migration</td>
+<td>Plate normalization backfill</td>
+</tr>
+</tbody>
+</table>
+<p>Zod schemas live in <code>src/lib/schemas/*</code> and are imported by both client forms and Convex handlers.</p>
+<hr />
+  </section>
+
+
+  <section class="mod" id="s2">
+    <div class="mod-head">
+      <div class="mod-id"><em>2</em></div>
+      <h2 class="mod-title">Function inventory</h2>
+    </div>
+    <p>This section lists every public function in <code>convex/</code> with its auth gate, validators, and rate-limit class.</p>
+<h3>Shared helpers in <code>convex/lib/</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Helper</th>
+<th>Purpose</th>
+<th>Called by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getCurrentUser(ctx)</code></td>
+<td>Fetch current user doc</td>
+<td>Auth checkers, audit, rate limit</td>
+</tr>
+<tr>
+<td><code>requireUser(ctx)</code></td>
+<td>Require authenticated user</td>
+<td>All queries, most mutations</td>
+</tr>
+<tr>
+<td><code>requireRole(ctx, roles)</code></td>
+<td>Require specific role</td>
+<td>Admin/privileged mutations</td>
+</tr>
+<tr>
+<td><code>requireActiveSession(ctx, roles)</code></td>
+<td>Require role + active session + 2FA</td>
+<td>All write mutations</td>
+</tr>
+<tr>
+<td><code>sessionFlags(ctx)</code></td>
+<td>Get session state flags</td>
+<td><code>users.me</code> for client gating</td>
+</tr>
+<tr>
+<td><code>heartbeat(ctx)</code></td>
+<td>Update last active timestamp</td>
+<td>Called every 60s by client</td>
+</tr>
+<tr>
+<td><code>audit(ctx, action, entity, entityId)</code></td>
+<td>Log to audit trail</td>
+<td>Every successful mutation</td>
+</tr>
+<tr>
+<td><code>enforce(ctx, class)</code></td>
+<td>Rate limit check</td>
+<td>Every public mutation</td>
+</tr>
+<tr>
+<td><code>enforceDedup(ctx, fingerprint, windowMs)</code></td>
+<td>Deduplication check</td>
+<td><code>payments.record</code></td>
+</tr>
+<tr>
+<td><code>buildLineItemsForJob(ctx, jobId)</code></td>
+<td>Build invoice line items</td>
+<td>Invoice and job mutations</td>
+</tr>
+<tr>
+<td><code>nextInvoiceNumber(ctx, kind)</code></td>
+<td>Get next invoice number</td>
+<td>Invoice generation</td>
+</tr>
+<tr>
+<td><code>assertNotLocked(invoice)</code></td>
+<td>Verify invoice not locked</td>
+<td>Mutations that modify invoices</td>
+</tr>
+<tr>
+<td><code>findApprovedFinalForJob(ctx, jobId)</code></td>
+<td>Find approved final invoice</td>
+<td>Job and payment mutations</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/users.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>me</code></td>
+<td>query</td>
+<td>User required</td>
+<td></td>
+</tr>
+<tr>
+<td><code>adminExists</code></td>
+<td>query</td>
+<td>User required</td>
+<td></td>
+</tr>
+<tr>
+<td><code>list</code></td>
+<td>query</td>
+<td>Admin or audit</td>
+<td></td>
+</tr>
+<tr>
+<td><code>heartbeat</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td></td>
+</tr>
+<tr>
+<td><code>setRole</code></td>
+<td>mutation</td>
+<td>Admin</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>setActive</code></td>
+<td>mutation</td>
+<td>Admin</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>bootstrapFirstAdmin</code></td>
+<td>mutation</td>
+<td>No prior admin</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>adminResetPassword</code></td>
+<td>mutation</td>
+<td>Admin</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>changePassword</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>clearMustChangePassword</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td>standard (60/min)</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/twoFactor.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status</code></td>
+<td>query</td>
+<td>User required</td>
+<td></td>
+</tr>
+<tr>
+<td><code>setup</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>verifySetup</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td>standard (60/min)</td>
+</tr>
+<tr>
+<td><code>verifyLogin</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td>standard (60/min)</td>
+</tr>
+<tr>
+<td><code>disable</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>regenerateBackupCodes</code></td>
+<td>mutation</td>
+<td>User required</td>
+<td>admin (5/min)</td>
+</tr>
+<tr>
+<td><code>adminReset</code></td>
+<td>mutation</td>
+<td>Admin</td>
+<td>admin (5/min)</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/customers.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+<th>Guard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>search</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Text or phone search</td>
+</tr>
+<tr>
+<td><code>get</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Single customer</td>
+</tr>
+<tr>
+<td><code>getWithVehicles</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Hydrate vehicles</td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Phone dedup + Levenshtein</td>
+</tr>
+<tr>
+<td><code>update</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Phone guard if changed</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/vehicles.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+<th>Guard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>byCustomer</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Index by owner</td>
+</tr>
+<tr>
+<td><code>byPlate</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Normalize + lookup</td>
+</tr>
+<tr>
+<td><code>inventory</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>All vehicles</td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Plate regex validation</td>
+</tr>
+<tr>
+<td><code>adjustStock</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Non-negative guard</td>
+</tr>
+<tr>
+<td><code>update</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Plate if present</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/parts.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+<th>Guard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list/get/search</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>lowStock</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Reorder level filter</td>
+</tr>
+<tr>
+<td><code>categories/brands</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Distinct values</td>
+</tr>
+<tr>
+<td><code>createPart</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Schema validate</td>
+</tr>
+<tr>
+<td><code>updatePart</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Schema validate</td>
+</tr>
+<tr>
+<td><code>adjustStock</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Non-negative, log movement</td>
+</tr>
+<tr>
+<td><code>importParts</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>bulk (5/min)</td>
+<td>Loop-validate each row</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/jobs.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+<th>Guard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getDetail</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Hydrate full job</td>
+</tr>
+<tr>
+<td><code>byStatus</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Status filter + order</td>
+</tr>
+<tr>
+<td><code>openCount</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Not completed/paid</td>
+</tr>
+<tr>
+<td><code>dashboardSummary</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>7-day trends</td>
+</tr>
+<tr>
+<td><code>byCustomer</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Customer filter</td>
+</tr>
+<tr>
+<td><code>checkIn</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Vehicle + customer exist</td>
+</tr>
+<tr>
+<td><code>diagnose</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Status transition</td>
+</tr>
+<tr>
+<td><code>markReady</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Status transition</td>
+</tr>
+<tr>
+<td><code>complete</code></td>
+<td>mutation</td>
+<td>Active session (manager+)</td>
+<td>standard</td>
+<td>Manager role required</td>
+</tr>
+<tr>
+<td><code>markPaid</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial (20/min)</td>
+<td>Invoice approved + balance</td>
+</tr>
+<tr>
+<td><code>reverseReady</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>No approved final invoice</td>
+</tr>
+<tr>
+<td><code>addJobItem</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Invoice not locked</td>
+</tr>
+<tr>
+<td><code>removeJobItem</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+<td>Invoice not locked</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/invoices.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+<th>Guard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getByJob</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Pick approved final</td>
+</tr>
+<tr>
+<td><code>listByJob</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>All for job</td>
+</tr>
+<tr>
+<td><code>listBySalesOrder</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>All for order</td>
+</tr>
+<tr>
+<td><code>getById</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td>Single invoice</td>
+</tr>
+<tr>
+<td><code>generate</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial (20/min)</td>
+<td>No approved final</td>
+</tr>
+<tr>
+<td><code>generateSales</code></td>
+<td>mutation</td>
+<td>Active session (sales+)</td>
+<td>financial (20/min)</td>
+<td>Sales domain</td>
+</tr>
+<tr>
+<td><code>regenerate</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial (20/min)</td>
+<td>Not locked</td>
+</tr>
+<tr>
+<td><code>approve</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial (20/min)</td>
+<td>Sets locked=true</td>
+</tr>
+<tr>
+<td><code>createEstimate</code></td>
+<td>mutation</td>
+<td>Active session (csr+)</td>
+<td>financial (20/min)</td>
+<td>Draft estimate</td>
+</tr>
+<tr>
+<td><code>updateEstimate</code></td>
+<td>mutation</td>
+<td>Active session (csr+)</td>
+<td>financial (20/min)</td>
+<td>Draft only</td>
+</tr>
+<tr>
+<td><code>approveEstimate</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial (20/min)</td>
+<td>Estimates stay unlocked</td>
+</tr>
+<tr>
+<td><code>rejectEstimate</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial (20/min)</td>
+<td>Draft to rejected</td>
+</tr>
+<tr>
+<td><code>convertEstimateToFinal</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial (20/min)</td>
+<td>Approved estimate only</td>
+</tr>
+<tr>
+<td><code>adminUnlock</code></td>
+<td>mutation</td>
+<td>Admin</td>
+<td>financial (20/min)</td>
+<td>Sets locked=false</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/payments.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+<th>Guard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>byInvoice</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>record</code></td>
+<td>mutation</td>
+<td>Active session (finance+)</td>
+<td>financial + 60s dedup</td>
+<td>Final + approved + balance cap</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/appointments.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list/listRange/upcoming/get</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+</tr>
+<tr>
+<td><code>markCheckedIn</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+</tr>
+<tr>
+<td><code>cancel</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/leads.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list/search/get</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+</tr>
+<tr>
+<td><code>updateStage</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+</tr>
+<tr>
+<td><code>logFollowUp</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>standard</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/salesOrders.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get/list/byVehicle/byLead</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>financial</td>
+</tr>
+<tr>
+<td><code>complete</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>financial</td>
+</tr>
+<tr>
+<td><code>cancel</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>financial</td>
+</tr>
+<tr>
+<td><code>addPayment</code></td>
+<td>mutation</td>
+<td>Active session</td>
+<td>financial</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/deliveries.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get/getBySalesOrder</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+</tr>
+<tr>
+<td><code>complete</code></td>
+<td>mutation</td>
+<td>Active session (sales+)</td>
+<td>financial</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/labourTypes.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+</tr>
+<tr>
+<td><code>create/update/remove</code></td>
+<td>mutation</td>
+<td>Active session (manager+)</td>
+<td>financial</td>
+</tr>
+</tbody>
+</table>
+<h3><code>convex/settings.ts</code></h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Kind</th>
+<th>Gate</th>
+<th>Rate-limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get</code></td>
+<td>query</td>
+<td>User</td>
+<td></td>
+</tr>
+<tr>
+<td><code>setVatRate</code></td>
+<td>mutation</td>
+<td>Active session (manager+)</td>
+<td>financial</td>
+</tr>
+</tbody>
+</table>
+<h3>Other public surfaces</h3>
+<p><strong><code>convex/rateLimit.ts</code></strong>: <code>listEvents</code>, <code>getStatus</code> (admin/audit), <code>setEnabled</code> (admin), internal <code>logEvent</code>/<code>cleanup</code>.</p>
+<p><strong><code>convex/activityLogs.ts</code></strong>: <code>log</code> (any user), <code>list</code> (admin+).</p>
+<p><strong><code>convex/auditLogs.ts</code></strong>: <code>list</code>, <code>distinctActions</code> (admin/audit).</p>
+<p><strong><code>convex/seed.ts</code></strong>: <code>seedData</code> (mutation), <code>seed</code> (action), <code>checkAuthAccounts</code> (query).</p>
+<p><strong><code>convex/vehicleBrands.ts</code></strong>: <code>list</code> (user), <code>create/update/remove</code> (manager+, admin rate-limit).</p>
+<p><strong><code>convex/backfillPlates.ts</code></strong>: <code>backfillPlates</code> (admin only).</p>
+<p><strong><code>convex/migrations.ts</code></strong>: <code>cleanupLegacyJobs</code>, <code>cleanupLegacyUsers</code> (CLI only), <code>previewLegacyJobs</code>, <code>previewLegacyUsers</code> (read-only preview).</p>
+<hr />
+  </section>
+
+
+  <section class="mod" id="s3">
+    <div class="mod-head">
+      <div class="mod-id"><em>3</em></div>
+      <h2 class="mod-title">Encapsulation and inheritance</h2>
+    </div>
+    <p>TypeScript and Convex do not have classical OOP class inheritance. Encapsulation here is through module boundaries, closure-enforced invariants, and composition.</p>
+<h3>What encapsulation means</h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>How it works</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Module boundary</td>
+<td>Only <code>export const</code> is callable from client</td>
+<td>Helper functions are private to module</td>
+</tr>
+<tr>
+<td>Default-deny auth</td>
+<td>Every mutation starts with explicit role guard</td>
+<td><code>requireRole(['admin'])</code> returns false for unauthorized</td>
+</tr>
+<tr>
+<td>Composition over inheritance</td>
+<td>Guards stack without code duplication</td>
+<td><code>requireActiveSession</code> wraps <code>requireRole</code> + inactivity + 2FA</td>
+</tr>
+<tr>
+<td>Lib helpers hide invariants</td>
+<td>Locking, window math, TOTP crypto in <code>lib/</code></td>
+<td><code>assertNotLocked</code>, <code>nextInvoiceNumber</code> in one place</td>
+</tr>
+<tr>
+<td>Zod + v validators</td>
+<td>Wire-level (<code>v</code>) and domain-level (Zod) contracts</td>
+<td><code>v.union</code> on args + <code>Schema.parse</code> in handler</td>
+</tr>
+<tr>
+<td>Component composition in React</td>
+<td>Hooks and small components, no class inheritance</td>
+<td><code>useInactivity</code>, <code>useCurrentUser</code>, print layouts</td>
+</tr>
+</tbody>
+</table>
+<h3>Why not classical inheritance</h3>
+<p>A textbook OOP design would introduce <code>abstract class Mutation</code> with subclasses. In Convex this breaks for three reasons:</p>
+<ol>
+<li>
+<p><strong>Framework constraint.</strong> Handlers must be plain <code>mutation({args, handler})</code> values. Classes would hide validators from codegen.</p>
+</li>
+<li>
+<p><strong>Transaction scope.</strong> Mutations are closures over <code>ctx</code>. Subclass dispatch would obscure the atomic boundary.</p>
+</li>
+<li>
+<p><strong>Composition is clearer.</strong> <code>await requireActiveSession(ctx, roles); await enforce(ctx, "financial");</code> is explicit and auditable. Subclass dispatch fixes ordering in one place and breaks silently if a subclass forgets <code>super.validate()</code>.</p>
+</li>
+</ol>
+<p><strong>Concrete composition examples:</strong></p>
+<p>Auth stacks: <code>requireActiveSession</code> → <code>requireRole</code> → <code>requireUser</code> → <code>isAuthorized</code>.</p>
+<p>Rate limiting is one-line reuse: <code>await enforce(ctx, "financial")</code> calls <code>getCurrentUser</code>, <code>windowStartFor</code>, checks the shard doc. No base class needed.</p>
+<p>Invoice building stacks: <code>buildLineItemsForJob</code> and <code>buildLineItemsForSalesOrder</code> are standalone helpers reused across <code>invoices.*</code> and <code>jobs.syncInvoiceForJob</code>. No <code>InvoiceBuilder</code> class hierarchy.</p>
+<p><strong>What is NOT here:</strong> no <code>extends</code>, no <code>super</code>, no mixins. Encapsulation is narrow public API, private helpers, and composed guards.</p>
+<hr />
+  </section>
+
+
+  <section class="mod" id="s4">
+    <div class="mod-head">
+      <div class="mod-id"><em>4</em></div>
+      <h2 class="mod-title">Table rules</h2>
+    </div>
+    <p>All tables are defined in <code>convex/schema.ts:defineSchema</code>. The <code>authTables</code> spread comes first.</p>
+<h3>Core tables</h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Table</th>
+<th>Key fields</th>
+<th>Indexes</th>
+<th>Write rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td>email, role, active, totpEnabled, backupCodes</td>
+<td>email, by_email</td>
+<td>Role check + audit</td>
+</tr>
+<tr>
+<td><code>customers</code></td>
+<td>name, phone, email</td>
+<td>by_phone, name search</td>
+<td>Dedup on phone/Levenshtein</td>
+</tr>
+<tr>
+<td><code>vehicles</code></td>
+<td>ownerId, plate, make, model, stockQty</td>
+<td>by_plate, owner, status</td>
+<td>Plate normalize + regex</td>
+</tr>
+<tr>
+<td><code>parts</code></td>
+<td>code, costPrice, sellingPrice, stockQty</td>
+<td>by_code, by_brand, by_category</td>
+<td>Part-level validation</td>
+</tr>
+<tr>
+<td><code>jobs</code></td>
+<td>vehicleId, customerId, status, complaint</td>
+<td>status, by_customer</td>
+<td>Status machine via canTransition</td>
+</tr>
+<tr>
+<td><code>invoices</code></td>
+<td>jobId, invoiceNumber, status, locked</td>
+<td>by_invoice_number, jobId, salesOrderId</td>
+<td>Locked guard after approve</td>
+</tr>
+<tr>
+<td><code>payments</code></td>
+<td>invoiceId, amount, method</td>
+<td>by_invoice</td>
+<td>Final + approved only</td>
+</tr>
+<tr>
+<td><code>stockMovements</code></td>
+<td>partId, qty, type</td>
+<td>by_part</td>
+<td>Append-only on stock change</td>
+</tr>
+<tr>
+<td><code>auditLogs</code></td>
+<td>userId, action, entity, entityId</td>
+<td>by_entity, by_user, by_ts</td>
+<td>Append-only, automatic</td>
+</tr>
+</tbody>
+</table>
+<h3>Security tables</h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Table</th>
+<th>Key fields</th>
+<th>Indexes</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rateLimits</code></td>
+<td>key, windowStart, count</td>
+<td>by_key_window</td>
+<td>Per-user per-class per-minute</td>
+</tr>
+<tr>
+<td><code>rateLimitEvents</code></td>
+<td>userId, actionClass, ts</td>
+<td>by_ts, by_action_class</td>
+<td>Observability, cleanup cron</td>
+</tr>
+<tr>
+<td><code>activityLogs</code></td>
+<td>userId, event, ts</td>
+<td>by_user, by_ts, by_event</td>
+<td>User activity tracking</td>
+</tr>
+<tr>
+<td><code>authTables</code></td>
+<td>sessions, accounts, verification codes</td>
+<td></td>
+<td>Convex Auth managed</td>
+</tr>
+</tbody>
+</table>
+<h3>Sales/service tables</h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Table</th>
+<th>Key fields</th>
+<th>Indexes</th>
+<th>Lifecycle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>leads</code></td>
+<td>name, phone, stage, interestedVehicleId</td>
+<td>stage, name search, phone search</td>
+<td>Mutable</td>
+</tr>
+<tr>
+<td><code>salesOrders</code></td>
+<td>vehicleId, leadId, status</td>
+<td>by_vehicle, by_lead</td>
+<td>Auto-reserve on create</td>
+</tr>
+<tr>
+<td><code>deliveries</code></td>
+<td>salesOrderId, checklist, repId</td>
+<td>by_sales_order</td>
+<td>One per order</td>
+</tr>
+<tr>
+<td><code>appointments</code></td>
+<td>customerId, status, appointmentTs</td>
+<td>by_customer, status, appointmentTs</td>
+<td>Scheduled → checked in/cancelled</td>
+</tr>
+<tr>
+<td><code>labourTypes</code></td>
+<td>name, fixedPrice</td>
+<td></td>
+<td>Reference table</td>
+</tr>
+<tr>
+<td><code>vehicleBrands</code></td>
+<td>name, normalizedName</td>
+<td>by_normalized_name</td>
+<td>Uniqueness via normalized</td>
+</tr>
+</tbody>
+</table>
+<h3>Relation integrity</h3>
+<p>Convex has no declarative foreign keys. FK discipline is enforced in code:</p>
+<ul>
+<li><code>jobs.checkIn</code> verifies <code>vehicleId</code> and <code>customerId</code> exist</li>
+<li><code>salesOrders.create</code> checks <code>vehicleId</code> and <code>leadId</code></li>
+<li><code>appointments.create</code> checks <code>customerId</code></li>
+<li><code>jobs.addJobItem</code> checks <code>partId</code> and <code>labourTypeId</code></li>
+<li><code>payments.record</code> checks <code>invoiceId</code></li>
+</ul>
+<p>No delete mutations are exposed on any table, so dangling references are not created.</p>
+<hr />
+  </section>
+
+
+  <section class="mod" id="s5">
+    <div class="mod-head">
+      <div class="mod-id"><em>5</em></div>
+      <h2 class="mod-title">How Convex works</h2>
+    </div>
+    <h3>What Convex is</h3>
+<p>Convex is a reactive backend-as-a-service. You define documents (JSON-like objects) in tables, write server functions, and the client subscribes to query results that push updates automatically. No hand-written REST layer. The deployment runs your <code>convex/</code> functions and stores documents in managed storage.</p>
+<h3>Documents</h3>
+<p>A document is a JSON object with system <code>_id: Id&lt;Table&gt;</code> and <code>_creationTime: number</code>. Fields are typed by <code>v.*</code> validators. Tables are created by <code>defineTable({...})</code> in <code>convex/schema.ts</code>. Adding a field is additive. Old documents stay readable via <code>v.optional</code>. The <code>authTables</code> spread contributes <code>users</code>, <code>authSessions</code>, <code>authAccounts</code> for Convex Auth.</p>
+<h3>Transactions</h3>
+<p>Every <code>query</code> or <code>mutation</code> handler runs in a single ACID transaction. All <code>ctx.db</code> calls are atomic: all commit or none do. If a throw happens after a write, the whole transaction rolls back. Concurrency uses optimistic concurrency control (OCC). Convex does not lock rows on read. If two mutations patch the same document concurrently, one commits and the other retries or fails. This matters for rate limiting: a single global counter would become a hot-row bottleneck, so the shipped design shards per <code>user:class:windowStart</code>.</p>
+<h3>Queries vs mutations vs actions</h3>
+<table class="dt">
+<thead>
+<tr>
+<th>Kind</th>
+<th>Reads</th>
+<th>Writes</th>
+<th>Transactional</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query</code></td>
+<td>yes</td>
+<td>no</td>
+<td>read-only, cached, reactive</td>
+<td>All <code>list/search/get/by*</code></td>
+</tr>
+<tr>
+<td><code>mutation</code></td>
+<td>yes</td>
+<td>yes</td>
+<td>single ACID transaction</td>
+<td>Every <code>create/update/approve</code></td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>yes (via runners)</td>
+<td>via mutations only</td>
+<td>not across the action</td>
+<td>Demo data seeding</td>
+</tr>
+<tr>
+<td><code>internalMutation</code></td>
+<td>yes</td>
+<td>yes</td>
+<td>transaction, not from client</td>
+<td>Cron tasks</td>
+</tr>
+<tr>
+<td><code>httpAction</code> / <code>httpRouter</code></td>
+<td></td>
+<td></td>
+<td></td>
+<td>Auth HTTP endpoints</td>
+</tr>
+</tbody>
+</table>
+<h3>Reactive subscriptions</h3>
+<p>A <code>useQuery(api.jobs.getDetail, {jobId})</code> is not polling. The client opens a subscription. When any document read by that query changes, Convex pushes a fresh result to all subscribers. Dashboard and job detail stay consistent without manual refetch.</p>
+<h3>Scheduler and crons</h3>
+<p>At 03:00 UTC daily, the cleanup mutation scans rate limit and event tables, deletes old rows. No per-mutation scheduler on hot path.</p>
+<h3>Auth</h3>
+<p><code>convex/auth.ts</code> configures <code>convexAuth({providers:[Password]})</code>. User identity in any handler is <code>getAuthUserId(ctx)</code>. The <code>users</code> table holds profiles plus <code>totp*</code>, <code>lastActiveTs</code>, <code>mustChangePassword</code>. Password hashes live in <code>authAccounts.secret</code> (Scrypt), never in <code>users</code>.</p>
+<h3>Client mapping</h3>
+<p>Codegen via <code>bunx convex codegen</code> produces <code>convex/_generated/dataModel.ts</code> and <code>api.ts</code>.</p>
+<hr />
+  </section>
+
+
+  <section class="mod" id="s6">
+    <div class="mod-head">
+      <div class="mod-id"><em>6</em></div>
+      <h2 class="mod-title">Validators and locks</h2>
+    </div>
+    <h3>Validator layers</h3>
+<p>Convex <code>v</code> runs before the handler body. Each function declares <code>args: { field: v.xxx }</code>. Mismatch returns error to client without entering the transaction.</p>
+<p>Examples:</p>
+<ul>
+<li><code>jobs.addJobItem</code> declares <code>type: v.union(v.literal('part'), v.literal('labour'))</code>, <code>partId: v.optional(v.id('parts'))</code>.</li>
+<li><code>payments.record</code> declares <code>method: v.union(v.literal('cash'), v.literal('transfer'), ...)</code>. Enum enforced at wire.</li>
+<li><code>parts.adjustStock</code> derives validators from single <code>src/lib/enums.ts</code> source so <code>v</code> and Zod stay aligned.</li>
+</ul>
+<p>Zod runs inside handler after auth. Most mutations call <code>Schema.parse(args)</code> from <code>src/lib/schemas/*</code>. This is the domain-level contract: trims, regexes, bounds that <code>v</code> alone cannot express. The handler throws <code>ZodError</code> if Zod fails, still before <code>ctx.db.*</code> write.</p>
+<p><strong>Pattern always:</strong> <code>require*</code> → <code>enforce</code> → <code>Schema.parse</code> → business guard → <code>ctx.db.*</code> → <code>audit</code> → return.</p>
+<h3>Invoice lock mechanism</h3>
+<p><strong>Data field:</strong> <code>invoices.locked?: boolean</code>. Absent means false.</p>
+<p><strong>Trigger 1 - Locking at approve:</strong> <code>invoices.approve</code> is the only handler that sets <code>locked:true</code>. Not <code>approveEstimate</code>. Just <code>approve</code>. Before the patch, the handler checks invoice is not already approved and is not an estimate. Estimates use <code>approveEstimate</code> which patches <code>status:'approved'</code> but does NOT lock.</p>
+<p><strong>Trigger 2 - Read as guard:</strong> The lock is read at these sites:</p>
+<ul>
+<li><code>invoices.generate/regenerate</code> check <code>existingFinal</code> via <code>assertNotLocked(existingFinal)</code> or paid</li>
+<li><code>invoices.updateEstimate</code> checks <code>assertNotLocked(invoice)</code></li>
+<li><code>jobs.addJobItem/removeJobItem</code> check <code>findApprovedFinalForJob</code> non-null</li>
+<li><code>payments.record</code> rejects <code>locked &amp;&amp; paid</code>, plus checks balance cap</li>
+<li><code>jobs.reverseReady</code> checks <code>findApprovedFinalForJob</code> non-null</li>
+<li><code>invoices.convertEstimateToFinal</code> checks no existing approved final</li>
+</ul>
+<p>The helper <code>findApprovedFinalForJob</code> returns <code>kind==='final' &amp;&amp; approved</code>. An approved final is treated as locked even if <code>locked</code> field was forgotten. The code double-guards via both <code>assertNotLocked</code> and <code>allInvoices.some(i=&gt;i.locked)</code>.</p>
+<p><strong>Unlock path:</strong> <code>invoices.adminUnlock</code> is the only mutation that patches <code>locked:false</code>. It requires <code>requireRole(['admin'])</code>, a reason 10-300 chars, and only works if invoice is actually locked. After unlock, the final becomes <code>approved:true, locked:false</code> so further writes are allowed until next <code>approve</code>.</p>
+<p><strong><code>generatedById</code> tracking:</strong> On first <code>generate</code> and on <code>approve</code>, the final records which user produced or approved it. Queries project <code>generatedById</code> only for admin. Non-admin users receive invoice without that field.</p>
+<h3>Rate-limit classes</h3>
+<p>Every public mutation throws <code>RATE_LIMITED</code> when per-user per-class budget is exhausted. Classes are wired in each mutation (see section 2):</p>
+<pre class="code"><code>await requireActiveSession(ctx, [...])
+await enforce(ctx, &quot;financial&quot;)    // or &quot;admin&quot; | &quot;bulk&quot; | &quot;standard&quot;
+const parsed = SomeSchema.parse(args)
+</code></pre>
+<p><strong>Classes:</strong></p>
+<ul>
+<li><strong><code>admin</code> 5/min</strong>: Users, two-factor setup/disable, vehicle brands, backfill</li>
+<li><strong><code>financial</code> 20/min</strong>: Payments, invoices, sales orders, labour types, deliveries, VAT settings</li>
+<li><strong><code>bulk</code> 5/min</strong>: Parts import</li>
+<li><strong><code>standard</code> 60/min</strong>: Customers, vehicles, leads, appointments, most job mutations, parts CRUD</li>
+</ul>
+<p>Queries never call <code>enforce</code>. They are read-only and limiting them hurts busy shifts.</p>
+<p><strong>Dedup guard:</strong> <code>payments.record</code> calls <code>enforceDedup(ctx, 'pay:${invoiceId}:${amount}:${method}')</code> additionally. An identical payment within 60 seconds throws even if the 20/min bucket permits. Prevents double-click ledger noise.</p>
+<p><strong>Window math:</strong> <code>windowStartFor(now, 60000) = floor(now/60000)*60000</code>. First mutation in a window inserts <code>{key, windowStart, count:1}</code>. Later mutations patch <code>count+1</code>. At <code>count &gt;= limit</code> throw includes <code>retryAfterMs = ws+60000 - now</code> for client countdown. Next wall-minute gets fresh doc, no contested reset. Cron at 03:00 UTC prunes <code>windowStart &lt; now-24h</code> and old events.</p>
+<h3>Session expiry</h3>
+<p><code>requireActiveSession</code> throws when <code>now - lastActiveTs &gt; 30*60*1000</code>. On client, <code>useInactivity</code> debounces events, heartbeats <code>api.users.heartbeat</code> every 60 seconds, shows warning at 25 minutes, hard-redirects to <code>/auth/login?expired=1</code> at 30 minutes. <code>users.me</code> returns <code>sessionFlags</code> so router gates <code>/auth/verify-2fa</code> and <code>/auth/change-password</code>. Until first heartbeat, server allows writes. Once set, every <code>requireActiveSession</code> write respects the 30-minute clock. 2FA adds its own <code>lastTotpVerifiedTs</code> gate with the same window.</p>
+<hr />
+  </section>
+
+
+  <div class="colophon" style="break-before: avoid; page-break-before: avoid;">
+    <div class="brand">Cedric Masters Autos</div>
+    <div class="mono">CMA-CRR-004 · 01 Sep 2026</div>
+  </div>
+
+</div>
+</body>
+</html>
