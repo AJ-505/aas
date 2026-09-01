@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useFormik } from 'formik'
+import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { useCurrentUser } from '~/lib/auth'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
+import { FieldError, zodToFormikValidate } from '~/lib/formik-helpers'
 import {
   Table,
   TableBody,
@@ -192,58 +195,46 @@ export function CreateSalesOrderModal({
   const vehicles = (vehiclesData ?? []).filter((v: any) => v.status === 'inStock')
   const leads = (leadsData ?? []) as any[]
 
-  const [vehicleId, setVehicleId] = useState('')
-  const [leadId, setLeadId] = useState(initialLeadId ?? '')
-  const [agreedPriceNaira, setAgreedPriceNaira] = useState('')
-  const [depositNaira, setDepositNaira] = useState('')
+  const orderSchema = z.object({
+    vehicleId: z.string().min(1, "Vehicle is required"),
+    leadId: z.string().min(1, "Customer lead is required"),
+    depositNaira: z.string().trim().optional().or(z.literal("")).refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), { message: "Deposit must be >=0" }),
+  }).superRefine((v, ctx) => {
+    const veh = vehicles.find((x: any) => x._id === v.vehicleId)
+    if (veh?.sellingPrice) {
+      const agreed = veh.sellingPrice / 100
+      const dep = v.depositNaira ? Number(v.depositNaira) : 0
+      if (dep > agreed) ctx.addIssue({ code: "custom", path: ["depositNaira"], message: "Deposit cannot exceed agreed price." })
+    }
+  })
+
+  const formik = useFormik({
+    initialValues: { vehicleId: '', leadId: initialLeadId ?? '', depositNaira: '' },
+    enableReinitialize: true,
+    validate: zodToFormikValidate(orderSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting }) => {
+      const veh = vehicles.find((x: any) => x._id === values.vehicleId)
+      const agreedPrice = veh?.sellingPrice ?? 0
+      if (!agreedPrice || agreedPrice <= 0) { toast.error('Please enter a valid agreed price.'); setSubmitting(false); return; }
+      const deposit = values.depositNaira ? Math.round(parseFloat(values.depositNaira) * 100) : 0
+      if (deposit > agreedPrice) { toast.error('Deposit cannot exceed agreed price.'); setSubmitting(false); return; }
+      try {
+        await createOrder.mutateAsync({ vehicleId: values.vehicleId as Id<'vehicles'>, leadId: values.leadId as Id<'leads'>, agreedPrice, deposit })
+        toast.success('Sales order created successfully.')
+        void queryClient.invalidateQueries()
+        onDone()
+      } catch (err: any) { toast.error(err?.message ?? "Failed"); }
+      finally { setSubmitting(false) }
+    },
+  })
+
+  const selectedVeh = vehicles.find((v: any) => v._id === formik.values.vehicleId)
+  const agreedPriceNaira = selectedVeh?.sellingPrice ? (selectedVeh.sellingPrice / 100).toString() : ''
 
   function handleVehicleSelect(selectedId: string) {
-    setVehicleId(selectedId)
-    const v = vehicles.find((item: any) => item._id === selectedId)
-    if (v && v.sellingPrice) {
-      setAgreedPriceNaira((v.sellingPrice / 100).toString())
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!vehicleId) {
-      toast.error('Please select an available vehicle in stock.')
-      return
-    }
-    if (!leadId) {
-      toast.error('Please select a customer lead.')
-      return
-    }
-    if (!agreedPriceNaira || parseFloat(agreedPriceNaira) <= 0) {
-      toast.error('Please enter a valid agreed price.')
-      return
-    }
-
-    const agreedPrice = Math.round(parseFloat(agreedPriceNaira) * 100)
-    const deposit = depositNaira ? Math.round(parseFloat(depositNaira) * 100) : 0
-
-    if (deposit > agreedPrice) {
-      toast.error('Deposit cannot exceed agreed price.')
-      return
-    }
-
-    await createOrder.mutateAsync(
-      {
-        vehicleId: vehicleId as Id<'vehicles'>,
-        leadId: leadId as Id<'leads'>,
-        agreedPrice,
-        deposit,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Sales order created successfully.')
-          void queryClient.invalidateQueries()
-          onDone()
-        },
-        onError: (err) => toast.error(err.message),
-      },
-    )
+    formik.setFieldValue('vehicleId', selectedId)
   }
 
   return (
@@ -252,17 +243,11 @@ export function CreateSalesOrderModal({
         <CardTitle>Create New Sales Order</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="order-vehicle">Vehicle (In Stock) *</Label>
-              <select
-                id="order-vehicle"
-                value={vehicleId}
-                onChange={(e) => handleVehicleSelect(e.target.value)}
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink"
-                required
-              >
+              <select id="order-vehicle" name="vehicleId" value={formik.values.vehicleId} onChange={(e) => handleVehicleSelect(e.target.value)} onBlur={formik.handleBlur} className="w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink" aria-invalid={!!(formik.touched.vehicleId && formik.errors.vehicleId)}>
                 <option value="">-- Select Vehicle --</option>
                 {vehicles.map((v: any) => (
                   <option key={v._id} value={v._id}>
@@ -271,17 +256,12 @@ export function CreateSalesOrderModal({
                   </option>
                 ))}
               </select>
+              <FieldError touched={formik.touched.vehicleId} error={formik.errors.vehicleId} />
             </div>
 
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="order-lead">Customer Lead *</Label>
-              <select
-                id="order-lead"
-                value={leadId}
-                onChange={(e) => setLeadId(e.target.value)}
-                className="w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink"
-                required
-              >
+              <select id="order-lead" name="leadId" value={formik.values.leadId} onChange={formik.handleChange} onBlur={formik.handleBlur} className="w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink" aria-invalid={!!(formik.touched.leadId && formik.errors.leadId)}>
                 <option value="">-- Select Lead --</option>
                 {leads.map((l: any) => (
                   <option key={l._id} value={l._id}>
@@ -289,22 +269,17 @@ export function CreateSalesOrderModal({
                   </option>
                 ))}
               </select>
+              <FieldError touched={formik.touched.leadId} error={formik.errors.leadId} />
             </div>
 
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="order-deposit">Initial Deposit Paid (NGN)</Label>
-              <Input
-                id="order-deposit"
-                type="number"
-                step="0.01"
-                value={depositNaira}
-                onChange={(e) => setDepositNaira(e.target.value)}
-                placeholder="e.g. 1000000"
-              />
+              <Input id="order-deposit" name="depositNaira" type="number" step="0.01" value={formik.values.depositNaira} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. 1000000" aria-invalid={!!(formik.touched.depositNaira && formik.errors.depositNaira)} />
+              <FieldError touched={formik.touched.depositNaira} error={formik.errors.depositNaira} />
             </div>
           </div>
 
-          {vehicleId && (
+          {formik.values.vehicleId && (
             <div className="rounded-md border border-line-soft bg-surface-soft p-3 text-[13px]">
               <span className="text-mute">Fixed Vehicle Selling Price: </span>
               <strong className="text-ink">
@@ -320,8 +295,8 @@ export function CreateSalesOrderModal({
             <Button type="button" variant="outline" onClick={onDone}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createOrder.isPending}>
-              {createOrder.isPending ? 'Creating Order...' : 'Create Sales Order'}
+            <Button type="submit" disabled={createOrder.isPending || formik.isSubmitting}>
+              {createOrder.isPending || formik.isSubmitting ? 'Creating Order...' : 'Create Sales Order'}
             </Button>
           </div>
         </form>

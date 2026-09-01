@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useFormik } from "formik";
+import { z } from "zod";
 import toast from "react-hot-toast";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { FieldError, zodToFormikValidate } from "~/lib/formik-helpers";
 import {
   Table,
   TableBody,
@@ -446,11 +449,6 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
     email?: string;
     address?: string;
   } | null>(null);
-  const [inlineName, setInlineName] = useState("");
-  const [inlinePhone, setInlinePhone] = useState("");
-  const [inlineEmail, setInlineEmail] = useState("");
-  const [inlineAddress, setInlineAddress] = useState("");
-  const [creating, setCreating] = useState(false);
 
   const { data: searchResults } = useQuery({
     ...customerQueries.search(customerQ.trim()),
@@ -465,125 +463,104 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
     setHasSearched(true);
   }
 
-  async function handleInlineCreate() {
-    const normalized = normalizeCustomerCreateInput({
-      name: inlineName,
-      phone: inlinePhone,
-      email: inlineEmail,
-      address: inlineAddress,
-    });
+  const inlineSchema = z.object({
+    name: z.string().trim().min(1, "Name is required"),
+    phone: z.string().trim().min(1, "Phone is required").regex(/^[\d\s+\-()]+$/, "Phone must contain only numbers, spaces, +, -, ( )").refine((v) => { const d = v.replace(/\D/g, ""); return d.length >= 7 && d.length <= 15; }, { message: "Phone must be 7-15 digits" }),
+    email: z.string().trim().email("Valid email is required").optional().or(z.literal("")),
+    address: z.string().trim().optional().or(z.literal("")),
+  });
 
-    if (!normalized.name || !normalized.phone) {
-      toast.error("Name and phone required to create customer");
-      return;
-    }
-    setCreating(true);
-    try {
-      const id = await createCustomer.mutateAsync(normalized);
-      setSelectedCustomer({
-        _id: id as string,
-        name: normalized.name,
-        phone: normalized.phone,
-        email: normalized.email,
-        address: normalized.address,
-      });
-      setInlineName("");
-      setInlinePhone("");
-      setInlineEmail("");
-      setInlineAddress("");
-      toast.success("Customer created — now complete booking");
-    } catch (e: any) {
-      const data = e?.data;
-      if (data?.existingCustomerId) {
-        toast.error(data.message ?? "Duplicate customer");
+  const inlineFormik = useFormik({
+    initialValues: { name: "", phone: "", email: "", address: "" },
+    validate: zodToFormikValidate(inlineSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting, resetForm }) => {
+      const normalized = normalizeCustomerCreateInput(values);
+      if (!normalized.name || !normalized.phone) {
+        toast.error("Name and phone required to create customer");
+        setSubmitting(false);
+        return;
+      }
+      try {
+        const id = await createCustomer.mutateAsync(normalized);
         setSelectedCustomer({
-          _id: data.existingCustomerId,
-          name: data.existingName ?? normalized.name,
-          phone: data.existingPhone ?? normalized.phone,
+          _id: id as string,
+          name: normalized.name,
+          phone: normalized.phone,
           email: normalized.email,
           address: normalized.address,
         });
-      } else {
-        toast.error(e?.message ?? "Failed to create customer");
+        resetForm();
+        toast.success("Customer created — now complete booking");
+      } catch (e: any) {
+        const data = e?.data;
+        if (data?.existingCustomerId) {
+          toast.error(data.message ?? "Duplicate customer");
+          setSelectedCustomer({
+            _id: data.existingCustomerId,
+            name: data.existingName ?? normalized.name,
+            phone: data.existingPhone ?? normalized.phone,
+            email: normalized.email,
+            address: normalized.address,
+          });
+        } else {
+          toast.error(e?.message ?? "Failed to create customer");
+        }
+      } finally {
+        setSubmitting(false);
       }
-    } finally {
-      setCreating(false);
-    }
-  }
+    },
+  });
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!hasSearched) {
-      toast.error("Search for a customer first.");
-      return;
+  const bookingSchema = z.object({
+    vehicleMake: z.string().trim().min(1, "Vehicle make is required"),
+    vehicleModel: z.string().trim().min(1, "Vehicle model is required"),
+    vehicleYear: z.string().trim().optional().or(z.literal("")).refine((v) => { if (!v) return true; const n = Number(v); return !Number.isNaN(n) && n >= 1900 && n <= new Date().getFullYear() + 1; }, { message: "Vehicle year must be a valid year." }),
+    vehicleColor: z.string().trim().optional().or(z.literal("")),
+    vehiclePlate: z.string().trim().min(1, "Plate is required").refine((val) => /^[A-Z0-9][A-Z0-9 -]{2,}$/.test(val.trim().toUpperCase()), { message: "Plate must be 3+ chars, uppercase alphanumerics, spaces or hyphens" }),
+    vehicleVin: z.string().trim().optional().or(z.literal("")),
+    complaint: z.string().trim().min(1, "Complaint is required"),
+    date: z.string().min(1, "Date is required"),
+    time: z.string().min(1, "Time is required"),
+  }).superRefine((v, ctx) => {
+    if (v.date && v.time) {
+      const ts = new Date(`${v.date}T${v.time}`).getTime();
+      if (isNaN(ts)) ctx.addIssue({ code: "custom", path: ["date"], message: "Invalid date or time." });
+      else if (ts < Date.now() - 60_000) ctx.addIssue({ code: "custom", path: ["date"], message: "Appointment date cannot be in the past." });
     }
-    if (!selectedCustomer) {
-      toast.error("Pick or create a customer before booking.");
-      return;
-    }
-    const f = new FormData(e.currentTarget);
-    const vehicleMake = (f.get("vehicleMake") as string).trim();
-    const vehicleModel = (f.get("vehicleModel") as string).trim();
-    const vehicleYear = Number(f.get("vehicleYear"));
-    const vehicleColor = (f.get("vehicleColor") as string).trim();
-    const vehiclePlate = (f.get("vehiclePlate") as string).trim();
-    const vehicleVin = (f.get("vehicleVin") as string).trim();
-    const complaint = (f.get("complaint") as string).trim();
-    const dateStr = f.get("date") as string;
-    const timeStr = f.get("time") as string;
+  });
 
-    if (!vehicleMake || !vehicleModel || !vehiclePlate || !complaint) {
-      toast.error(
-        "Vehicle details (make, model, plate) and complaint are required.",
-      );
-      return;
-    }
-    if (
-      vehicleYear &&
-      (Number.isNaN(vehicleYear) ||
-        vehicleYear < 1900 ||
-        vehicleYear > new Date().getFullYear() + 1)
-    ) {
-      toast.error("Vehicle year must be a valid year.");
-      return;
-    }
-    if (!dateStr || !timeStr) {
-      toast.error("Date and time are required.");
-      return;
-    }
-    const appointmentTs = new Date(`${dateStr}T${timeStr}`).getTime();
-    if (isNaN(appointmentTs)) {
-      toast.error("Invalid date or time.");
-      return;
-    }
-    if (appointmentTs < Date.now() - 60_000) {
-      toast.error("Appointment date cannot be in the past.");
-      return;
-    }
-
-    await create.mutateAsync(
-      {
-        customerId: selectedCustomer._id as Id<"customers">,
-        name: selectedCustomer.name,
-        phone: selectedCustomer.phone,
-        vehicleMake,
-        vehicleModel,
-        vehicleYear: vehicleYear || undefined,
-        vehicleColor: vehicleColor || undefined,
-        vehiclePlate,
-        vehicleVin: vehicleVin || undefined,
-        complaint,
-        appointmentTs,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Appointment booked.");
-          onDone();
-        },
-        onError: (err) => toast.error(err.message),
-      },
-    );
-  }
+  const bookingFormik = useFormik({
+    initialValues: { vehicleMake: "", vehicleModel: "", vehicleYear: "", vehicleColor: "", vehiclePlate: "", vehicleVin: "", complaint: "", date: "", time: "" },
+    validate: zodToFormikValidate(bookingSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting }) => {
+      if (!hasSearched) { toast.error("Search for a customer first."); setSubmitting(false); return; }
+      if (!selectedCustomer) { toast.error("Pick or create a customer before booking."); setSubmitting(false); return; }
+      const vehicleYear = values.vehicleYear ? Number(values.vehicleYear) : undefined;
+      const appointmentTs = new Date(`${values.date}T${values.time}`).getTime();
+      try {
+        await create.mutateAsync({
+          customerId: selectedCustomer._id as Id<"customers">,
+          name: selectedCustomer.name,
+          phone: selectedCustomer.phone,
+          vehicleMake: values.vehicleMake.trim(),
+          vehicleModel: values.vehicleModel.trim(),
+          vehicleYear: vehicleYear || undefined,
+          vehicleColor: values.vehicleColor.trim() || undefined,
+          vehiclePlate: values.vehiclePlate.trim(),
+          vehicleVin: values.vehicleVin.trim() || undefined,
+          complaint: values.complaint.trim(),
+          appointmentTs,
+        });
+        toast.success("Appointment booked.");
+        onDone();
+      } catch (err: any) { toast.error(err?.message ?? "Failed to book"); }
+      finally { setSubmitting(false); }
+    },
+  });
 
   const canBook = !!selectedCustomer;
 
@@ -626,42 +603,29 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
               ) : searchResults === undefined ? (
                 <p className="text-[12.5px] text-mute">Searching...</p>
               ) : searchResults.length === 0 ? (
-                <div className="space-y-3">
+                <form onSubmit={inlineFormik.handleSubmit} className="space-y-3" noValidate>
                   <p className="text-[12.5px] font-medium text-emerald-700">
                     No matches — create customer inline:
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <Input
-                      placeholder="Full name *"
-                      value={inlineName}
-                      onChange={(e) => setInlineName(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Phone *"
-                      value={inlinePhone}
-                      onChange={(e) => setInlinePhone(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Email"
-                      type="email"
-                      value={inlineEmail}
-                      onChange={(e) => setInlineEmail(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Address"
-                      value={inlineAddress}
-                      onChange={(e) => setInlineAddress(e.target.value)}
-                    />
+                    <div className="space-y-1">
+                      <Input placeholder="Full name *" name="name" value={inlineFormik.values.name} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} aria-invalid={!!(inlineFormik.touched.name && inlineFormik.errors.name)} />
+                      <FieldError touched={inlineFormik.touched.name} error={inlineFormik.errors.name} />
+                    </div>
+                    <div className="space-y-1">
+                      <Input placeholder="Phone *" name="phone" value={inlineFormik.values.phone} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} aria-invalid={!!(inlineFormik.touched.phone && inlineFormik.errors.phone)} />
+                      <FieldError touched={inlineFormik.touched.phone} error={inlineFormik.errors.phone} />
+                    </div>
+                    <div className="space-y-1">
+                      <Input placeholder="Email" type="email" name="email" value={inlineFormik.values.email} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} aria-invalid={!!(inlineFormik.touched.email && inlineFormik.errors.email)} />
+                      <FieldError touched={inlineFormik.touched.email} error={inlineFormik.errors.email} />
+                    </div>
+                    <Input placeholder="Address" name="address" value={inlineFormik.values.address} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} />
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleInlineCreate}
-                    disabled={creating}
-                  >
-                    {creating ? "Creating..." : "Create customer"}
+                  <Button type="submit" size="sm" disabled={inlineFormik.isSubmitting || createCustomer.isPending}>
+                    {inlineFormik.isSubmitting || createCustomer.isPending ? "Creating..." : "Create customer"}
                   </Button>
-                </div>
+                </form>
               ) : (
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-mute">
@@ -699,44 +663,26 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
                       </button>
                     );
                   })}
-                  <div className="border-t border-line-soft pt-3">
+                  <form onSubmit={inlineFormik.handleSubmit} className="border-t border-line-soft pt-3 space-y-2" noValidate>
                     <p className="mb-2 text-[12px] font-semibold text-ink">
                       Or create new (after seeing results):
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <Input
-                        placeholder="Full name *"
-                        value={inlineName}
-                        onChange={(e) => setInlineName(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Phone *"
-                        value={inlinePhone}
-                        onChange={(e) => setInlinePhone(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Email"
-                        type="email"
-                        value={inlineEmail}
-                        onChange={(e) => setInlineEmail(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Address"
-                        value={inlineAddress}
-                        onChange={(e) => setInlineAddress(e.target.value)}
-                      />
+                      <div className="space-y-1">
+                        <Input placeholder="Full name *" name="name" value={inlineFormik.values.name} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} aria-invalid={!!(inlineFormik.touched.name && inlineFormik.errors.name)} />
+                        <FieldError touched={inlineFormik.touched.name} error={inlineFormik.errors.name} />
+                      </div>
+                      <div className="space-y-1">
+                        <Input placeholder="Phone *" name="phone" value={inlineFormik.values.phone} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} aria-invalid={!!(inlineFormik.touched.phone && inlineFormik.errors.phone)} />
+                        <FieldError touched={inlineFormik.touched.phone} error={inlineFormik.errors.phone} />
+                      </div>
+                      <Input placeholder="Email" type="email" name="email" value={inlineFormik.values.email} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} />
+                      <Input placeholder="Address" name="address" value={inlineFormik.values.address} onChange={inlineFormik.handleChange} onBlur={inlineFormik.handleBlur} />
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="mt-2"
-                      variant="outline"
-                      onClick={handleInlineCreate}
-                      disabled={creating}
-                    >
-                      {creating ? "Creating..." : "Create & select"}
+                    <Button type="submit" size="sm" className="mt-2" variant="outline" disabled={inlineFormik.isSubmitting || createCustomer.isPending}>
+                      {inlineFormik.isSubmitting || createCustomer.isPending ? "Creating..." : "Create & select"}
                     </Button>
-                  </div>
+                  </form>
                 </div>
               )}
             </div>
@@ -769,7 +715,7 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={bookingFormik.handleSubmit} className="grid gap-4 sm:grid-cols-2" noValidate>
           <fieldset
             disabled={!canBook}
             className={`contents ${!canBook ? "opacity-50" : ""}`}
@@ -788,76 +734,51 @@ function CreateAppointmentForm({ onDone }: { onDone: () => void }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="date">Date *</Label>
-              <Input
-                id="date"
-                name="date"
-                type="date"
-                min={todayStr}
-                required
-              />
+              <Input id="date" name="date" type="date" min={todayStr} value={bookingFormik.values.date} onChange={bookingFormik.handleChange} onBlur={bookingFormik.handleBlur} aria-invalid={!!(bookingFormik.touched.date && bookingFormik.errors.date)} />
+              <FieldError touched={bookingFormik.touched.date} error={bookingFormik.errors.date} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="time">Time *</Label>
-              <Input id="time" name="time" type="time" required />
+              <Input id="time" name="time" type="time" value={bookingFormik.values.time} onChange={bookingFormik.handleChange} onBlur={bookingFormik.handleBlur} aria-invalid={!!(bookingFormik.touched.time && bookingFormik.errors.time)} />
+              <FieldError touched={bookingFormik.touched.time} error={bookingFormik.errors.time} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicleMake">Vehicle make *</Label>
-              <Input id="vehicleMake" name="vehicleMake" required />
+              <Input id="vehicleMake" name="vehicleMake" value={bookingFormik.values.vehicleMake} onChange={bookingFormik.handleChange} onBlur={bookingFormik.handleBlur} aria-invalid={!!(bookingFormik.touched.vehicleMake && bookingFormik.errors.vehicleMake)} />
+              <FieldError touched={bookingFormik.touched.vehicleMake} error={bookingFormik.errors.vehicleMake} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicleModel">Vehicle model *</Label>
-              <Input id="vehicleModel" name="vehicleModel" required />
+              <Input id="vehicleModel" name="vehicleModel" value={bookingFormik.values.vehicleModel} onChange={bookingFormik.handleChange} onBlur={bookingFormik.handleBlur} aria-invalid={!!(bookingFormik.touched.vehicleModel && bookingFormik.errors.vehicleModel)} />
+              <FieldError touched={bookingFormik.touched.vehicleModel} error={bookingFormik.errors.vehicleModel} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicleYear">Year</Label>
-              <Input
-                id="vehicleYear"
-                name="vehicleYear"
-                type="number"
-                min={1900}
-                max={new Date().getFullYear() + 1}
-                onInput={(e) => {
-                  const target = e.currentTarget;
-                  target.value = target.value.slice(0, 4);
-                }}
-              />
+              <Input id="vehicleYear" name="vehicleYear" type="number" min={1900} max={new Date().getFullYear() + 1} value={bookingFormik.values.vehicleYear} onChange={bookingFormik.handleChange} onBlur={bookingFormik.handleBlur} aria-invalid={!!(bookingFormik.touched.vehicleYear && bookingFormik.errors.vehicleYear)} onInput={(e) => { const t = e.currentTarget; t.value = t.value.slice(0, 4); bookingFormik.handleChange(e); }} />
+              <FieldError touched={bookingFormik.touched.vehicleYear} error={bookingFormik.errors.vehicleYear} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicleColor">Colour</Label>
-              <Input id="vehicleColor" name="vehicleColor" />
+              <Input id="vehicleColor" name="vehicleColor" value={bookingFormik.values.vehicleColor} onChange={bookingFormik.handleChange} onBlur={bookingFormik.handleBlur} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehiclePlate">Plate *</Label>
-              <Input
-                id="vehiclePlate"
-                name="vehiclePlate"
-                placeholder="LSD-123-HG"
-                required
-                onInput={(e) => {
-                  const target = e.currentTarget;
-                  target.value = target.value.toUpperCase();
-                }}
-              />
+              <Input id="vehiclePlate" name="vehiclePlate" placeholder="LSD-123-HG" value={bookingFormik.values.vehiclePlate} onChange={(e) => { e.target.value = e.target.value.toUpperCase(); bookingFormik.handleChange(e); }} onBlur={bookingFormik.handleBlur} aria-invalid={!!(bookingFormik.touched.vehiclePlate && bookingFormik.errors.vehiclePlate)} />
+              <FieldError touched={bookingFormik.touched.vehiclePlate} error={bookingFormik.errors.vehiclePlate} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicleVin">VIN</Label>
-              <Input
-                id="vehicleVin"
-                name="vehicleVin"
-                onInput={(e) => {
-                  const target = e.currentTarget;
-                  target.value = target.value.toUpperCase();
-                }}
-              />
+              <Input id="vehicleVin" name="vehicleVin" value={bookingFormik.values.vehicleVin} onChange={(e) => { e.target.value = e.target.value.toUpperCase(); bookingFormik.handleChange(e); }} onBlur={bookingFormik.handleBlur} />
             </div>
             <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="complaint">Complaint *</Label>
-              <Textarea id="complaint" name="complaint" rows={2} required />
+              <Textarea id="complaint" name="complaint" rows={2} value={bookingFormik.values.complaint} onChange={bookingFormik.handleChange} onBlur={bookingFormik.handleBlur} aria-invalid={!!(bookingFormik.touched.complaint && bookingFormik.errors.complaint)} />
+              <FieldError touched={bookingFormik.touched.complaint} error={bookingFormik.errors.complaint} />
             </div>
           </fieldset>
           <div className="flex gap-2 sm:col-span-2">
-            <Button type="submit" disabled={create.isPending || !canBook}>
-              {create.isPending ? "Booking..." : "Book appointment"}
+            <Button type="submit" disabled={create.isPending || bookingFormik.isSubmitting || !canBook}>
+              {create.isPending || bookingFormik.isSubmitting ? "Booking..." : "Book appointment"}
             </Button>
             <Button type="button" variant="outline" onClick={onDone}>
               Cancel

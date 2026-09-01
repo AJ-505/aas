@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useFormik } from 'formik'
 import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { FieldError, zodToFormikValidate } from '~/lib/formik-helpers'
+import { createLeadSchema } from '~/lib/schemas/sales'
 import {
   Table,
   TableBody,
@@ -148,53 +151,55 @@ function CreateLeadForm({ onDone }: { onDone: () => void }) {
   const queryClient = useQueryClient()
   const create = useCreateLeadMutation()
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const f = new FormData(e.currentTarget)
-    const name = (f.get('name') as string).trim()
-    const phone = (f.get('phone') as string).trim()
-    if (!name || !phone) {
-      toast.error('Name and phone are required.')
-      return
-    }
-    await create.mutateAsync(
-      {
-        name,
-        phone,
-        email: (f.get('email') as string).trim() || undefined,
-        nextFollowUpTs: undefined,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Lead created.')
-          void queryClient.invalidateQueries()
-          onDone()
-        },
-        onError: (err) => toast.error(err.message),
-      },
-    )
-  }
+  const formik = useFormik({
+    initialValues: { name: '', phone: '', email: '' },
+    validate: zodToFormikValidate(createLeadSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        await create.mutateAsync(
+          {
+            name: values.name.trim(),
+            phone: values.phone.trim(),
+            email: values.email.trim() || undefined,
+            nextFollowUpTs: undefined,
+          },
+        )
+        toast.success('Lead created.')
+        void queryClient.invalidateQueries()
+        onDone()
+      } catch (err: any) {
+        toast.error(err?.message ?? 'Failed to create lead.')
+      } finally {
+        setSubmitting(false)
+      }
+    },
+  })
 
   return (
     <Card>
       <CardHeader><CardTitle>New lead</CardTitle></CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={formik.handleSubmit} className="grid gap-4 sm:grid-cols-2" noValidate>
           <div className="space-y-2">
             <Label htmlFor="name">Name *</Label>
-            <Input id="name" name="name" required />
+            <Input id="name" name="name" value={formik.values.name} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.name && formik.errors.name)} />
+            <FieldError touched={formik.touched.name} error={formik.errors.name} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Phone *</Label>
-            <Input id="phone" name="phone" required />
+            <Input id="phone" name="phone" value={formik.values.phone} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.phone && formik.errors.phone)} />
+            <FieldError touched={formik.touched.phone} error={formik.errors.phone} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" />
+            <Input id="email" name="email" type="email" value={formik.values.email} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.email && formik.errors.email)} />
+            <FieldError touched={formik.touched.email} error={formik.errors.email} />
           </div>
           <div className="flex gap-2 sm:col-span-2">
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? 'Saving...' : 'Create lead'}
+            <Button type="submit" disabled={create.isPending || formik.isSubmitting}>
+              {create.isPending || formik.isSubmitting ? 'Saving...' : 'Create lead'}
             </Button>
             <Button type="button" variant="outline" onClick={onDone}>
               Cancel

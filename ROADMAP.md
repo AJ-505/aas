@@ -310,6 +310,22 @@
 | Structured errors + audit | [x] | `ConvexError({code:'RATE_LIMITED', retryAfterMs, limit, windowMs, actionClass})` + `DEDUP`; client distinguishes from business errors. `rateLimitEvents` + `auditLogs rateLimit.hit:*` on throttle (best-effort, documents rollback caveat). |
 | GC cron + auth honesty + observability UI | [x] | `convex/crons.ts` daily `rateLimit.cleanup` (30d events, 24h windows); `convex/rateLimit.ts` `listEvents` + `getStatus`; `/admin/audit` Throttle tab shows recent hits, limits, kill-switch. Auth HTTP (signIn/reset) honesty documented — Convex Auth runs as HTTP routes with no IP in mutations; per-user limit only after auth, client debounce via `isPending`. |
 
+## Form Validation — Formik Migration
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Formik installed (formik@2.4.9) | [x] | `pnpm add formik`, built successfully (`pnpm build`, `tsc --noEmit` clean) |
+| Zod→Formik adapter | [x] | `src/lib/formik-helpers.tsx` `zodToFormikValidate()` + `FieldError` component; preserves existing Zod schemas as source of truth, returns Formik errors object |
+| Customers — CreateCustomerForm | [x] | `src/routes/service/customers.tsx:165` Formik with `customerFormSchema` (name/phone Zod, vehicle superRefine, plate regex, year bounds); gate search preserved, duplicate `existingCustomerId` handling preserved, `fieldError` inline + `_form` vehicle-group error |
+| Appointments — Book + inline customer | [x] | `src/routes/service/appointments.tsx:438` `inlineFormik` (Zod name/phone) + `bookingFormik` (make/model/plate/complaint/date/time, year, appointmentTs ±60s check); customer gate (`hasSearched` + `selectedCustomer`) preserved, check-in flow untouched |
+| Leads — CreateLeadForm | [x] | `src/routes/sales/leads.tsx:147` `createLeadSchema` via `zodToFormikValidate`, inline errors, `isSubmitting` gating |
+| Parts — PartForm | [x] | `src/routes/service/parts.tsx:499` Formik with `enableReinitialize`, Zod partNumber/description required + cost/selling/stock numeric checks; `BrandSelectInput` wired via `setFieldValue` |
+| Finance — VAT + Labour | [x] | `src/routes/service/finance.tsx:58` `VatConfigCard` Formik (0-100 Zod) + `LabourTypesCard` create Formik (name + fixedPrice Zod); update/edit flow preserved |
+| Inventory — AddVehicleModal | [x] | `src/routes/sales/inventory.tsx:293` `vehicleSchema` (make/model/year/color required, stock/reorder >=0); `enableReinitialize` not needed; sellingPrice auto-fill preserved |
+| Sales Orders — CreateSalesOrderModal | [x] | `src/routes/sales/orders.tsx:183` `orderSchema` (vehicleId/leadId required, deposit ≤ agreedPrice superRefine); derived `agreedPrice` from selected vehicle preserved |
+| Auth — Login/SignUp/Forgot | [x] | `src/routes/auth/login.tsx:19` Formik (email Zod, password 8-char, forgotPassword email-only path); `signIn("password", FormData)` + `markLoginStarted` + `logActivity` preserved exactly |
+| Preservation guarantee | [x] | All mutations (`createCustomer`, `createVehicle`, `checkIn`, `createLead`, `createPart`, `updatePart`, `setVatRate`, `createLabourType`, `createVehicle`, `createSalesOrder`, `signIn`) + toasts + `queryClient.invalidateQueries()` + navigation + duplicate handling + audit role guards untouched; Formik only replaces manual `FormData` parsing + manual `if (!x) toast` with declarative Zod validation + inline `FieldError` |
+
 ## Future (Post-MVP)
 
 - Customer portal (view history, download invoices, book appointments)

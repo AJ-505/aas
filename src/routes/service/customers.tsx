@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useFormik } from "formik";
+import { z } from "zod";
 import toast from "react-hot-toast";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { FieldError, zodToFormikValidate } from "~/lib/formik-helpers";
 import {
   Table,
   TableBody,
@@ -187,103 +190,147 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
     setHasSearched(true);
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!hasSearched) {
-      toast.error("Please search for existing customers first.");
-      return;
-    }
-    const formData = new FormData(event.currentTarget);
-    const name = (formData.get("name") as string).trim();
-    const phone = (formData.get("phone") as string).trim();
-    const email = (formData.get("email") as string).trim();
-    const address = (formData.get("address") as string).trim();
-
-    if (!name || !phone) {
-      toast.error("Name and phone are required.");
-      return;
-    }
-
-    const make = (formData.get("make") as string).trim();
-    const model = (formData.get("model") as string).trim();
-    const yearStr = (formData.get("year") as string).trim();
-    const color = (formData.get("color") as string).trim();
-    const plate = (formData.get("plate") as string).trim();
-    const vin = (formData.get("vin") as string).trim();
-    const complaint = (formData.get("complaint") as string).trim();
-
-    const hasVehicle = make && model && yearStr && color;
-    if ((make || model || yearStr || color) && !hasVehicle) {
-      toast.error(
-        "Please fill all required vehicle fields (make, model, year, colour) or leave all empty.",
-      );
-      return;
-    }
-
-    try {
-      const customerId = await createCustomer.mutateAsync({
-        name,
-        phone,
-        email: email || undefined,
-        address: address || undefined,
-      });
-
-      let vehicleId: string | null = null;
-      if (hasVehicle) {
-        vehicleId = await createVehicle.mutateAsync({
-          ownerId: customerId as Id<"customers">,
-          make,
-          model,
-          year: Number(yearStr),
-          color,
-          plate: plate || undefined,
-          vin: vin || undefined,
-          status: "customerOwned",
+  const customerFormSchema = z
+    .object({
+      name: z.string().trim().min(1, "Name is required"),
+      phone: z
+        .string()
+        .trim()
+        .min(1, "Phone is required")
+        .regex(/^[\d\s+\-()]+$/, "Phone must contain only numbers, spaces, +, -, ( )")
+        .refine((v) => {
+          const digits = v.replace(/\D/g, "");
+          return digits.length >= 7 && digits.length <= 15;
+        }, { message: "Phone must be 7-15 digits" }),
+      email: z.string().trim().email("Valid email is required").optional().or(z.literal("")),
+      address: z.string().trim().optional().or(z.literal("")),
+      make: z.string().trim().optional().or(z.literal("")),
+      model: z.string().trim().optional().or(z.literal("")),
+      year: z.string().trim().optional().or(z.literal("")),
+      color: z.string().trim().optional().or(z.literal("")),
+      plate: z
+        .string()
+        .trim()
+        .optional()
+        .or(z.literal(""))
+        .refine((val) => {
+          if (!val) return true;
+          return /^[A-Z0-9][A-Z0-9 -]{2,}$/.test(val.trim().toUpperCase());
+        }, { message: "Plate must be 3+ chars, uppercase alphanumerics, spaces or hyphens" }),
+      vin: z.string().trim().optional().or(z.literal("")),
+      complaint: z.string().trim().optional().or(z.literal("")),
+    })
+    .superRefine((v, ctx) => {
+      const hasAnyVehicle = !!(v.make || v.model || v.year || v.color);
+      const hasAllVehicle = !!(v.make && v.model && v.year && v.color);
+      if (hasAnyVehicle && !hasAllVehicle) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["make"],
+          message: "Fill all vehicle fields (make, model, year, colour) or leave all empty.",
         });
       }
+      if (v.year) {
+        const n = Number(v.year);
+        if (Number.isNaN(n) || n < 1900 || n > new Date().getFullYear() + 1) {
+          ctx.addIssue({ code: "custom", path: ["year"], message: "Year must be 1900 to next year" });
+        }
+      }
+    });
 
-      if (complaint && vehicleId) {
-        await checkIn.mutateAsync({
-          vehicleId: vehicleId as Id<"vehicles">,
-          customerId: customerId as Id<"customers">,
-          complaint,
+  const formik = useFormik({
+    initialValues: {
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
+      make: "",
+      model: "",
+      year: "",
+      color: "",
+      plate: "",
+      vin: "",
+      complaint: "",
+    },
+    validate: zodToFormikValidate(customerFormSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting }) => {
+      if (!hasSearched) {
+        toast.error("Please search for existing customers first.");
+        setSubmitting(false);
+        return;
+      }
+      const name = values.name.trim();
+      const phone = values.phone.trim();
+      const email = values.email.trim();
+      const address = values.address.trim();
+      const make = values.make.trim();
+      const model = values.model.trim();
+      const yearStr = values.year.trim();
+      const color = values.color.trim();
+      const plate = values.plate.trim();
+      const vin = values.vin.trim();
+      const complaint = values.complaint.trim();
+      const hasVehicle = !!(make && model && yearStr && color);
+      try {
+        const customerId = await createCustomer.mutateAsync({
+          name,
+          phone,
+          email: email || undefined,
+          address: address || undefined,
         });
-        toast.success("Customer, vehicle, and job created.");
+        let vehicleId: string | null = null;
+        if (hasVehicle) {
+          vehicleId = await createVehicle.mutateAsync({
+            ownerId: customerId as Id<"customers">,
+            make,
+            model,
+            year: Number(yearStr),
+            color,
+            plate: plate || undefined,
+            vin: vin || undefined,
+            status: "customerOwned",
+          });
+        }
+        if (complaint && vehicleId) {
+          await checkIn.mutateAsync({
+            vehicleId: vehicleId as Id<"vehicles">,
+            customerId: customerId as Id<"customers">,
+            complaint,
+          });
+          toast.success("Customer, vehicle, and job created.");
+          void queryClient.invalidateQueries();
+          onDone();
+          return;
+        }
+        toast.success("Customer created.");
+        if (vehicleId) toast.success("Vehicle added.");
         void queryClient.invalidateQueries();
         onDone();
-        return;
+      } catch (err: any) {
+        const raw = err?.message ?? "Failed to create customer.";
+        const data = err?.data;
+        if (data?.existingCustomerId) {
+          setDuplicateInfo({
+            id: data.existingCustomerId,
+            name: data.existingName ?? "",
+            phone: data.existingPhone ?? "",
+          });
+          toast.error(data.message ?? raw);
+          return;
+        }
+        const m = raw.match(/Existing customerId:\s*(\w+)/);
+        if (m) setDuplicateInfo({ id: m[1]!, name: "", phone: "" });
+        toast.error(raw);
+      } finally {
+        setSubmitting(false);
       }
-
-      toast.success("Customer created.");
-      if (vehicleId) {
-        toast.success("Vehicle added.");
-      }
-      void queryClient.invalidateQueries();
-      onDone();
-    } catch (err: any) {
-      const raw = err?.message ?? "Failed to create customer.";
-      // ConvexError with structured data may be stringified; try to extract existingCustomerId
-      const data = err?.data;
-      if (data?.existingCustomerId) {
-        setDuplicateInfo({
-          id: data.existingCustomerId,
-          name: data.existingName ?? "",
-          phone: data.existingPhone ?? "",
-        });
-        toast.error(data.message ?? raw);
-        return;
-      }
-      // Fallback parse ID from message
-      const m = raw.match(/Existing customerId:\s*(\w+)/);
-      if (m) {
-        setDuplicateInfo({ id: m[1]!, name: "", phone: "" });
-      }
-      toast.error(raw);
-    }
-  }
+    },
+  });
 
   const saving =
-    createCustomer.isPending || createVehicle.isPending || checkIn.isPending;
+    createCustomer.isPending || createVehicle.isPending || checkIn.isPending || formik.isSubmitting;
   const gateDone = hasSearched && gateQ.trim().length > 0;
 
   return (
@@ -401,7 +448,7 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={formik.handleSubmit} className="space-y-6" noValidate>
           <fieldset
             disabled={!gateDone}
             className={`${!gateDone ? "opacity-50" : ""} space-y-6`}
@@ -409,19 +456,22 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
-                <Input id="name" name="name" required />
+                <Input id="name" name="name" value={formik.values.name} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.name && formik.errors.name)} />
+                <FieldError touched={formik.touched.name} error={formik.errors.name} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone *</Label>
-                <Input id="phone" name="phone" required />
+                <Input id="phone" name="phone" value={formik.values.phone} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.phone && formik.errors.phone)} />
+                <FieldError touched={formik.touched.phone} error={formik.errors.phone} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" />
+                <Input id="email" name="email" type="email" value={formik.values.email} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.email && formik.errors.email)} />
+                <FieldError touched={formik.touched.email} error={formik.errors.email} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
-                <Input id="address" name="address" />
+                <Input id="address" name="address" value={formik.values.address} onChange={formik.handleChange} onBlur={formik.handleBlur} />
               </div>
             </div>
 
@@ -433,19 +483,21 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="make">Make</Label>
-                  <Input id="make" name="make" />
+                  <Input id="make" name="make" value={formik.values.make} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.make && formik.errors.make)} />
+                  <FieldError touched={formik.touched.make} error={formik.errors.make as string} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="model">Model</Label>
-                  <Input id="model" name="model" />
+                  <Input id="model" name="model" value={formik.values.model} onChange={formik.handleChange} onBlur={formik.handleBlur} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="year">Year</Label>
-                  <Input id="year" name="year" type="number" min={1900} />
+                  <Input id="year" name="year" type="number" min={1900} value={formik.values.year} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.year && formik.errors.year)} />
+                  <FieldError touched={formik.touched.year} error={formik.errors.year} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="color">Colour</Label>
-                  <Input id="color" name="color" />
+                  <Input id="color" name="color" value={formik.values.color} onChange={formik.handleChange} onBlur={formik.handleBlur} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="plate">Plate</Label>
@@ -453,24 +505,33 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
                     id="plate"
                     name="plate"
                     placeholder="LSD-123-HG"
-                    onInput={(e) => {
-                      const target = e.currentTarget;
-                      target.value = target.value.toUpperCase();
+                    value={formik.values.plate}
+                    onChange={(e) => {
+                      e.target.value = e.target.value.toUpperCase();
+                      formik.handleChange(e);
                     }}
+                    onBlur={formik.handleBlur}
+                    aria-invalid={!!(formik.touched.plate && formik.errors.plate)}
                   />
+                  <FieldError touched={formik.touched.plate} error={formik.errors.plate} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="vin">VIN</Label>
                   <Input
                     id="vin"
                     name="vin"
-                    onInput={(e) => {
-                      const target = e.currentTarget;
-                      target.value = target.value.toUpperCase();
+                    value={formik.values.vin}
+                    onChange={(e) => {
+                      e.target.value = e.target.value.toUpperCase();
+                      formik.handleChange(e);
                     }}
+                    onBlur={formik.handleBlur}
                   />
                 </div>
               </div>
+              {(formik.errors as any)._form && formik.touched.make && (
+                <p className="mt-2 text-[11.5px] font-medium text-rose-600">{(formik.errors as any)._form as string}</p>
+              )}
             </div>
 
             <div className="border-t border-line-soft pt-5">
@@ -484,6 +545,9 @@ function CreateCustomerForm({ onDone }: { onDone: () => void }) {
                   id="complaint"
                   name="complaint"
                   placeholder="Customer's reported complaint..."
+                  value={formik.values.complaint}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
               </div>
             </div>

@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useFormik } from "formik";
+import { z } from "zod";
 import toast from "react-hot-toast";
 import { useCurrentUser } from "~/lib/auth";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { FieldError, zodToFormikValidate } from "~/lib/formik-helpers";
 import {
   Table,
   TableBody,
@@ -503,70 +506,61 @@ function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
     select: (all) => all.find((p) => p._id === partId),
   });
 
-  const [form, setForm] = useState<PartForm>(emptyForm);
-  useEffect(() => {
-    if (existing) {
-      setForm({
-        partNumber: existing.code,
-        description: existing.description,
-        costPrice: String(existing.costPrice),
-        sellingPrice: String(existing.sellingPrice),
-        stockQty: String(existing.stockQty),
-        reorderLevel: String(existing.reorderLevel),
-        brand: (existing as any).brand ?? VEHICLE_BRAND_DEFAULTS[0],
-        category: (existing as any).category ?? PART_CATEGORY_DEFAULTS[0],
-      });
-    } else {
-      setForm({
-        ...emptyForm,
-        brand: VEHICLE_BRAND_DEFAULTS[0],
-        category: PART_CATEGORY_DEFAULTS[0],
-      });
-    }
-  }, [existing]);
+  const partFormSchema = z.object({
+    partNumber: z.string().trim().min(1, "Part Number is required"),
+    description: z.string().trim().min(1, "Description is required"),
+    costPrice: z.string().trim().optional().or(z.literal("")).refine((v) => !v || !isNaN(Number(v)), { message: "Cost must be a number" }),
+    sellingPrice: z.string().trim().optional().or(z.literal("")).refine((v) => !v || !isNaN(Number(v)), { message: "Selling price must be a number" }),
+    stockQty: z.string().trim().optional().or(z.literal("")).refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), { message: "Stock qty must be >= 0" }),
+    reorderLevel: z.string().trim().optional().or(z.literal("")).refine((v) => !v || (!isNaN(Number(v)) && Number(v) >= 0), { message: "Reorder must be >= 0" }),
+    brand: z.string().trim().optional().or(z.literal("")),
+    category: z.string().trim().optional().or(z.literal("")),
+  });
 
-  const handleChange =
-    (field: keyof PartForm) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    };
+  const formik = useFormik<PartForm>({
+    initialValues: existing
+      ? {
+          partNumber: existing.code,
+          description: existing.description,
+          costPrice: String(existing.costPrice),
+          sellingPrice: String(existing.sellingPrice),
+          stockQty: String(existing.stockQty),
+          reorderLevel: String(existing.reorderLevel),
+          brand: (existing as any).brand ?? VEHICLE_BRAND_DEFAULTS[0],
+          category: (existing as any).category ?? PART_CATEGORY_DEFAULTS[0],
+        }
+      : { ...emptyForm },
+    enableReinitialize: true,
+    validate: zodToFormikValidate(partFormSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting }) => {
+      const data = {
+        code: values.partNumber.trim(),
+        description: values.description.trim(),
+        costPrice: Math.round(Number(values.costPrice) * 100) || 0,
+        sellingPrice: Math.round(Number(values.sellingPrice) * 100) || 0,
+        stockQty: Math.max(0, Math.round(Number(values.stockQty) || 0)),
+        reorderLevel: Math.max(0, Math.round(Number(values.reorderLevel) || 0)),
+        brand: values.brand.trim() || undefined,
+        category: values.category.trim() || undefined,
+      };
+      try {
+        if (partId) {
+          await updatePart.mutateAsync({ partId: partId as Id<"parts">, ...data });
+          toast.success("Part updated.");
+        } else {
+          await createPart.mutateAsync(data);
+          toast.success("Part created.");
+        }
+        void queryClient.invalidateQueries();
+        onDone();
+      } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to save part."); }
+      finally { setSubmitting(false); }
+    },
+  });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.partNumber.trim() || !form.description.trim()) {
-      toast.error("Part Number and description are required.");
-      return;
-    }
-    const data = {
-      code: form.partNumber.trim(),
-      description: form.description.trim(),
-      costPrice: Math.round(Number(form.costPrice) * 100) || 0,
-      sellingPrice: Math.round(Number(form.sellingPrice) * 100) || 0,
-      stockQty: Math.max(0, Math.round(Number(form.stockQty) || 0)),
-      reorderLevel: Math.max(0, Math.round(Number(form.reorderLevel) || 0)),
-      brand: form.brand.trim() || undefined,
-      category: form.category.trim() || undefined,
-    };
-
-    try {
-      if (partId) {
-        await updatePart.mutateAsync({
-          partId: partId as Id<"parts">,
-          ...data,
-        });
-        toast.success("Part updated.");
-      } else {
-        await createPart.mutateAsync(data);
-        toast.success("Part created.");
-      }
-      void queryClient.invalidateQueries();
-      onDone();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save part.");
-    }
-  }
-
-  const saving = createPart.isPending || updatePart.isPending;
+  const saving = createPart.isPending || updatePart.isPending || formik.isSubmitting;
 
   return (
     <Card>
@@ -574,42 +568,24 @@ function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
         <CardTitle>{partId ? "Edit part" : "Add part"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={formik.handleSubmit} className="grid gap-4 sm:grid-cols-2" noValidate>
           <div className="space-y-2">
             <Label htmlFor="partNumber">Part Number *</Label>
-            <Input
-              id="partNumber"
-              value={form.partNumber}
-              onChange={handleChange("partNumber")}
-              required
-            />
+            <Input id="partNumber" name="partNumber" value={formik.values.partNumber} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.partNumber && formik.errors.partNumber)} />
+            <FieldError touched={formik.touched.partNumber} error={formik.errors.partNumber} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
-            <Input
-              id="description"
-              value={form.description}
-              onChange={handleChange("description")}
-              required
-            />
+            <Input id="description" name="description" value={formik.values.description} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.description && formik.errors.description)} />
+            <FieldError touched={formik.touched.description} error={formik.errors.description} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="brand">Brand</Label>
-            <BrandSelectInput
-              id="brand"
-              value={form.brand}
-              onChange={(v) => setForm((p) => ({ ...p, brand: v }))}
-              placeholder="Brand"
-            />
+            <BrandSelectInput id="brand" value={formik.values.brand} onChange={(v) => formik.setFieldValue("brand", v)} placeholder="Brand" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <select
-              id="category"
-              value={form.category}
-              onChange={handleChange("category")}
-              className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm"
-            >
+            <select id="category" name="category" value={formik.values.category} onChange={formik.handleChange} className="h-9 w-full rounded-lg border border-line bg-surface px-3 text-sm">
               {CATEGORY_GROUPS.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.options.map((category) => (
@@ -628,43 +604,23 @@ function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="costPrice">Cost Price (Naira)</Label>
-            <Input
-              id="costPrice"
-              type="number"
-              min={0}
-              value={form.costPrice}
-              onChange={handleChange("costPrice")}
-            />
+            <Input id="costPrice" name="costPrice" type="number" min={0} value={formik.values.costPrice} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.costPrice && formik.errors.costPrice)} />
+            <FieldError touched={formik.touched.costPrice} error={formik.errors.costPrice} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="sellingPrice">Selling Price (Naira)</Label>
-            <Input
-              id="sellingPrice"
-              type="number"
-              min={0}
-              value={form.sellingPrice}
-              onChange={handleChange("sellingPrice")}
-            />
+            <Input id="sellingPrice" name="sellingPrice" type="number" min={0} value={formik.values.sellingPrice} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.sellingPrice && formik.errors.sellingPrice)} />
+            <FieldError touched={formik.touched.sellingPrice} error={formik.errors.sellingPrice} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="stockQty">Stock Qty</Label>
-            <Input
-              id="stockQty"
-              type="number"
-              min={0}
-              value={form.stockQty}
-              onChange={handleChange("stockQty")}
-            />
+            <Input id="stockQty" name="stockQty" type="number" min={0} value={formik.values.stockQty} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.stockQty && formik.errors.stockQty)} />
+            <FieldError touched={formik.touched.stockQty} error={formik.errors.stockQty} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="reorderLevel">Reorder Level</Label>
-            <Input
-              id="reorderLevel"
-              type="number"
-              min={0}
-              value={form.reorderLevel}
-              onChange={handleChange("reorderLevel")}
-            />
+            <Input id="reorderLevel" name="reorderLevel" type="number" min={0} value={formik.values.reorderLevel} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.reorderLevel && formik.errors.reorderLevel)} />
+            <FieldError touched={formik.touched.reorderLevel} error={formik.errors.reorderLevel} />
           </div>
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit" disabled={saving}>

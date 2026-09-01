@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useFormik } from "formik";
+import { z } from "zod";
 import toast from "react-hot-toast";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -9,6 +11,7 @@ import { Label } from "~/components/ui/label";
 import { Card, CardContent } from "~/components/ui/card";
 import { markLoginStarted } from "~/lib/two-factor-session";
 import { useLogActivityMutation } from "~/lib/queries";
+import { FieldError, zodToFormikValidate } from "~/lib/formik-helpers";
 
 export const Route = createFileRoute("/auth/login")({
   component: LoginPage,
@@ -21,46 +24,78 @@ function LoginPage() {
   const router = useRouter();
   const logActivity = useLogActivityMutation();
   const [step, setStep] = useState<AuthStep>("signIn");
-  const [submitting, setSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "");
-    setSubmitting(true);
-    try {
-      if (step === "forgotPassword") {
+  const authSchema = z.object({
+    email: z.string().trim().email("Valid email is required"),
+    password: z.string().min(1, "Password is required").min(8, "Password must be at least 8 characters").optional().or(z.literal("")),
+    name: z.string().trim().optional().or(z.literal("")),
+  }).superRefine((v, ctx) => {
+    if (step !== "forgotPassword" && (!v.password || v.password.length < 1)) {
+      ctx.addIssue({ code: "custom", path: ["password"], message: "Password is required" });
+    }
+  });
+
+  const formik = useFormik({
+    initialValues: { email: "", password: "", name: "" },
+    validate: zodToFormikValidate(authSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting }) => {
+      const email = values.email.trim();
+      const formData = new FormData();
+      formData.set("email", email);
+      formData.set("password", values.password);
+      if (values.name) formData.set("name", values.name);
+      formData.set("flow", step);
+      try {
+        if (step === "forgotPassword") {
+          // For reset, only email matters - rebuild minimal FormData
+          const resetData = new FormData();
+          resetData.set("email", email);
+          resetData.set("flow", "reset");
+          await signIn("password", resetData);
+          setResetSent(true);
+          toast.success("Check your email for reset link");
+          return;
+        }
         await signIn("password", formData);
-        setResetSent(true);
-        toast.success("Check your email for reset link");
-        return;
-      }
-      await signIn("password", formData);
-      markLoginStarted();
-      logActivity.mutate({
-        event: "login",
-        email,
-        userAgent: navigator.userAgent,
-        screenInfo: `${window.screen.width}x${window.screen.height}`,
-      });
-      toast.success(step === "signIn" ? "Signed in" : "Account created");
-      void router.navigate({ to: "/" });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Authentication failed";
-      if (step === "signIn") {
+        markLoginStarted();
         logActivity.mutate({
-          event: "login_failed",
+          event: "login",
           email,
           userAgent: navigator.userAgent,
           screenInfo: `${window.screen.width}x${window.screen.height}`,
         });
+        toast.success(step === "signIn" ? "Signed in" : "Account created");
+        void router.navigate({ to: "/" });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Authentication failed";
+        if (step === "signIn") {
+          logActivity.mutate({
+            event: "login_failed",
+            email,
+            userAgent: navigator.userAgent,
+            screenInfo: `${window.screen.width}x${window.screen.height}`,
+          });
+        }
+        toast.error(message);
+      } finally {
+        setSubmitting(false);
       }
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
+    },
+  });
+  const submitting = formik.isSubmitting;
+
+  async function handleForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    // Reuse formik validation for email only
+    if (!formik.values.email || !z.string().email().safeParse(formik.values.email).success) {
+      formik.setFieldTouched("email", true);
+      toast.error("Valid email is required");
+      return;
     }
+    formik.handleSubmit(e as any);
   }
 
   if (step === "forgotPassword") {
@@ -96,18 +131,12 @@ function LoginPage() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleForgotSubmit} className="space-y-4" noValidate>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                />
+                <Input id="email" name="email" type="email" placeholder="you@example.com" value={formik.values.email} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.email && formik.errors.email)} />
+                <FieldError touched={formik.touched.email} error={formik.errors.email} />
               </div>
-              <input name="flow" type="hidden" value="reset" />
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting ? "Sending..." : "Send reset link"}
               </Button>
@@ -142,56 +171,33 @@ function LoginPage() {
               : "Sign up to get started."}
           </p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
           {step === "signUp" && (
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="Your name"
-              />
+              <Input id="name" name="name" type="text" placeholder="Your name" value={formik.values.name} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.name && formik.errors.name)} />
+              <FieldError touched={formik.touched.name} error={formik.errors.name} />
             </div>
           )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-            />
+            <Input id="email" name="email" type="email" placeholder="you@example.com" value={formik.values.email} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.email && formik.errors.email)} />
+            <FieldError touched={formik.touched.email} error={formik.errors.email} />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
               {step === "signIn" && (
-                <button
-                  type="button"
-                  onClick={() => setStep("forgotPassword")}
-                  className="text-[13px] text-accent hover:text-accent-deep"
-                >
+                <button type="button" onClick={() => setStep("forgotPassword")} className="text-[13px] text-accent hover:text-accent-deep">
                   Forgot password?
                 </button>
               )}
             </div>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="********"
-              required
-            />
+            <Input id="password" name="password" type="password" placeholder="********" value={formik.values.password} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.password && formik.errors.password)} />
+            <FieldError touched={formik.touched.password} error={formik.errors.password} />
           </div>
-          <input name="flow" type="hidden" value={step} />
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting
-              ? "Please wait..."
-              : step === "signIn"
-                ? "Sign in"
-                : "Sign up"}
+            {submitting ? "Please wait..." : step === "signIn" ? "Sign in" : "Sign up"}
           </Button>
           <Button
             type="button"

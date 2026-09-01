@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useFormik } from 'formik'
+import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { useCurrentUser } from '~/lib/auth'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
+import { FieldError, zodToFormikValidate } from '~/lib/formik-helpers'
 import {
   Table,
   TableBody,
@@ -292,47 +295,44 @@ function AddVehicleModal({ onDone }: { onDone: () => void }) {
   const createVehicle = useCreateVehicleMutation()
   const { data: brandList } = useQuery(vehicleBrandQueries.list())
 
-  const [make, setMake] = useState('')
-  const [model, setModel] = useState('')
-  const [year, setYear] = useState('')
-  const [color, setColor] = useState('')
-  const [costNaira, setCostNaira] = useState('')
-  const [sellingPriceNaira, setSellingPriceNaira] = useState('')
-  const [stockQty, setStockQty] = useState('1')
-  const [reorderLevel, setReorderLevel] = useState('0')
+  const vehicleSchema = z.object({
+    make: z.string().trim().min(1, "Make is required"),
+    model: z.string().trim().min(1, "Model is required"),
+    year: z.string().trim().min(1, "Year is required").refine((v) => { const n = Number(v); return !isNaN(n) && n >= 1900 && n <= new Date().getFullYear() + 1; }, { message: "Year must be valid" }),
+    color: z.string().trim().min(1, "Colour is required"),
+    costNaira: z.string().trim().optional().or(z.literal("")).refine((v) => !v || !isNaN(Number(v)), { message: "Must be a number" }),
+    sellingPriceNaira: z.string().trim().optional().or(z.literal("")).refine((v) => !v || !isNaN(Number(v)), { message: "Must be a number" }),
+    stockQty: z.string().trim().min(1, "Stock qty required").refine((v) => !isNaN(Number(v)) && Number(v) >= 0, { message: "Must be >=0" }),
+    reorderLevel: z.string().trim().min(1, "Reorder required").refine((v) => !isNaN(Number(v)) && Number(v) >= 0, { message: "Must be >=0" }),
+  })
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!make.trim() || !model.trim() || !color.trim() || !year) {
-      toast.error('Make, model, year, and colour are required.')
-      return
-    }
-
-    const cost = costNaira ? Math.round(parseFloat(costNaira) * 100) : undefined
-    const sellingPrice = sellingPriceNaira ? Math.round(parseFloat(sellingPriceNaira) * 100) : undefined
-
-    await createVehicle.mutateAsync(
-      {
-        make: make.trim(),
-        model: model.trim(),
-        year: parseInt(year, 10),
-        color: color.trim(),
-        cost,
-        sellingPrice,
-        status: 'inStock',
-        stockQty: parseInt(stockQty, 10) || 1,
-        reorderLevel: parseInt(reorderLevel, 10) || 0,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Vehicle added to inventory.')
-          void queryClient.invalidateQueries()
-          onDone()
-        },
-        onError: (err: any) => toast.error(err.message),
-      },
-    )
-  }
+  const formik = useFormik({
+    initialValues: { make: '', model: '', year: '', color: '', costNaira: '', sellingPriceNaira: '', stockQty: '1', reorderLevel: '0' },
+    validate: zodToFormikValidate(vehicleSchema),
+    validateOnBlur: true,
+    validateOnChange: false,
+    onSubmit: async (values, { setSubmitting }) => {
+      const cost = values.costNaira ? Math.round(parseFloat(values.costNaira) * 100) : undefined
+      const sellingPrice = values.sellingPriceNaira ? Math.round(parseFloat(values.sellingPriceNaira) * 100) : undefined
+      try {
+        await createVehicle.mutateAsync({
+          make: values.make.trim(),
+          model: values.model.trim(),
+          year: parseInt(values.year, 10),
+          color: values.color.trim(),
+          cost,
+          sellingPrice,
+          status: 'inStock',
+          stockQty: parseInt(values.stockQty, 10) || 1,
+          reorderLevel: parseInt(values.reorderLevel, 10) || 0,
+        })
+        toast.success('Vehicle added to inventory.')
+        void queryClient.invalidateQueries()
+        onDone()
+      } catch (err: any) { toast.error(err?.message ?? "Failed"); }
+      finally { setSubmitting(false) }
+    },
+  })
 
   return (
     <Card>
@@ -340,104 +340,56 @@ function AddVehicleModal({ onDone }: { onDone: () => void }) {
         <CardTitle>Add Showroom Stock Vehicle</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={formik.handleSubmit} className="space-y-4" noValidate>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="make">Make *</Label>
-              <Input
-                id="make"
-                value={make}
-                onChange={(e) => setMake(e.target.value)}
-                placeholder="e.g. Toyota"
-                list="add-vehicle-brands"
-                required
-              />
+              <Input id="make" name="make" value={formik.values.make} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. Toyota" list="add-vehicle-brands" aria-invalid={!!(formik.touched.make && formik.errors.make)} />
               <datalist id="add-vehicle-brands">
                 {(brandList ?? []).map((b: any) => <option key={b._id} value={b.name} />)}
               </datalist>
+              <FieldError touched={formik.touched.make} error={formik.errors.make} />
             </div>
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="model">Model *</Label>
-              <Input
-                id="model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                placeholder="e.g. Camry"
-                required
-              />
+              <Input id="model" name="model" value={formik.values.model} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. Camry" aria-invalid={!!(formik.touched.model && formik.errors.model)} />
+              <FieldError touched={formik.touched.model} error={formik.errors.model} />
             </div>
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="year">Year *</Label>
-              <Input
-                id="year"
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                placeholder="e.g. 2024"
-                required
-              />
+              <Input id="year" name="year" type="number" value={formik.values.year} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. 2024" aria-invalid={!!(formik.touched.year && formik.errors.year)} />
+              <FieldError touched={formik.touched.year} error={formik.errors.year} />
             </div>
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="color">Colour *</Label>
-              <Input
-                id="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder="e.g. Silver"
-                required
-              />
+              <Input id="color" name="color" value={formik.values.color} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. Silver" aria-invalid={!!(formik.touched.color && formik.errors.color)} />
+              <FieldError touched={formik.touched.color} error={formik.errors.color} />
             </div>
             <div>
               <Label htmlFor="cost">Cost Price (NGN)</Label>
-              <Input
-                id="cost"
-                type="number"
-                step="0.01"
-                value={costNaira}
-                onChange={(e) => setCostNaira(e.target.value)}
-                placeholder="e.g. 5000000"
-              />
+              <Input id="cost" name="costNaira" type="number" step="0.01" value={formik.values.costNaira} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. 5000000" />
             </div>
             <div>
               <Label htmlFor="sellingPrice">Selling Price (NGN)</Label>
-              <Input
-                id="sellingPrice"
-                type="number"
-                step="0.01"
-                value={sellingPriceNaira}
-                onChange={(e) => setSellingPriceNaira(e.target.value)}
-                placeholder="e.g. 6500000"
-              />
+              <Input id="sellingPrice" name="sellingPriceNaira" type="number" step="0.01" value={formik.values.sellingPriceNaira} onChange={formik.handleChange} onBlur={formik.handleBlur} placeholder="e.g. 6500000" />
             </div>
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="stockQty">Initial Stock Qty *</Label>
-              <Input
-                id="stockQty"
-                type="number"
-                min="0"
-                value={stockQty}
-                onChange={(e) => setStockQty(e.target.value)}
-                required
-              />
+              <Input id="stockQty" name="stockQty" type="number" min="0" value={formik.values.stockQty} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.stockQty && formik.errors.stockQty)} />
+              <FieldError touched={formik.touched.stockQty} error={formik.errors.stockQty} />
             </div>
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="reorderLevel">Reorder Level *</Label>
-              <Input
-                id="reorderLevel"
-                type="number"
-                min="0"
-                value={reorderLevel}
-                onChange={(e) => setReorderLevel(e.target.value)}
-                required
-              />
+              <Input id="reorderLevel" name="reorderLevel" type="number" min="0" value={formik.values.reorderLevel} onChange={formik.handleChange} onBlur={formik.handleBlur} aria-invalid={!!(formik.touched.reorderLevel && formik.errors.reorderLevel)} />
+              <FieldError touched={formik.touched.reorderLevel} error={formik.errors.reorderLevel} />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onDone}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createVehicle.isPending}>
-              {createVehicle.isPending ? 'Saving...' : 'Save Stock Vehicle'}
+            <Button type="submit" disabled={createVehicle.isPending || formik.isSubmitting}>
+              {createVehicle.isPending || formik.isSubmitting ? 'Saving...' : 'Save Stock Vehicle'}
             </Button>
           </div>
         </form>
