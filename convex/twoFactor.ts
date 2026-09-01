@@ -169,9 +169,13 @@ export const adminReset = mutation({
     await enforce(ctx, "admin");
     const target = await ctx.db.get(args.userId);
     if (!target) throw new ConvexError("User not found.");
+
+    // Resetting 2FA should force re-enrollment, not disable enforcement.
+    // Keep the account in the "enabled but unconfigured" state so the app
+    // redirects the user back to the security page until they set it up again.
     await ctx.db.patch(args.userId, {
       totpSecret: undefined,
-      totpEnabled: false,
+      totpEnabled: true,
       backupCodes: undefined,
       lastTotpVerifiedTs: undefined,
     } as any);

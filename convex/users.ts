@@ -1,10 +1,19 @@
 import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
-import { requireRole, requireUser, getCurrentUser, isValidRole } from "./lib/auth";
+import {
+  requireRole,
+  requireUser,
+  getCurrentUser,
+  isValidRole,
+  normalizeEmailForAuth,
+  findPasswordAuthAccountForUser,
+} from "./lib/auth";
 import { audit } from "./lib/audit";
 import { heartbeat as sessionHeartbeat } from "./lib/session";
 import { ROLES, type Role } from "../src/lib/enums";
 import { enforce, enforceDedup } from "./lib/rateLimit";
+import { Scrypt } from "lucia";
+import { getAuthSessionId } from "@convex-dev/auth/server";
 
 export const me = query({
   args: {},
@@ -123,48 +132,44 @@ export const bootstrapFirstAdmin = mutation({
 
 /**
  * Admin password reset: sets a temporary password and forces change on next login.
- * Never logs the password. Uses Convex Auth's modifyAccountCredentials to hash correctly.
- *
- * We store only `mustChangePassword` flag on users; the actual hash lives in
- * `authAccounts.secret`. If the auth helper is unavailable, we fall back to
- * hashing via Web Crypto and patching authAccounts directly — never storing
- * plaintext.
+ * Never logs the password. Hashes with Scrypt (same as Convex Auth Password
+ * provider) and patches `authAccounts.secret` directly. This works inside a
+ * Convex mutation context, unlike `modifyAccountCredentials`/`retrieveAccount`
+ * which require an ActionCtx (ctx.runMutation) and therefore always threw
+ * here, falling back to an unverifiable SHA-256 hash that broke login.
  */
 export const adminResetPassword = mutation({
   args: { userId: v.id("users"), tempPassword: v.string() },
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
     await enforce(ctx, "admin");
-    if (args.tempPassword.length < 8) throw new ConvexError("Temporary password must be at least 8 characters.");
-    if (args.tempPassword.length > 128) throw new ConvexError("Temporary password too long (max 128).");
+    const resolvedTempPassword = args.tempPassword.trim();
+    if (resolvedTempPassword.length < 8) throw new ConvexError("Temporary password must be at least 8 characters.");
+    if (resolvedTempPassword.length > 128) throw new ConvexError("Temporary password too long (max 128).");
     const target = await ctx.db.get(args.userId);
     if (!target) throw new ConvexError("User not found.");
-    const email = (target as any).email as string | undefined;
-    if (!email) throw new ConvexError("Target user has no email; cannot reset password.");
+    const email = normalizeEmailForAuth((target as any).email as string | undefined);
+    if (!email) throw new ConvexError("Target user has no valid email; cannot reset password.");
 
-    // Try Convex Auth helper first (correct Scrypt hashing)
+    const record: any = await findPasswordAuthAccountForUser(ctx, args.userId, email);
+    if (!record) throw new ConvexError("Target user has no password account; cannot reset password.");
+    const authAccount: any = record.account ?? record;
+
+    const hashed = await new Scrypt().hash(resolvedTempPassword);
+    await ctx.db.patch(authAccount._id as any, { secret: hashed } as any);
+
+    // Invalidate all existing sessions for the target user so they must re-login
+    // with the temporary password. Best-effort: ignore if authSessions not indexed.
     try {
-      const { modifyAccountCredentials } = await import("@convex-dev/auth/server");
-      // @ts-ignore - helper may not be typed for mutation ctx but works at runtime
-      await (modifyAccountCredentials as any)(ctx, {
-        provider: "password",
-        account: { id: email, secret: args.tempPassword },
-      });
-    } catch {
-      // Fallback: patch authAccounts secret directly with SHA-256 hex (will not verify
-      // against Scrypt, but keeps flow without crash; admin will know to use email-reset
-      // instead). We still set mustChangePassword so user is forced to go through
-      // email reset flow.
-      const accounts = await ctx.db.query("authAccounts").collect();
-      const acc = accounts.find((a: any) => a.userId === args.userId && a.provider === "password");
-      if (acc) {
-        // Use a deterministic but not Scrypt hash — Password provider will still
-        // reject it, but we document the fallback; primary path above should succeed.
-        const enc = new TextEncoder().encode(args.tempPassword);
-        const hashBuf = await crypto.subtle.digest("SHA-256", enc);
-        const hex = Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-        await ctx.db.patch(acc._id as any, { secret: `sha256:${hex}` } as any);
+      const sessions = await ctx.db
+        .query("authSessions")
+        .withIndex("userId", (q) => q.eq("userId", args.userId))
+        .collect();
+      for (const s of sessions) {
+        await ctx.db.delete(s._id);
       }
+    } catch {
+      // if index missing or table unavailable, continue without invalidation
     }
 
     await ctx.db.patch(args.userId, { mustChangePassword: true, lastActiveTs: Date.now() } as any);
@@ -175,8 +180,9 @@ export const adminResetPassword = mutation({
 
 /**
  * User-initiated password change. If mustChangePassword is true, old password
- * check is bypassed (admin-issued temp); otherwise require verification.
- * Uses the same auth helper to re-hash.
+ * check is bypassed (admin-issued temp); otherwise require verification via
+ * Scrypt. Hashes the new password with Scrypt directly in the mutation
+ * context (same fix as adminResetPassword).
  */
 export const changePassword = mutation({
   args: { currentPassword: v.optional(v.string()), newPassword: v.string() },
@@ -186,41 +192,60 @@ export const changePassword = mutation({
     if (args.newPassword.length < 8) throw new ConvexError("New password must be at least 8 characters.");
     if (args.newPassword.length > 128) throw new ConvexError("New password too long (max 128).");
     const mustChange = !!(user as any).mustChangePassword;
-    const email = (user as any).email as string | undefined;
-    if (!email) throw new ConvexError("No email on account; cannot change password.");
+    const email = normalizeEmailForAuth((user as any).email as string | undefined);
+    if (!email) throw new ConvexError("No valid email on account; cannot change password.");
+
+    const record: any = await findPasswordAuthAccountForUser(ctx, user._id, email);
+    if (!record) throw new ConvexError("No password account found; cannot change password.");
+    const authAccount: any = record.account ?? record;
 
     if (!mustChange) {
       const cur = (args.currentPassword ?? "").trim();
       if (!cur) throw new ConvexError("Current password is required.");
-      // Verify current password via retrieveAccount helper
-      try {
-        const { retrieveAccount } = await import("@convex-dev/auth/server");
-        const retrieved = await (retrieveAccount as any)(ctx, {
-          provider: "password",
-          account: { id: email, secret: cur },
-        });
-        if (!retrieved) throw new ConvexError("Current password is incorrect.");
-      } catch (e: any) {
-        if (e instanceof ConvexError) throw e;
-        // If helper unavailable, fail closed
-        throw new ConvexError("Unable to verify current password.");
-      }
+      const secret = (authAccount as any).secret as string | undefined;
+      if (!secret) throw new ConvexError("Unable to verify current password.");
+      const ok = await new Scrypt().verify(secret, cur);
+      if (!ok) throw new ConvexError("Current password is incorrect.");
     }
 
+    const hashed = await new Scrypt().hash(args.newPassword);
+    await ctx.db.patch(authAccount._id as any, { secret: hashed } as any);
+
+    // Keep current session alive; invalidate other sessions for this user
     try {
-      const { modifyAccountCredentials } = await import("@convex-dev/auth/server");
-      await (modifyAccountCredentials as any)(ctx, {
-        provider: "password",
-        account: { id: email, secret: args.newPassword },
-      });
-    } catch (e: any) {
-      throw new ConvexError("Failed to update password. Please try again or use email reset.");
+      const curSessionId: any = await (getAuthSessionId as any)(ctx);
+      const allSessions = await ctx.db
+        .query("authSessions")
+        .withIndex("userId", (q) => q.eq("userId", user._id))
+        .collect();
+      for (const s of allSessions) {
+        if (curSessionId && s._id === curSessionId) continue;
+        await ctx.db.delete(s._id);
+      }
+    } catch {
+      // best-effort: leave sessions intact if we cannot determine current session
     }
 
     await ctx.db.patch(user._id, { mustChangePassword: false, lastActiveTs: Date.now() } as any);
     try { await ctx.db.patch(user._id, { mustChangePassword: undefined } as any); } catch {}
     await audit(ctx, "user.changePassword", "users", user._id);
     return null;
+  },
+});
+
+export const normalizeLegacyPasswordAccounts = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireRole(ctx, ['admin']);
+    const rows = await ctx.db.query('authAccounts').filter((q) => q.eq(q.field('provider'), 'password')).collect();
+    let count = 0;
+    for (const row of rows) {
+      const providerAccountId = normalizeEmailForAuth((row as any).providerAccountId);
+      if (!providerAccountId || providerAccountId === (row as any).providerAccountId) continue;
+      await ctx.db.patch((row as any)._id, { providerAccountId } as any);
+      count += 1;
+    }
+    return { updated: count };
   },
 });
 

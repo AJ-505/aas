@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { phoneSchema } from './common'
 
 export const createCustomerSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
-  phone: z.string().trim().min(1, 'Phone is required'),
+  phone: phoneSchema,
   email: z.string().trim().email('Valid email is required').optional().or(z.literal('')),
   address: z.string().trim().optional().or(z.literal('')),
 })

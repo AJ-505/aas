@@ -1,13 +1,13 @@
 import { z } from 'zod'
 import { LEAD_STAGES, SALES_ORDER_STATUSES } from '../enums'
-import { moneyKobo } from './common'
+import { moneyKobo, phoneSchema } from './common'
 
 export const leadStageSchema = z.enum(LEAD_STAGES)
 export const salesOrderStatusSchema = z.enum(SALES_ORDER_STATUSES)
 
 export const createLeadSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
-  phone: z.string().trim().min(1, 'Phone is required'),
+  phone: phoneSchema,
   email: z.string().trim().email().optional().or(z.literal('')),
   interestedVehicleId: z.string().min(1).optional(),
   nextFollowUpTs: z.number().int().optional(),

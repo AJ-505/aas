@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { ROLES } from '../enums'
+import { phoneSchema } from './common'
 
 export const roleSchema = z.enum(ROLES)
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   email: z.string().trim().email('Valid email is required'),
-  phone: z.string().trim().min(1, 'Phone is required'),
+  phone: phoneSchema,
   role: roleSchema,
 })
 

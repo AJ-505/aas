@@ -49,8 +49,8 @@ describe('createCustomerSchema', () => {
 
 describe('updateCustomerSchema', () => {
   it('allows partial updates', () => {
-    const parsed = updateCustomerSchema.parse({ phone: '0900' })
-    expect(parsed.phone).toBe('0900')
+    const parsed = updateCustomerSchema.parse({ phone: '09001234567' })
+    expect(parsed.phone).toBe('09001234567')
     expect(parsed.name).toBeUndefined()
   })
 })

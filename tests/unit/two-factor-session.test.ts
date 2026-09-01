@@ -52,6 +52,24 @@ describe('two-factor session gating', () => {
     })).toBe(false)
   })
 
+  it('prevents a successful verification from being reinterpreted as a fresh login challenge', () => {
+    const storage = new Map<string, string>()
+    const getItem = (key: string) => storage.get(key) ?? null
+    const setItem = (key: string, value: string) => { storage.set(key, value) }
+    const removeItem = (key: string) => { storage.delete(key) }
+
+    markLoginStarted({ getItem, setItem, removeItem, now: 900 })
+    markTotpVerified({ getItem, setItem, removeItem, now: 1000 })
+
+    expect(getCurrentSessionStartedAt({ getItem, setItem, removeItem })).toBeNull()
+    expect(shouldRequireTotp({
+      totpEnabled: true,
+      lastTotpVerifiedTs: 1000,
+      sessionStartedAt: null,
+      now: 1200,
+    })).toBe(false)
+  })
+
   it('allows the forced password-change flow before TOTP setup enforcement', () => {
     expect(shouldRedirectToSecuritySetup({
       mustChangePassword: true,

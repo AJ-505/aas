@@ -274,6 +274,31 @@ export function AppShell({ children }: { children: ReactNode }) {
     enabled: !!user?.role && !isLogin,
   });
 
+  const mustChange = !!(user as any)?.mustChangePassword;
+  const totpEnabled = !!(user as any)?.totpEnabled;
+  const hasTotpSecret = !!(
+    (user as any)?.hasTotpSecret ?? (user as any)?.totpSecret
+  );
+  const lastTotpVerifiedTs = (user as any)?.lastTotpVerifiedTs as
+    | number
+    | undefined;
+  const sessionStartedAt = getCurrentSessionStartedAt();
+  const needsTotpSetup = totpEnabled && !hasTotpSecret;
+  const needsTotp =
+    needsTotpSetup ||
+    shouldRequireTotp({
+      totpEnabled,
+      lastTotpVerifiedTs,
+      sessionStartedAt,
+      now: Date.now(),
+    });
+  const isVerifyRoute =
+    pathname === "/auth/verify-2fa" || pathname === "/auth/change-password";
+  const isSecurityRoute = pathname.startsWith("/settings/security");
+  const inactivity = useInactivity(
+    !!user?.role && !isLogin && !needsTotp && !mustChange,
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem("theme");
@@ -341,31 +366,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!user.role) {
     return <PendingRoleAssignment userId={user!._id} userName={user!.name} />;
   }
-
-  const mustChange = !!(user as any).mustChangePassword;
-  const totpEnabled = !!(user as any).totpEnabled;
-  const hasTotpSecret = !!(
-    (user as any).hasTotpSecret ?? (user as any).totpSecret
-  );
-  const lastTotpVerifiedTs = (user as any).lastTotpVerifiedTs as
-    | number
-    | undefined;
-  const sessionStartedAt = getCurrentSessionStartedAt();
-  const needsTotpSetup = totpEnabled && !hasTotpSecret;
-  const needsTotp =
-    needsTotpSetup ||
-    shouldRequireTotp({
-      totpEnabled,
-      lastTotpVerifiedTs,
-      sessionStartedAt,
-      now: Date.now(),
-    });
-  const isVerifyRoute =
-    pathname === "/auth/verify-2fa" || pathname === "/auth/change-password";
-  const isSecurityRoute = pathname.startsWith("/settings/security");
-  const inactivity = useInactivity(
-    !!user?.role && !isLogin && !needsTotp && !mustChange,
-  );
 
   if (mustChange && pathname !== "/auth/change-password") {
     return <Navigate to="/auth/change-password" />;

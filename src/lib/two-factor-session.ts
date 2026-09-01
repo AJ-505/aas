@@ -75,7 +75,14 @@ export function shouldRequireTotp({
   if (!totpEnabled) return false
 
   const verifiedAt = typeof lastTotpVerifiedTs === 'number' ? lastTotpVerifiedTs : null
-  const sessionStart = typeof sessionStartedAt === 'number' ? sessionStartedAt : now
+
+  // When a fresh login marker is absent, that means the user has already
+  // completed a valid verification in this session. Treat the verification time
+  // itself as the effective session boundary instead of comparing against "now".
+  const sessionStart =
+    typeof sessionStartedAt === 'number'
+      ? sessionStartedAt
+      : verifiedAt ?? now
 
   if (!verifiedAt) return true
   if (verifiedAt < sessionStart) return true
