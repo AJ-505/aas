@@ -41,13 +41,12 @@ export function PrintableJobCard({
         {/* Header */}
         <div className="flex items-start justify-between border-b border-line pb-5">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="grid size-8 place-items-center rounded-lg bg-accent text-xs font-extrabold text-white">
-                CM
-              </span>
-              <span className="text-xl font-black tracking-tight text-ink">Cedric Masters Autos</span>
-            </div>
-            <p className="mt-1 text-xs text-mute">After-Sales Workshop Service & Repair</p>
+            <img
+              src="/cedricmasters_logo.jpeg"
+              alt="Cedric Masters Autos"
+              className="h-14 w-auto object-contain"
+            />
+            <p className="mt-2 text-xs text-mute">After-Sales Workshop Service & Repair</p>
           </div>
           <div className="text-right">
             <h2 className="text-lg font-bold tracking-tight text-ink">WORKSHOP JOB CARD</h2>

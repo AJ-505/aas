@@ -229,6 +229,7 @@
 | Hidden Printable Previews | [x] | Job Card and Invoice printable previews hidden on screen (`hidden print:block`), accessible only via print buttons |
 | Job Card Template Refactoring | [x] | Customer info and CSR removed from Job Card template; print date used; blank diagnosis if uninspected |
 | Invoice Template Refactoring | [x] | Removed support note footer from Invoice template |
+| Branded Document Logo | [x] | `cedricmasters_logo.jpeg` served from `public/` used as the logo header on all printed documents (`PrintableInvoice.tsx`, `PrintableJobCard.tsx`) |
 | Job Item Product Names | [x] | Job items table displays actual part code & description (e.g. `OIL-001 - Synthetic Motor Oil 5W30`) |
 | Invoice Regeneration | [x] | Added `invoices.regenerate` mutation & UI button to re-sync invoice when job items change |
 | Inventory Dispatch to Job Items Integration | [x] | Approved parts dispatched by Inventory Manager auto-populate `jobItems` and update invoice; manual part addition blocked for Finance; dispatched parts locked from manual deletion |
