@@ -17,6 +17,15 @@ export function formatNaira(kobo: number): string {
   })}`
 }
 
+// Splits integer kobo into whole naira and leftover kobo (0-99). Used by the
+// proforma invoice layout which prints separate Naira and kobo columns.
+export function splitNairaKobo(kobo: number): { naira: number; kobo: number } {
+  const safe = Math.trunc(kobo)
+  const naira = Math.trunc(safe / 100)
+  const koboRemainder = Math.abs(safe % 100)
+  return { naira, kobo: koboRemainder }
+}
+
 export function formatKoboInput(naira: number): number {
   return nairaToKobo(naira)
 }

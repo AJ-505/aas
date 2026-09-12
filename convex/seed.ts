@@ -82,6 +82,26 @@ const LABOUR_TYPES = [
   { name: 'General Inspection', fixedPrice: kobo(5000) },
 ]
 
+const WAREHOUSES: Array<{ name: string; address: string; isHeadOffice?: boolean }> = [
+  {
+    name: 'Cedric Masters Autos — Head Office',
+    address: 'Plot 10, Km 22, Lekki-Epe Expressway, Ikota, Lekki, Lagos',
+    isHeadOffice: true,
+  },
+  {
+    name: 'Cedric Masters Autos — Lekki Phase 1',
+    address: 'Admiralty Way, Lekki Phase 1, Lagos',
+  },
+  {
+    name: 'Cedric Masters Autos — Ikeja',
+    address: 'Obafemi Awolowo Way, Ikeja, Lagos',
+  },
+  {
+    name: 'Cedric Masters Autos — Abuja',
+    address: 'Ademola Adetokunbo Crescent, Wuse 2, Abuja',
+  },
+]
+
 const CUSTOMERS = [
   { name: 'Chinedu Okafor', phone: '08031234567', email: 'chinedu.okafor@gmail.com', address: '12 Awolowo Road, Ikoyi, Lagos' },
   { name: 'Funmilayo Adeyemi', phone: '08092345678', email: 'funmi.adeyemi@yahoo.com', address: '45 Adeniran Ogunsanya, Surulere, Lagos' },
@@ -232,6 +252,27 @@ export const seedData = mutation({
       results.push(`labourTypes: inserted ${LABOUR_TYPES.length} labour types`)
     } else {
       results.push('labourTypes: already exist (skipped)')
+    }
+
+    // --- Warehouses (inter-warehouse transfers) ---
+    const existingWarehouses = await ctx.db.query('warehouses').first()
+    if (!existingWarehouses) {
+      for (const w of WAREHOUSES) {
+        await ctx.db.insert('warehouses', w)
+      }
+      results.push(`warehouses: inserted ${WAREHOUSES.length} warehouses`)
+    } else {
+      const allWarehouses = await ctx.db.query('warehouses').collect()
+      const existingNames = new Set(allWarehouses.map((w) => w.name))
+      let added = 0
+      for (const w of WAREHOUSES) {
+        if (!existingNames.has(w.name)) {
+          await ctx.db.insert('warehouses', w)
+          added++
+        }
+      }
+      if (added > 0) results.push(`warehouses: added ${added} missing warehouses`)
+      else results.push('warehouses: already exist (skipped)')
     }
 
     // --- Customers ---

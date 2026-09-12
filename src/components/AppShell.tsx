@@ -30,6 +30,7 @@ import {
   IconTrendingUp,
   IconUsers,
   IconWrench,
+  IconArrowUpRight,
 } from "~/components/icons";
 import { useCurrentUser } from "~/lib/auth";
 import {
@@ -86,6 +87,20 @@ const NAV_GENERAL: NavItem[] = [
     icon: IconWrench,
     roles: ["csr", "inventoryManager", "finance", "manager", "admin"],
     match: ["/service/job", "/service/checkin"],
+  },
+  {
+    label: "Counter Sales",
+    to: "/service/counter-sales",
+    icon: IconBanknote,
+    roles: ["csr", "admin"],
+    match: ["/service/counter-sale"],
+  },
+  {
+    label: "Warehouse Transfers",
+    to: "/service/warehouse-transfers",
+    icon: IconArrowUpRight,
+    roles: ["csr", "inventoryManager", "admin"],
+    match: ["/service/warehouse-transfer"],
   },
 ];
 
@@ -185,6 +200,14 @@ function breadcrumb(pathname: string): string[] {
   if (pathname.startsWith("/service/finance")) return ["Operations", "Finance"];
   if (pathname.startsWith("/service/parts"))
     return ["Operations", "Parts Catalogue"];
+  if (pathname.startsWith("/service/warehouse-transfer/"))
+    return ["Workshop", "Warehouse Transfers", "Waybill"];
+  if (pathname.startsWith("/service/warehouse-transfers"))
+    return ["Workshop", "Warehouse Transfers"];
+  if (pathname.startsWith("/service/counter-sale/"))
+    return ["Workshop", "Counter Sales", "Proforma"];
+  if (pathname.startsWith("/service/counter-sales"))
+    return ["Workshop", "Counter Sales"];
   if (pathname.startsWith("/settings/security"))
     return ["Settings", "Security"];
   if (pathname.startsWith("/sales/inventory")) return ["Sales", "Inventory"];
@@ -242,6 +265,16 @@ export function AppShell({ children }: { children: ReactNode }) {
       return {
         placeholder: "Search parts by name or code…",
         to: "/service/parts" as const,
+      };
+    if (pathname.startsWith("/service/counter-sale"))
+      return {
+        placeholder: "Search counter sales…",
+        to: "/service/counter-sales" as const,
+      };
+    if (pathname.startsWith("/service/warehouse-transfer"))
+      return {
+        placeholder: "Search warehouse transfers…",
+        to: "/service/warehouse-transfers" as const,
       };
     if (pathname.startsWith("/sales/inventory"))
       return {

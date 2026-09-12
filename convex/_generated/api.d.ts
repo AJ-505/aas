@@ -13,6 +13,7 @@ import type * as appointments from "../appointments.js";
 import type * as auditLogs from "../auditLogs.js";
 import type * as auth from "../auth.js";
 import type * as backfillPlates from "../backfillPlates.js";
+import type * as counterSales from "../counterSales.js";
 import type * as crons from "../crons.js";
 import type * as customers from "../customers.js";
 import type * as deliveries from "../deliveries.js";
@@ -23,6 +24,7 @@ import type * as labourTypes from "../labourTypes.js";
 import type * as leads from "../leads.js";
 import type * as lib_audit from "../lib/audit.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_documentNumbers from "../lib/documentNumbers.js";
 import type * as lib_invoiceHelpers from "../lib/invoiceHelpers.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_session from "../lib/session.js";
@@ -39,6 +41,8 @@ import type * as twoFactor from "../twoFactor.js";
 import type * as users from "../users.js";
 import type * as vehicleBrands from "../vehicleBrands.js";
 import type * as vehicles from "../vehicles.js";
+import type * as warehouseTransfers from "../warehouseTransfers.js";
+import type * as warehouses from "../warehouses.js";
 
 import type {
   ApiFromModules,
@@ -52,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   auditLogs: typeof auditLogs;
   auth: typeof auth;
   backfillPlates: typeof backfillPlates;
+  counterSales: typeof counterSales;
   crons: typeof crons;
   customers: typeof customers;
   deliveries: typeof deliveries;
@@ -62,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   leads: typeof leads;
   "lib/audit": typeof lib_audit;
   "lib/auth": typeof lib_auth;
+  "lib/documentNumbers": typeof lib_documentNumbers;
   "lib/invoiceHelpers": typeof lib_invoiceHelpers;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/session": typeof lib_session;
@@ -78,6 +84,8 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   vehicleBrands: typeof vehicleBrands;
   vehicles: typeof vehicles;
+  warehouseTransfers: typeof warehouseTransfers;
+  warehouses: typeof warehouses;
 }>;
 
 /**

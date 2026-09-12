@@ -196,6 +196,14 @@ export default defineSchema({
     normalizedName: v.string(),
   }).index('by_normalizedName', ['normalizedName']),
 
+  // Inter-warehouse transfer endpoints. The head office is flagged so the
+  // transfer UI can default "From" to it.
+  warehouses: defineTable({
+    name: v.string(),
+    address: v.optional(v.string()),
+    isHeadOffice: v.optional(v.boolean()),
+  }).index('by_name', ['name']),
+
   stockMovements: defineTable({
     partId: v.id('parts'),
     qty: v.number(),
@@ -265,6 +273,67 @@ export default defineSchema({
     repId: v.id('users'),
   }).index('salesOrderId', ['salesOrderId']),
 
+  // ---- Counter sales (walk-in spare parts purchased over the counter) ----
+  // A static snapshot: the proforma is printed immediately and never edited.
+  counterSales: defineTable({
+    proformaNumber: v.string(),
+    customerId: v.optional(v.id('customers')),
+    customerName: v.optional(v.string()),
+    customerPhone: v.optional(v.string()),
+    paymentMethod: v.optional(v.string()),
+    lineItems: v.array(
+      v.object({
+        partId: v.id('parts'),
+        code: v.string(),
+        description: v.string(),
+        qty: v.number(),
+        unitPrice: v.number(),
+        lineTotal: v.number(),
+      }),
+    ),
+    subtotal: v.number(),
+    vat: v.number(),
+    grandTotal: v.number(),
+    status: v.union(v.literal('completed'), v.literal('cancelled')),
+    createdById: v.id('users'),
+    ts: v.number(),
+  })
+    .index('proformaNumber', ['proformaNumber'])
+    .index('by_ts', ['ts'])
+    .index('createdById', ['createdById']),
+
+  // ---- Inter-warehouse spare parts transfers (waybill) ----
+  warehouseTransfers: defineTable({
+    waybillNumber: v.string(),
+    fromWarehouseId: v.id('warehouses'),
+    toWarehouseId: v.id('warehouses'),
+    fromLabel: v.string(),
+    toLabel: v.string(),
+    lineItems: v.array(
+      v.object({
+        partId: v.id('parts'),
+        code: v.string(),
+        description: v.string(),
+        qty: v.number(),
+        unit: v.optional(v.string()),
+        remarks: v.optional(v.string()),
+      }),
+    ),
+    status: v.union(
+      v.literal('dispatched'),
+      v.literal('received'),
+      v.literal('cancelled'),
+    ),
+    createdById: v.id('users'),
+    ts: v.number(),
+    receivedById: v.optional(v.id('users')),
+    receivedTs: v.optional(v.number()),
+  })
+    .index('waybillNumber', ['waybillNumber'])
+    .index('by_ts', ['ts'])
+    .index('status', ['status'])
+    .index('createdById', ['createdById']),
+
   // ---- Cross-cutting ----
   auditLogs: defineTable({
     userId: v.id('users'),
@@ -310,6 +379,10 @@ export default defineSchema({
     nextInvSeq: v.optional(v.number()),
     estYear: v.optional(v.number()),
     invYear: v.optional(v.number()),
+    nextProformaSeq: v.optional(v.number()),
+    proformaYear: v.optional(v.number()),
+    nextWaybillSeq: v.optional(v.number()),
+    waybillYear: v.optional(v.number()),
     rateLimitEnabled: v.optional(v.boolean()),
   }),
 

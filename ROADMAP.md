@@ -327,6 +327,17 @@
 | Auth — Login/SignUp/Forgot | [x] | `src/routes/auth/login.tsx:19` Formik (email Zod, password 8-char, forgotPassword email-only path); `signIn("password", FormData)` + `markLoginStarted` + `logActivity` preserved exactly |
 | Preservation guarantee | [x] | All mutations (`createCustomer`, `createVehicle`, `checkIn`, `createLead`, `createPart`, `updatePart`, `setVatRate`, `createLabourType`, `createVehicle`, `createSalesOrder`, `signIn`) + toasts + `queryClient.invalidateQueries()` + navigation + duplicate handling + audit role guards untouched; Formik only replaces manual `FormData` parsing + manual `if (!x) toast` with declarative Zod validation + inline `FieldError` |
 
+## Counter Sales & Inter-Warehouse Transfers
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Counter sales interface (CSR + Admin) in General nav after Jobs | [x] | `/service/counter-sales` list + create, `/service/counter-sale/$id` detail. Search-first customer gate (`CustomerGate.tsx`, same flow as appointment booking): CSR must search existing customers, then select or create inline — customer details are persisted to the `customers` table and snapshotted on the sale (`customerId/customerName/customerPhone`) so future visits/detail-page links work. `convex/counterSales.ts` list/get/create/cancel: deducts stock + writes `stockMovements` `out`, `PRO-YYYY-####` via `convex/lib/documentNumbers.ts`, audited. Admin-only cancel reverses stock with a required reason. |
+| Proforma invoice printable | [x] | `src/components/PrintableProformaInvoice.tsx` mirrors `proforma_invoice_template.jpeg` — CedricMasters logo, Head Office block, Date/Sales Rep/Customer fields, PART NO./DESCRIPTION/QTY./UNIT PRICE/AMOUNT (₦ \| k) columns, totals + signature block. |
+| Inter-warehouse transfer interface (CSR, Inventory Manager + Admin) in General nav after Jobs | [x] | `/service/warehouse-transfers` list + create, `/service/warehouse-transfer/$id` detail. `convex/warehouseTransfers.ts` create/markReceived/cancel (stock deduction + reversal), `convex/warehouses.ts` list/create, 4 seeded warehouses in `convex/seed.ts`. `WAY-YYYY-####` numbering. |
+| Waybill printable | [x] | `src/components/PrintableWaybill.tsx` mirrors `sample_waybill.pdf` — DATE/WAYBILL NO/FROM/TO, S/N-PART NO-PART DESCRIPTION-QTY-UNIT-REMARKS table, dispatched/received signature block. |
+| Zod schemas + query hooks | [x] | `src/lib/schemas/counter.ts`, `src/lib/schemas/warehouse.ts`; `warehouseQueries`, `counterSaleQueries`, `warehouseTransferQueries` + mutation hooks in `src/lib/queries.ts`. |
+| Tests | [x] | anonymous authz rejection for `counterSales:create`, `warehouseTransfers:create`, `warehouses:create`; `splitNairaKobo` unit test. |
+
 ## Future (Post-MVP)
 
 - Customer portal (view history, download invoices, book appointments)

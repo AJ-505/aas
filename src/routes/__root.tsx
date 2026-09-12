@@ -58,9 +58,13 @@ function RootDocument({ children }: { children: ReactNode }) {
       <body>
         <div className="flex h-screen flex-col">{children}</div>
         <Toaster position="top-right" />
-        <Suspense fallback={null}>
-          <TanStackRouterDevtools position="bottom-right" />
-        </Suspense>
+        {/* Devtools are dev-only, but their floating trigger/panel would otherwise
+            render on top of every printed document — keep it out of print. */}
+        <div className="print:hidden">
+          <Suspense fallback={null}>
+            <TanStackRouterDevtools position="bottom-right" />
+          </Suspense>
+        </div>
         <Scripts />
       </body>
     </html>

@@ -254,6 +254,47 @@ export const deliveryQueries = {
   getBySalesOrder: (salesOrderId: string) => convexQuery(api.deliveries.getBySalesOrder, { salesOrderId: salesOrderId as Id<'salesOrders'> }),
 }
 
+// ---- Counter sales & inter-warehouse transfers ----
+export const warehouseQueries = {
+  list: () => convexQuery(api.warehouses.list, {}),
+}
+
+export const counterSaleQueries = {
+  list: () => convexQuery(api.counterSales.list, {}),
+  get: (counterSaleId: string) =>
+    convexQuery(api.counterSales.get, { counterSaleId: counterSaleId as Id<'counterSales'> }),
+}
+
+export const warehouseTransferQueries = {
+  list: () => convexQuery(api.warehouseTransfers.list, {}),
+  get: (transferId: string) =>
+    convexQuery(api.warehouseTransfers.get, { transferId: transferId as Id<'warehouseTransfers'> }),
+}
+
+export function useCreateWarehouseMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.warehouses.create) })
+}
+
+export function useCreateCounterSaleMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.counterSales.create) })
+}
+
+export function useCancelCounterSaleMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.counterSales.cancel) })
+}
+
+export function useCreateWarehouseTransferMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.warehouseTransfers.create) })
+}
+
+export function useMarkTransferReceivedMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.warehouseTransfers.markReceived) })
+}
+
+export function useCancelWarehouseTransferMutation() {
+  return useMutation({ mutationFn: useConvexMutation(api.warehouseTransfers.cancel) })
+}
+
 // Appointment mutations
 export function useCreateAppointmentMutation() {
   return useMutation({ mutationFn: useConvexMutation(api.appointments.create) })

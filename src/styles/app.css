@@ -46,10 +46,10 @@
 }
 
 @media print {
-  body.print-job-card .printable-invoice {
-    display: none !important;
-  }
-  body.print-invoice .printable-job-card {
+  body.print-job-card .printable-document:not(.printable-job-card),
+  body.print-invoice .printable-document:not(.printable-invoice),
+  body.print-proforma .printable-document:not(.printable-proforma),
+  body.print-waybill .printable-document:not(.printable-waybill) {
     display: none !important;
   }
 }

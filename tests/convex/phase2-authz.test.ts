@@ -71,5 +71,33 @@ describe.skipIf(!CONVEX_URL)('Phase 2 authorization guards (anonymous)', () => {
       }),
     ).rejects.toThrow()
   })
+
+  it('rejects creating a counter sale without auth', async () => {
+    const client = anonymousClient() as any
+    await expect(
+      client.mutation('counterSales:create', {
+        customerId: '000000000000000000000000',
+        items: [{ partId: '000000000000000000000000', qty: 1 }],
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('rejects creating a warehouse transfer without auth', async () => {
+    const client = anonymousClient() as any
+    await expect(
+      client.mutation('warehouseTransfers:create', {
+        fromWarehouseId: '000000000000000000000000',
+        toWarehouseId: '000000000000000000000001',
+        items: [{ partId: '000000000000000000000000', qty: 1 }],
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('rejects adding a warehouse without auth', async () => {
+    const client = anonymousClient() as any
+    await expect(
+      client.mutation('warehouses:create', { name: 'Test Warehouse' }),
+    ).rejects.toThrow()
+  })
 })
 

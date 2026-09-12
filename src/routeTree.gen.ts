@@ -26,16 +26,20 @@ import { Route as SalesLeadsRouteImport } from './routes/sales/leads'
 import { Route as SalesOrdersRouteImport } from './routes/sales/orders'
 import { Route as ServiceAppointmentsRouteImport } from './routes/service/appointments'
 import { Route as ServiceCheckinRouteImport } from './routes/service/checkin'
+import { Route as ServiceCounterSalesRouteImport } from './routes/service/counter-sales'
 import { Route as ServiceCustomersRouteImport } from './routes/service/customers'
 import { Route as ServiceFinanceRouteImport } from './routes/service/finance'
 import { Route as ServiceJobsRouteImport } from './routes/service/jobs'
 import { Route as ServicePartsRouteImport } from './routes/service/parts'
 import { Route as ServiceVehiclesRouteImport } from './routes/service/vehicles'
+import { Route as ServiceWarehouseTransfersRouteImport } from './routes/service/warehouse-transfers'
 import { Route as SettingsSecurityRouteImport } from './routes/settings/security'
 import { Route as SalesLeadIdRouteImport } from './routes/sales/lead.$id'
 import { Route as SalesOrderIdRouteImport } from './routes/sales/order.$id'
+import { Route as ServiceCounterSaleIdRouteImport } from './routes/service/counter-sale.$id'
 import { Route as ServiceCustomerIdRouteImport } from './routes/service/customer.$id'
 import { Route as ServiceJobIdRouteImport } from './routes/service/job.$id'
+import { Route as ServiceWarehouseTransferIdRouteImport } from './routes/service/warehouse-transfer.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -122,6 +126,11 @@ const ServiceCheckinRoute = ServiceCheckinRouteImport.update({
   path: '/service/checkin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServiceCounterSalesRoute = ServiceCounterSalesRouteImport.update({
+  id: '/service/counter-sales',
+  path: '/service/counter-sales',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServiceCustomersRoute = ServiceCustomersRouteImport.update({
   id: '/service/customers',
   path: '/service/customers',
@@ -147,6 +156,12 @@ const ServiceVehiclesRoute = ServiceVehiclesRouteImport.update({
   path: '/service/vehicles',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServiceWarehouseTransfersRoute =
+  ServiceWarehouseTransfersRouteImport.update({
+    id: '/service/warehouse-transfers',
+    path: '/service/warehouse-transfers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
   id: '/settings/security',
   path: '/settings/security',
@@ -162,6 +177,11 @@ const SalesOrderIdRoute = SalesOrderIdRouteImport.update({
   path: '/sales/order/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServiceCounterSaleIdRoute = ServiceCounterSaleIdRouteImport.update({
+  id: '/service/counter-sale/$id',
+  path: '/service/counter-sale/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServiceCustomerIdRoute = ServiceCustomerIdRouteImport.update({
   id: '/service/customer/$id',
   path: '/service/customer/$id',
@@ -172,6 +192,12 @@ const ServiceJobIdRoute = ServiceJobIdRouteImport.update({
   path: '/service/job/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServiceWarehouseTransferIdRoute =
+  ServiceWarehouseTransferIdRouteImport.update({
+    id: '/service/warehouse-transfer/$id',
+    path: '/service/warehouse-transfer/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -191,16 +217,20 @@ export interface FileRoutesByFullPath {
   '/sales/orders': typeof SalesOrdersRoute
   '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
+  '/service/counter-sales': typeof ServiceCounterSalesRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
   '/service/vehicles': typeof ServiceVehiclesRoute
+  '/service/warehouse-transfers': typeof ServiceWarehouseTransfersRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
+  '/service/counter-sale/$id': typeof ServiceCounterSaleIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
+  '/service/warehouse-transfer/$id': typeof ServiceWarehouseTransferIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -220,16 +250,20 @@ export interface FileRoutesByTo {
   '/sales/orders': typeof SalesOrdersRoute
   '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
+  '/service/counter-sales': typeof ServiceCounterSalesRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
   '/service/vehicles': typeof ServiceVehiclesRoute
+  '/service/warehouse-transfers': typeof ServiceWarehouseTransfersRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
+  '/service/counter-sale/$id': typeof ServiceCounterSaleIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
+  '/service/warehouse-transfer/$id': typeof ServiceWarehouseTransferIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -250,16 +284,20 @@ export interface FileRoutesById {
   '/sales/orders': typeof SalesOrdersRoute
   '/service/appointments': typeof ServiceAppointmentsRoute
   '/service/checkin': typeof ServiceCheckinRoute
+  '/service/counter-sales': typeof ServiceCounterSalesRoute
   '/service/customers': typeof ServiceCustomersRoute
   '/service/finance': typeof ServiceFinanceRoute
   '/service/jobs': typeof ServiceJobsRoute
   '/service/parts': typeof ServicePartsRoute
   '/service/vehicles': typeof ServiceVehiclesRoute
+  '/service/warehouse-transfers': typeof ServiceWarehouseTransfersRoute
   '/settings/security': typeof SettingsSecurityRoute
   '/sales/lead/$id': typeof SalesLeadIdRoute
   '/sales/order/$id': typeof SalesOrderIdRoute
+  '/service/counter-sale/$id': typeof ServiceCounterSaleIdRoute
   '/service/customer/$id': typeof ServiceCustomerIdRoute
   '/service/job/$id': typeof ServiceJobIdRoute
+  '/service/warehouse-transfer/$id': typeof ServiceWarehouseTransferIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -281,16 +319,20 @@ export interface FileRouteTypes {
     | '/sales/orders'
     | '/service/appointments'
     | '/service/checkin'
+    | '/service/counter-sales'
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
     | '/service/vehicles'
+    | '/service/warehouse-transfers'
     | '/settings/security'
     | '/sales/lead/$id'
     | '/sales/order/$id'
+    | '/service/counter-sale/$id'
     | '/service/customer/$id'
     | '/service/job/$id'
+    | '/service/warehouse-transfer/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -310,16 +352,20 @@ export interface FileRouteTypes {
     | '/sales/orders'
     | '/service/appointments'
     | '/service/checkin'
+    | '/service/counter-sales'
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
     | '/service/vehicles'
+    | '/service/warehouse-transfers'
     | '/settings/security'
     | '/sales/lead/$id'
     | '/sales/order/$id'
+    | '/service/counter-sale/$id'
     | '/service/customer/$id'
     | '/service/job/$id'
+    | '/service/warehouse-transfer/$id'
   id:
     | '__root__'
     | '/'
@@ -339,16 +385,20 @@ export interface FileRouteTypes {
     | '/sales/orders'
     | '/service/appointments'
     | '/service/checkin'
+    | '/service/counter-sales'
     | '/service/customers'
     | '/service/finance'
     | '/service/jobs'
     | '/service/parts'
     | '/service/vehicles'
+    | '/service/warehouse-transfers'
     | '/settings/security'
     | '/sales/lead/$id'
     | '/sales/order/$id'
+    | '/service/counter-sale/$id'
     | '/service/customer/$id'
     | '/service/job/$id'
+    | '/service/warehouse-transfer/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -369,16 +419,20 @@ export interface RootRouteChildren {
   SalesOrdersRoute: typeof SalesOrdersRoute
   ServiceAppointmentsRoute: typeof ServiceAppointmentsRoute
   ServiceCheckinRoute: typeof ServiceCheckinRoute
+  ServiceCounterSalesRoute: typeof ServiceCounterSalesRoute
   ServiceCustomersRoute: typeof ServiceCustomersRoute
   ServiceFinanceRoute: typeof ServiceFinanceRoute
   ServiceJobsRoute: typeof ServiceJobsRoute
   ServicePartsRoute: typeof ServicePartsRoute
   ServiceVehiclesRoute: typeof ServiceVehiclesRoute
+  ServiceWarehouseTransfersRoute: typeof ServiceWarehouseTransfersRoute
   SettingsSecurityRoute: typeof SettingsSecurityRoute
   SalesLeadIdRoute: typeof SalesLeadIdRoute
   SalesOrderIdRoute: typeof SalesOrderIdRoute
+  ServiceCounterSaleIdRoute: typeof ServiceCounterSaleIdRoute
   ServiceCustomerIdRoute: typeof ServiceCustomerIdRoute
   ServiceJobIdRoute: typeof ServiceJobIdRoute
+  ServiceWarehouseTransferIdRoute: typeof ServiceWarehouseTransferIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -502,6 +556,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServiceCheckinRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/service/counter-sales': {
+      id: '/service/counter-sales'
+      path: '/service/counter-sales'
+      fullPath: '/service/counter-sales'
+      preLoaderRoute: typeof ServiceCounterSalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/service/customers': {
       id: '/service/customers'
       path: '/service/customers'
@@ -537,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServiceVehiclesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/service/warehouse-transfers': {
+      id: '/service/warehouse-transfers'
+      path: '/service/warehouse-transfers'
+      fullPath: '/service/warehouse-transfers'
+      preLoaderRoute: typeof ServiceWarehouseTransfersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/security': {
       id: '/settings/security'
       path: '/settings/security'
@@ -558,6 +626,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/service/counter-sale/$id': {
+      id: '/service/counter-sale/$id'
+      path: '/service/counter-sale/$id'
+      fullPath: '/service/counter-sale/$id'
+      preLoaderRoute: typeof ServiceCounterSaleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/service/customer/$id': {
       id: '/service/customer/$id'
       path: '/service/customer/$id'
@@ -570,6 +645,13 @@ declare module '@tanstack/react-router' {
       path: '/service/job/$id'
       fullPath: '/service/job/$id'
       preLoaderRoute: typeof ServiceJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service/warehouse-transfer/$id': {
+      id: '/service/warehouse-transfer/$id'
+      path: '/service/warehouse-transfer/$id'
+      fullPath: '/service/warehouse-transfer/$id'
+      preLoaderRoute: typeof ServiceWarehouseTransferIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -593,16 +675,20 @@ const rootRouteChildren: RootRouteChildren = {
   SalesOrdersRoute: SalesOrdersRoute,
   ServiceAppointmentsRoute: ServiceAppointmentsRoute,
   ServiceCheckinRoute: ServiceCheckinRoute,
+  ServiceCounterSalesRoute: ServiceCounterSalesRoute,
   ServiceCustomersRoute: ServiceCustomersRoute,
   ServiceFinanceRoute: ServiceFinanceRoute,
   ServiceJobsRoute: ServiceJobsRoute,
   ServicePartsRoute: ServicePartsRoute,
   ServiceVehiclesRoute: ServiceVehiclesRoute,
+  ServiceWarehouseTransfersRoute: ServiceWarehouseTransfersRoute,
   SettingsSecurityRoute: SettingsSecurityRoute,
   SalesLeadIdRoute: SalesLeadIdRoute,
   SalesOrderIdRoute: SalesOrderIdRoute,
+  ServiceCounterSaleIdRoute: ServiceCounterSaleIdRoute,
   ServiceCustomerIdRoute: ServiceCustomerIdRoute,
   ServiceJobIdRoute: ServiceJobIdRoute,
+  ServiceWarehouseTransferIdRoute: ServiceWarehouseTransferIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

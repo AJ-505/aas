@@ -7,4 +7,6 @@ export * from './part'
 export * from './invoice'
 export * from './sales'
 export * from './appointment'
+export * from './counter'
+export * from './warehouse'
 
