@@ -46,8 +46,8 @@ export function PrintableWaybill({ transfer }: PrintableWaybillProps) {
           Waybill
         </h2>
 
-        {/* Meta */}
-        <div className="mt-6 space-y-3 text-[13px] text-ink">
+        {/* Meta — date + waybill no. */}
+        <div className="mt-6 flex flex-wrap gap-x-10 gap-y-2 text-[13px] text-ink">
           <p>
             <span className="font-semibold">DATE:</span>{' '}
             <span className="border-b border-ink/40">&nbsp;&nbsp;{formatDate(transfer.ts)}&nbsp;&nbsp;</span>
@@ -56,14 +56,28 @@ export function PrintableWaybill({ transfer }: PrintableWaybillProps) {
             <span className="font-semibold">WAYBILL NO:</span>{' '}
             <span className="border-b border-ink/40 font-mono">&nbsp;&nbsp;{transfer.waybillNumber}&nbsp;&nbsp;</span>
           </p>
-          <p>
-            <span className="font-semibold">FROM:</span>{' '}
-            <span className="border-b border-ink/40">&nbsp;&nbsp;{transfer.fromLabel}&nbsp;&nbsp;</span>
-          </p>
-          <p>
-            <span className="font-semibold">TO:</span>{' '}
-            <span className="border-b border-ink/40">&nbsp;&nbsp;{transfer.toLabel}&nbsp;&nbsp;</span>
-          </p>
+        </div>
+
+        {/* Sending + receiving locations — left / right on the upper page */}
+        <div className="mt-5 grid grid-cols-2 gap-6 text-[13px] text-ink">
+          <div className="rounded border border-ink/20 p-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-mute">
+              From (Sending Location)
+            </p>
+            <p className="mt-1.5 font-bold leading-snug">{transfer.fromLabel}</p>
+            <p className="mt-1 leading-snug text-body">
+              {transfer.fromAddress || transfer.fromWarehouseAddress || 'Address: —'}
+            </p>
+          </div>
+          <div className="rounded border border-ink/20 p-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-mute">
+              To (Receiving Location)
+            </p>
+            <p className="mt-1.5 font-bold leading-snug">{transfer.toLabel}</p>
+            <p className="mt-1 leading-snug text-body">
+              {transfer.toAddress || transfer.toWarehouseAddress || 'Address: —'}
+            </p>
+          </div>
         </div>
 
         {/* Items */}

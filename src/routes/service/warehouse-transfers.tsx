@@ -71,7 +71,6 @@ function WarehouseTransfersPage() {
   }
 
   const canWrite = user?.role === 'csr' || user?.role === 'inventoryManager' || user?.role === 'admin'
-  const isAdmin = user?.role === 'admin'
 
   const filtered = (transfers ?? []).filter((t: any) => {
     if (!q.trim()) return true
@@ -99,11 +98,9 @@ function WarehouseTransfersPage() {
         </div>
         {canWrite && (
           <div className="flex gap-2">
-            {isAdmin && (
-              <Button variant="outline" onClick={() => setShowAddWarehouse((v) => !v)}>
-                {showAddWarehouse ? 'Hide warehouse form' : 'Add warehouse'}
-              </Button>
-            )}
+            <Button variant="outline" onClick={() => setShowAddWarehouse((v) => !v)}>
+              {showAddWarehouse ? 'Hide location form' : 'Add location'}
+            </Button>
             <Button onClick={() => setShowCreate((v) => !v)}>
               <IconPlus size={15} /> New Transfer
             </Button>
@@ -111,7 +108,7 @@ function WarehouseTransfersPage() {
         )}
       </div>
 
-      {showAddWarehouse && isAdmin && (
+      {showAddWarehouse && canWrite && (
         <AddWarehouseCard onDone={() => setShowAddWarehouse(false)} />
       )}
 
@@ -204,12 +201,13 @@ function AddWarehouseCard({ onDone }: { onDone: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Add Warehouse</CardTitle>
+        <CardTitle>Add New Location</CardTitle>
+        <p className="text-[13px] text-mute">Warehouses double as waybill locations. New locations appear in the From / To dropdowns immediately.</p>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="wh-name">Name *</Label>
+            <Label htmlFor="wh-name">Location name *</Label>
             <Input
               id="wh-name"
               value={name}
@@ -218,12 +216,12 @@ function AddWarehouseCard({ onDone }: { onDone: () => void }) {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="wh-address">Address</Label>
+            <Label htmlFor="wh-address">Address *</Label>
             <Input
               id="wh-address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="Street, city, state"
+              placeholder="Full street address — prints on the waybill"
             />
           </div>
         </div>
@@ -232,11 +230,11 @@ function AddWarehouseCard({ onDone }: { onDone: () => void }) {
             Cancel
           </Button>
           <Button
-            disabled={createWarehouse.isPending || !name.trim()}
+            disabled={createWarehouse.isPending || !name.trim() || !address.trim()}
             onClick={async () => {
               try {
-                await createWarehouse.mutateAsync({ name, address: address || undefined })
-                toast.success('Warehouse added.')
+                await createWarehouse.mutateAsync({ name: name.trim(), address: address.trim() })
+                toast.success('Location added — select it in From / To.')
                 void queryClient.invalidateQueries()
                 onDone()
               } catch (err: any) {
@@ -244,7 +242,7 @@ function AddWarehouseCard({ onDone }: { onDone: () => void }) {
               }
             }}
           >
-            {createWarehouse.isPending ? 'Saving...' : 'Add Warehouse'}
+            {createWarehouse.isPending ? 'Saving...' : 'Add Location'}
           </Button>
         </div>
       </CardContent>
@@ -261,12 +259,18 @@ function CreateTransfer({
 }) {
   const queryClient = useQueryClient()
   const createTransfer = useCreateWarehouseTransferMutation()
+  const createWarehouse = useCreateWarehouseMutation()
   const { data: warehouses } = useQuery(warehouseQueries.list())
 
   const headOffice = (warehouses ?? []).find((w: any) => w.isHeadOffice)
   const [fromId, setFromId] = useState(headOffice?._id ?? '')
   const [toId, setToId] = useState('')
   const [cart, setCart] = useState<TransferLine[]>([])
+  const [showInlineLocation, setShowInlineLocation] = useState(false)
+  const [newLocName, setNewLocName] = useState('')
+  const [newLocAddress, setNewLocAddress] = useState('')
+  const fromWarehouse = (warehouses ?? []).find((w: any) => w._id === fromId)
+  const toWarehouse = (warehouses ?? []).find((w: any) => w._id === toId)
 
   // Default the source to the head office once warehouses load.
   useEffect(() => {
@@ -349,7 +353,7 @@ function CreateTransfer({
       <CardContent className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="from-warehouse">From Warehouse *</Label>
+            <Label htmlFor="from-warehouse">From — Sending Location *</Label>
             <Select
               id="from-warehouse"
               value={fromId}
@@ -358,24 +362,94 @@ function CreateTransfer({
               <option value="">-- Select source --</option>
               {(warehouses ?? []).map((w: any) => (
                 <option key={w._id} value={w._id}>
-                  {w.name}
+                  {w.name}{w.address ? ` — ${w.address}` : ''}
                 </option>
               ))}
             </Select>
+            {fromWarehouse?.address && (
+              <p className="text-[12px] text-mute">{fromWarehouse.address}</p>
+            )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="to-warehouse">To Warehouse *</Label>
+            <Label htmlFor="to-warehouse">To — Receiving Location *</Label>
             <Select id="to-warehouse" value={toId} onChange={(e) => setToId(e.target.value)}>
               <option value="">-- Select destination --</option>
               {(warehouses ?? [])
                 .filter((w: any) => w._id !== fromId)
                 .map((w: any) => (
                   <option key={w._id} value={w._id}>
-                    {w.name}
+                    {w.name}{w.address ? ` — ${w.address}` : ''}
                   </option>
                 ))}
             </Select>
+            {toWarehouse?.address && (
+              <p className="text-[12px] text-mute">{toWarehouse.address}</p>
+            )}
           </div>
+        </div>
+
+        <div className="rounded-lg border border-dashed border-line bg-bg/50 p-3 text-[13px]">
+          {!showInlineLocation ? (
+            <button
+              type="button"
+              className="font-semibold text-accent hover:underline"
+              onClick={() => setShowInlineLocation(true)}
+            >
+              + New location not in the list? Add it here
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="font-bold text-ink">Add new location</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="inline-loc-name">Location name *</Label>
+                  <Input
+                    id="inline-loc-name"
+                    value={newLocName}
+                    onChange={(e) => setNewLocName(e.target.value)}
+                    placeholder="e.g. Cedric Masters Autos — Port Harcourt"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="inline-loc-address">Address *</Label>
+                  <Input
+                    id="inline-loc-address"
+                    value={newLocAddress}
+                    onChange={(e) => setNewLocAddress(e.target.value)}
+                    placeholder="Full street address — prints on the waybill"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={createWarehouse.isPending || !newLocName.trim() || !newLocAddress.trim()}
+                  onClick={async () => {
+                    try {
+                      const id = await createWarehouse.mutateAsync({
+                        name: newLocName.trim(),
+                        address: newLocAddress.trim(),
+                      })
+                      toast.success('Location added — select it above.')
+                      void queryClient.invalidateQueries()
+                      setNewLocName('')
+                      setNewLocAddress('')
+                      setShowInlineLocation(false)
+                      if (!fromId) setFromId(id as string)
+                      else if (!toId) setToId(id as string)
+                    } catch (err: any) {
+                      toast.error(err?.message ?? 'Failed to add location.')
+                    }
+                  }}
+                >
+                  {createWarehouse.isPending ? 'Saving...' : 'Save location'}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowInlineLocation(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-5 lg:grid-cols-2">

@@ -309,6 +309,8 @@ export default defineSchema({
     toWarehouseId: v.id('warehouses'),
     fromLabel: v.string(),
     toLabel: v.string(),
+    fromAddress: v.optional(v.string()),
+    toAddress: v.optional(v.string()),
     lineItems: v.array(
       v.object({
         partId: v.id('parts'),

@@ -32,8 +32,18 @@ export const get = query({
     const receivedBy = transfer.receivedById
       ? await ctx.db.get(transfer.receivedById)
       : null
+    // Backfill location addresses for waybills created before the
+    // fromAddress/toAddress snapshot fields existed.
+    const fromWarehouse = await ctx.db.get(transfer.fromWarehouseId)
+    const toWarehouse = await ctx.db.get(transfer.toWarehouseId)
+    const enriched = {
+      ...transfer,
+      fromAddress:
+        (transfer as any).fromAddress ?? (fromWarehouse as any)?.address ?? undefined,
+      toAddress: (transfer as any).toAddress ?? (toWarehouse as any)?.address ?? undefined,
+    }
     return {
-      transfer,
+      transfer: enriched,
       createdBy: createdBy
         ? { _id: createdBy._id, name: createdBy.name ?? null, email: createdBy.email ?? null }
         : null,
@@ -117,6 +127,8 @@ export const create = mutation({
       toWarehouseId: to._id,
       fromLabel: from.name,
       toLabel: to.name,
+      fromAddress: (from as any).address || undefined,
+      toAddress: (to as any).address || undefined,
       lineItems: storedItems,
       status: 'dispatched',
       createdById: user._id,

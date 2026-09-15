@@ -35,6 +35,24 @@ export function PrintableInvoice({
 
   const balance = invoice.grandTotal - invoice.amountPaid
 
+  function splitPartLine(item: any): { partNo: string; description: string } {
+    const raw = String(item?.description ?? '')
+    if (item?.type !== 'part') return { partNo: '—', description: raw || 'Labour' }
+    const sep = raw.indexOf(' - ')
+    if (sep > 0) {
+      return {
+        partNo: raw.slice(0, sep).trim() || '—',
+        description: raw.slice(sep + 3).trim() || raw,
+      }
+    }
+    // Fallback: first token is the part code when no separator exists.
+    const firstSpace = raw.indexOf(' ')
+    if (firstSpace > 0 && firstSpace <= 24) {
+      return { partNo: raw.slice(0, firstSpace).trim(), description: raw.slice(firstSpace + 1).trim() || raw }
+    }
+    return { partNo: raw ? raw : '—', description: raw || 'Part' }
+  }
+
   return (
     <>
       <Button onClick={handlePrint} variant="outline" size="sm" className="gap-1.5 print:hidden">
@@ -55,7 +73,7 @@ export function PrintableInvoice({
           </div>
           <div className="text-right">
             <h2 className="text-xl font-black tracking-tight text-ink">INVOICE</h2>
-            <p className="text-xs font-semibold text-accent">#{invoice.invoiceNumber ?? `INV-${invoice._id.slice(-6).toUpperCase()}`}</p>
+            <p className="text-xs font-semibold text-accent">Invoice No. #{invoice.invoiceNumber ?? `INV-${invoice._id.slice(-6).toUpperCase()}`}</p>
             <p className="mt-1 text-xs text-mute">Job #{job?._id?.slice(-6) ?? '-'}</p>
             {invoice.kind === 'estimate' && <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-amber-600">Estimate</p>}
             {invoice.locked && <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-emerald-700">Locked</p>}
@@ -67,8 +85,10 @@ export function PrintableInvoice({
           <div>
             <p className="font-bold uppercase tracking-wider text-mute">Billed To</p>
             <p className="mt-1 text-sm font-semibold text-ink">{customer?.name ?? 'Valued Customer'}</p>
-            <p className="text-body">Phone: {customer?.phone ?? '-'}</p>
+            {customer?.address && <p className="mt-0.5 text-body">{customer.address}</p>}
+            <p className="mt-0.5 text-body">Phone: {customer?.phone ?? '-'}</p>
             {customer?.email && <p className="text-body">Email: {customer.email}</p>}
+            <p className="mt-1.5 text-body">Invoice No.: <span className="font-mono font-bold text-ink">{invoice.invoiceNumber ?? `INV-${invoice._id.slice(-6).toUpperCase()}`}</span></p>
           </div>
           <div>
             <p className="font-bold uppercase tracking-wider text-mute">Vehicle Served</p>
@@ -84,23 +104,28 @@ export function PrintableInvoice({
           <table className="w-full text-left text-xs">
             <thead className="border-b border-line bg-line-soft/50 font-bold uppercase tracking-wider text-mute">
               <tr>
-                <th className="p-3">Type</th>
-                <th className="p-3">Description</th>
+                <th className="p-3 w-10 text-center">S/N</th>
+                <th className="p-3 w-28">Part No</th>
+                <th className="p-3">Item Description</th>
                 <th className="p-3 text-center">Qty</th>
                 <th className="p-3 text-right">Unit Price</th>
                 <th className="p-3 text-right">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {invoice.lineItems.map((item: any, idx: number) => (
-                <tr key={idx} className="text-body">
-                  <td className="p-3 font-semibold capitalize text-ink">{item.type}</td>
-                  <td className="p-3">{item.description}</td>
-                  <td className="p-3 text-center font-mono">{item.qty}</td>
-                  <td className="p-3 text-right font-mono">{formatNaira(item.unitPrice)}</td>
-                  <td className="p-3 text-right font-mono font-bold text-ink">{formatNaira(item.lineTotal)}</td>
-                </tr>
-              ))}
+              {invoice.lineItems.map((item: any, idx: number) => {
+                const { partNo, description } = splitPartLine(item)
+                return (
+                  <tr key={idx} className="text-body">
+                    <td className="p-3 text-center text-mute">{idx + 1}</td>
+                    <td className="p-3 font-mono text-[11px] font-bold text-ink">{partNo}</td>
+                    <td className="p-3">{description}</td>
+                    <td className="p-3 text-center font-mono">{item.qty}</td>
+                    <td className="p-3 text-right font-mono">{formatNaira(item.unitPrice)}</td>
+                    <td className="p-3 text-right font-mono font-bold text-ink">{formatNaira(item.lineTotal)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

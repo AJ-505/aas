@@ -1273,18 +1273,29 @@ function InvoiceSection({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item</TableHead>
+                    <TableHead className="w-10 text-center">S/N</TableHead>
+                    <TableHead>Part No</TableHead>
+                    <TableHead>Item Description</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead className="text-right">Unit price</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {finalInvoice.lineItems.map((li: any, idx: number) => (
-                    <TableRow key={idx}>
-                      <TableCell className="text-body">
-                        {li.description}
-                      </TableCell>
+                  {finalInvoice.lineItems.map((li: any, idx: number) => {
+                    const raw = String(li?.description ?? '')
+                    const sep = raw.indexOf(' - ')
+                    const partNo = li?.type === 'part' ? (sep > 0 ? raw.slice(0, sep).trim() : raw.split(' ')[0] ?? '—') : '—'
+                    const itemDesc = li?.type === 'part' && sep > 0 ? raw.slice(sep + 3).trim() : raw
+                    return (
+                      <TableRow key={idx}>
+                        <TableCell className="text-center text-mute">{idx + 1}</TableCell>
+                        <TableCell className="font-mono text-[12px] font-bold text-accent">
+                          {partNo || '—'}
+                        </TableCell>
+                        <TableCell className="text-body">
+                          {itemDesc}
+                        </TableCell>
                       <TableCell className="[font-variant-numeric:tabular-nums]">
                         {li.qty}
                       </TableCell>
@@ -1295,7 +1306,8 @@ function InvoiceSection({
                         {formatNaira(li.lineTotal)}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>

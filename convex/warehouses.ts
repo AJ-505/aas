@@ -26,8 +26,8 @@ export const create = mutation({
     isHeadOffice: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    await requireActiveSession(ctx, ['admin'])
-    await enforce(ctx, 'admin')
+    await requireActiveSession(ctx, ['csr', 'inventoryManager', 'admin'])
+    await enforce(ctx, 'standard')
     const parsed = warehouseSchema.parse(args)
     const existing = await ctx.db
       .query('warehouses')

@@ -110,12 +110,18 @@ function WarehouseTransferDetailPage() {
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-[13px] sm:grid-cols-4">
             <div>
-              <dt className="text-mute">From</dt>
+              <dt className="text-mute">From — Sending Location</dt>
               <dd className="font-semibold text-ink">{transfer.fromLabel}</dd>
+              {(transfer.fromAddress || (transfer as any).fromWarehouseAddress) && (
+                <dd className="mt-0.5 text-[12px] text-mute">{transfer.fromAddress ?? (transfer as any).fromWarehouseAddress}</dd>
+              )}
             </div>
             <div>
-              <dt className="text-mute">To</dt>
+              <dt className="text-mute">To — Receiving Location</dt>
               <dd className="font-semibold text-ink">{transfer.toLabel}</dd>
+              {(transfer.toAddress || (transfer as any).toWarehouseAddress) && (
+                <dd className="mt-0.5 text-[12px] text-mute">{transfer.toAddress ?? (transfer as any).toWarehouseAddress}</dd>
+              )}
             </div>
             <div>
               <dt className="text-mute">Dispatched By</dt>
