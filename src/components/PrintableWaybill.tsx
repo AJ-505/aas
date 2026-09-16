@@ -88,7 +88,6 @@ export function PrintableWaybill({ transfer }: PrintableWaybillProps) {
               <th className="border-b-2 border-ink px-2 py-1.5 w-28">Part No</th>
               <th className="border-b-2 border-ink px-2 py-1.5">Part Description</th>
               <th className="border-b-2 border-ink px-2 py-1.5 w-14 text-center">Qty</th>
-              <th className="border-b-2 border-ink px-2 py-1.5 w-16">Unit</th>
               <th className="border-b-2 border-ink px-2 py-1.5 w-40">Remarks</th>
             </tr>
           </thead>
@@ -99,14 +98,12 @@ export function PrintableWaybill({ transfer }: PrintableWaybillProps) {
                 <td className="border-b border-line px-2 py-2 font-mono text-[11px]">{item.code}</td>
                 <td className="border-b border-line px-2 py-2">{item.description}</td>
                 <td className="border-b border-line px-2 py-2 text-center">{item.qty}</td>
-                <td className="border-b border-line px-2 py-2">{item.unit ?? ''}</td>
                 <td className="border-b border-line px-2 py-2">{item.remarks ?? ''}</td>
               </tr>
             ))}
             {Array.from({ length: Math.max(0, 8 - transfer.lineItems.length) }).map((_, i) => (
               <tr key={`blank-${i}`}>
                 <td className="border-b border-line px-2 py-3">&nbsp;</td>
-                <td className="border-b border-line px-2 py-3" />
                 <td className="border-b border-line px-2 py-3" />
                 <td className="border-b border-line px-2 py-3" />
                 <td className="border-b border-line px-2 py-3" />

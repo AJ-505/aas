@@ -150,7 +150,6 @@ function WarehouseTransferDetailPage() {
               <TableHead>Part No</TableHead>
               <TableHead>Part Description</TableHead>
               <TableHead className="text-center">Qty</TableHead>
-              <TableHead>Unit</TableHead>
               <TableHead>Remarks</TableHead>
             </TableRow>
           </TableHeader>
@@ -163,7 +162,6 @@ function WarehouseTransferDetailPage() {
                 </TableCell>
                 <TableCell className="text-body">{item.description}</TableCell>
                 <TableCell className="text-center">{item.qty}</TableCell>
-                <TableCell className="text-body">{item.unit || '-'}</TableCell>
                 <TableCell className="text-body">{item.remarks || '-'}</TableCell>
               </TableRow>
             ))}
