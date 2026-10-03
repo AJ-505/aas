@@ -5,7 +5,7 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg p-8 text-center">
       <p className="text-sm font-semibold text-rose-600">
-        {error.message || 'Something went wrong'}
+        {error instanceof Error ? error.message : 'Something went wrong'}
       </p>
       <Link
         to="/"
