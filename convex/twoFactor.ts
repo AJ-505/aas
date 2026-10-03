@@ -10,16 +10,39 @@ import {
 } from "./lib/totp";
 import { enforce, enforceDedup } from "./lib/rateLimit";
 
+/**
+ * "Fully enrolled" = the account has a secret AND has actually verified a
+ * code with it at least once. Auto-enabled accounts (totpEnabled defaulted
+ * to true at signup) and mid-setup accounts (secret written, QR not yet
+ * confirmed) are NOT enrolled — they must be allowed to (re)start setup,
+ * otherwise verifySetup/setup guards brick the account in a half-enabled
+ * state ("Two-factor is already enabled" on every verification attempt).
+ */
+function isFullyEnrolled(user: {
+  totpEnabled?: boolean;
+  totpSecret?: string;
+  lastTotpVerifiedTs?: number;
+}): boolean {
+  return (
+    !!user.totpEnabled &&
+    !!user.totpSecret &&
+    user.lastTotpVerifiedTs !== undefined
+  );
+}
+
 export const status = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
+    const u = user as any;
     return {
-      totpEnabled: !!(user as any).totpEnabled,
-      hasSecret: !!(user as any).totpSecret,
-      backupCodesCount: ((user as any).backupCodes as string[] | undefined)?.length ?? 0,
-      lastTotpVerifiedTs: (user as any).lastTotpVerifiedTs ?? null,
+      totpEnabled: !!u.totpEnabled,
+      hasSecret: !!u.totpSecret,
+      // True only once a code has actually been verified against the secret.
+      verified: u.lastTotpVerifiedTs !== undefined,
+      backupCodesCount: (u.backupCodes as string[] | undefined)?.length ?? 0,
+      lastTotpVerifiedTs: u.lastTotpVerifiedTs ?? null,
     };
   },
 });
@@ -29,13 +52,21 @@ export const setup = mutation({
   handler: async (ctx) => {
     const user = await requireUser(ctx);
     await enforce(ctx, "admin");
-    // Allow initial setup when the account was defaulted to enabled but no secret has been enrolled yet.
+    // Block re-enrollment only when 2FA is actually working (verified).
+    // An auto-enabled account with a written-but-unverified secret is still
+    // mid-setup and must be allowed to finish (or restart) enrollment.
     const existingSecret = (user as any).totpSecret as string | undefined;
-    if ((user as any).totpEnabled && existingSecret) {
+    if (isFullyEnrolled(user as any)) {
       throw new ConvexError("Two-factor is already enabled. Disable it first to re-enroll.");
     }
-    const secret = generateSecret();
     const email = (user.email ?? user._id) as string;
+    if (existingSecret) {
+      // Resume the unfinished enrollment: return the SAME pending secret
+      // instead of rotating it, so a page refresh mid-setup does not
+      // invalidate the QR the user already scanned.
+      return { secret: existingSecret, uri: buildOtpauthUri(existingSecret, email) };
+    }
+    const secret = generateSecret();
     const uri = buildOtpauthUri(secret, email);
     await ctx.db.patch(user._id, { totpSecret: secret } as any);
     // Not yet enabled until verifySetup succeeds; audit setup initiation
@@ -51,7 +82,10 @@ export const verifySetup = mutation({
     await enforce(ctx, "standard");
     const secret = (user as any).totpSecret as string | undefined;
     if (!secret) throw new ConvexError("No pending 2FA setup. Call setup first.");
-    if ((user as any).totpEnabled && !!(user as any).totpSecret) {
+    // Only block accounts whose 2FA is actually working (verified at least
+    // once). Auto-enabled accounts (totpEnabled=true from signup) with a
+    // pending secret must be able to complete enrollment here.
+    if (isFullyEnrolled(user as any)) {
       throw new ConvexError("Two-factor is already enabled.");
     }
     const code = args.code.trim();

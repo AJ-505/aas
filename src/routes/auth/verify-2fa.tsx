@@ -8,7 +8,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { markLoginStarted } from "~/lib/two-factor-session";
+import { markTotpVerified } from "~/lib/two-factor-session";
 
 export const Route = createFileRoute("/auth/verify-2fa")({
   component: Verify2FA,
@@ -27,7 +27,11 @@ function Verify2FA() {
     if (!c) return;
     try {
       await (verify.mutateAsync as any)({ code: c });
-      markLoginStarted();
+      // Clear the login marker: the session marker must NOT be stamped
+      // *after* the server-side lastTotpVerifiedTs, otherwise
+      // shouldRequireTotp (verifiedAt < sessionStart) keeps returning true
+      // and bounces the user straight back into the verification page.
+      markTotpVerified();
       toast.success("Verified");
       navigate({ to: "/" });
     } catch (err: any) {

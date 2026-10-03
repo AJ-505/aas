@@ -42,11 +42,19 @@ function SecurityPage() {
 
   const totpEnabled = !!(status.data as any)?.totpEnabled;
   const hasSecret = !!(status.data as any)?.hasSecret;
-  const statusLabel = hasSecret
-    ? totpEnabled
-      ? "Enabled"
-      : "Not enabled"
-    : "Setup required";
+  // Enrollment is only "Enabled" once a code has actually been verified. A
+  // secret written by setup but never verified (mid-setup, or after a page
+  // refresh) is still a pending enrollment, not a working 2FA.
+  const verified = !!(status.data as any)?.lastTotpVerifiedTs;
+  const enrolled = totpEnabled && hasSecret && verified;
+  const setupPending = totpEnabled && hasSecret && !verified;
+  const statusLabel = enrolled
+    ? "Enabled"
+    : setupPending
+      ? "Verification pending"
+      : totpEnabled
+        ? "Setup required"
+        : "Not enabled";
 
   async function startSetup() {
     try {
@@ -104,12 +112,19 @@ function SecurityPage() {
 
       <Card>
         <CardContent className="pt-6 space-y-4">
+          {totpEnabled && !enrolled && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+              {setupPending
+                ? "Finish verifying your authenticator to complete 2FA setup — click Resume setup below to show the QR code again."
+                : "Two-factor enrollment is required before you can use the app. Click Set up below to begin."}
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <div className="font-semibold text-ink">Authenticator (TOTP)</div>
               <div className="text-sm text-mute">{statusLabel}</div>
             </div>
-            {totpEnabled && hasSecret ? (
+            {enrolled ? (
               <div className="flex gap-2">
                 <Input
                   placeholder="Code to disable"
@@ -127,7 +142,11 @@ function SecurityPage() {
               </div>
             ) : (
               <Button onClick={startSetup} disabled={setup.isPending}>
-                {hasSecret ? "Enable" : "Set up"}
+                {setupPending
+                  ? "Resume setup"
+                  : hasSecret
+                    ? "Enable"
+                    : "Set up"}
               </Button>
             )}
           </div>
@@ -160,35 +179,36 @@ function SecurityPage() {
                   Verify
                 </Button>
               </form>
-              {backupCodes && (
-                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-                  <div className="font-semibold text-amber-800">
-                    Backup codes — save and print
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2 font-mono text-sm">
-                    {backupCodes.map((c) => (
-                      <span
-                        key={c}
-                        className="border rounded px-2 py-1 bg-white"
-                      >
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3"
-                    onClick={() => window.print()}
-                  >
-                    Print
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
-          {totpEnabled && !pending && (
+          {backupCodes && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+              <div className="font-semibold text-amber-800">
+                Backup codes — save and print
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2 font-mono text-sm">
+                {backupCodes.map((c) => (
+                  <span
+                    key={c}
+                    className="border rounded px-2 py-1 bg-white"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => window.print()}
+              >
+                Print
+              </Button>
+            </div>
+          )}
+
+          {enrolled && !pending && (
             <div className="space-y-3">
               <div className="flex gap-2 items-end">
                 <div className="flex-1 space-y-2">

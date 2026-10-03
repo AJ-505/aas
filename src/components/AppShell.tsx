@@ -316,7 +316,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     | number
     | undefined;
   const sessionStartedAt = getCurrentSessionStartedAt();
-  const needsTotpSetup = totpEnabled && !hasTotpSecret;
+  // Enrollment is only complete once a code has been verified against the
+  // secret. A secret written by `setup` but never verified (mid-setup, or
+  // after a refresh) must NOT flip this gate off — the user stays on the
+  // security page until `verifySetup` actually succeeds.
+  const totpEnrolled = totpEnabled && hasTotpSecret && !!lastTotpVerifiedTs;
+  const needsTotpSetup = totpEnabled && !totpEnrolled;
   const needsTotp =
     needsTotpSetup ||
     shouldRequireTotp({
