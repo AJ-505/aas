@@ -5,7 +5,7 @@ import { requireUser } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { warehouseTransferSchema } from '../src/lib/schemas'
-import { mergeDuplicatePartLines } from '../src/lib/line-items'
+import { sumQtyByPartId } from '../src/lib/line-items'
 import { nextDocumentNumber } from './lib/documentNumbers'
 import { enforce } from './lib/rateLimit'
 
@@ -72,13 +72,14 @@ export const create = mutation({
     const user = await requireActiveSession(ctx, [...TRANSFER_ROLES])
     await enforce(ctx, 'standard')
 
-    const parsed = warehouseTransferSchema.parse({
-      ...args,
-      items: mergeDuplicatePartLines(args.items),
-    })
+    const parsed = warehouseTransferSchema.parse(args)
     if (parsed.fromWarehouseId === parsed.toWarehouseId) {
       throw new ConvexError('Source and destination warehouses must be different.')
     }
+
+    // Duplicate lines for the same part must be checked against their sum, or
+    // each line passes a stock check that the total should fail.
+    const qtyByPart = sumQtyByPartId(parsed.items)
 
     const from = await ctx.db.get(parsed.fromWarehouseId as Id<'warehouses'>)
     const to = await ctx.db.get(parsed.toWarehouseId as Id<'warehouses'>)
@@ -96,9 +97,9 @@ export const create = mutation({
     for (const item of parsed.items) {
       const part = await ctx.db.get(item.partId as Id<'parts'>)
       if (!part) throw new ConvexError('Part not found.')
-      if (part.stockQty < item.qty) {
+      if (part.stockQty < (qtyByPart.get(item.partId) ?? item.qty)) {
         throw new ConvexError(
-          `Insufficient stock for ${part.code}. Available: ${part.stockQty}, requested: ${item.qty}.`,
+          `Insufficient stock for ${part.code}. Available: ${part.stockQty}, requested: ${qtyByPart.get(item.partId)}.`,
         )
       }
       storedItems.push({
@@ -111,13 +112,14 @@ export const create = mutation({
       })
     }
 
-    for (const item of parsed.items) {
-      const part = await ctx.db.get(item.partId as Id<'parts'>)
+    // Deduct the summed quantity once per part and record one outflow each.
+    for (const [partId, qty] of qtyByPart) {
+      const part = await ctx.db.get(partId as Id<'parts'>)
       if (!part) continue
-      await ctx.db.patch(part._id, { stockQty: part.stockQty - item.qty })
+      await ctx.db.patch(part._id, { stockQty: part.stockQty - qty })
       await ctx.db.insert('stockMovements', {
         partId: part._id,
-        qty: item.qty,
+        qty,
         type: 'out',
         ts: Date.now(),
         userId: user._id,

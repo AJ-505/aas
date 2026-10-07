@@ -1,11 +1,9 @@
-export function mergeDuplicatePartLines<T extends { partId: string; qty: number }>(
+export function sumQtyByPartId<T extends { partId: string; qty: number }>(
   items: T[],
-): T[] {
-  const merged = new Map<string, T>()
+): Map<string, number> {
+  const totals = new Map<string, number>()
   for (const item of items) {
-    const existing = merged.get(item.partId)
-    if (existing) existing.qty += item.qty
-    else merged.set(item.partId, { ...item })
+    totals.set(item.partId, (totals.get(item.partId) ?? 0) + item.qty)
   }
-  return Array.from(merged.values())
+  return totals
 }

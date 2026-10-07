@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { updatePartSchema } from '~/lib/schemas/part'
 import { isFinalInvoice, pickCurrentJobInvoice, pickFinalInvoice } from '../../convex/lib/invoiceHelpers'
-import { mergeDuplicatePartLines } from '~/lib/line-items'
+import { sumQtyByPartId } from '~/lib/line-items'
+import { counterSaleSchema } from '~/lib/schemas/counter'
+import { warehouseTransferSchema } from '~/lib/schemas/warehouse'
 
 describe('updatePartSchema', () => {
   it('does not inject defaults for absent numeric fields', () => {
@@ -29,8 +31,9 @@ describe('updatePartSchema', () => {
 })
 
 describe('invoice final selection', () => {
-  const legacy = { _id: 'a', _creationTime: 1, approved: true }
-  const estimate = { _id: 'b', _creationTime: 3, kind: 'estimate', status: 'draft' }
+  type InvoiceFixture = { _id: string; _creationTime: number; kind?: string; approved?: boolean; status?: string }
+  const legacy: InvoiceFixture = { _id: 'a', _creationTime: 1, approved: true }
+  const estimate: InvoiceFixture = { _id: 'b', _creationTime: 3, kind: 'estimate', status: 'draft' }
   const finalDraft = { _id: 'c', _creationTime: 2, kind: 'final', approved: false }
   const finalApproved = { _id: 'd', _creationTime: 4, kind: 'final', approved: true }
 
@@ -65,30 +68,55 @@ describe('invoice final selection', () => {
   })
 })
 
-describe('mergeDuplicatePartLines', () => {
-  it('merges two lines of the same part into one', () => {
-    const merged = mergeDuplicatePartLines([
-      { partId: 'p1', qty: 3 },
-      { partId: 'p1', qty: 4 },
-    ])
-    expect(merged).toEqual([{ partId: 'p1', qty: 7 }])
-  })
-
-  it('keeps distinct parts separate and preserves order', () => {
-    const merged = mergeDuplicatePartLines([
+describe('sumQtyByPartId', () => {
+  it('sums duplicate lines and keeps distinct parts separate', () => {
+    const totals = sumQtyByPartId([
       { partId: 'p1', qty: 1 },
       { partId: 'p2', qty: 2 },
-      { partId: 'p1', qty: 5 },
+      { partId: 'p1', qty: 4 },
     ])
-    expect(merged).toEqual([
-      { partId: 'p1', qty: 6 },
-      { partId: 'p2', qty: 2 },
-    ])
+    expect(totals.get('p1')).toBe(5)
+    expect(totals.get('p2')).toBe(2)
   })
 
-  it('does not mutate the input items', () => {
-    const input = [{ partId: 'p1', qty: 3 }, { partId: 'p1', qty: 4 }]
-    mergeDuplicatePartLines(input)
-    expect(input[0]!.qty).toBe(3)
+  it('sums duplicate lines that carry per-line metadata', () => {
+    const totals = sumQtyByPartId([
+      { partId: 'p1', qty: 1, unit: 'carton', remarks: 'A' },
+      { partId: 'p1', qty: 2, unit: 'piece', remarks: 'B' },
+    ])
+    expect(totals.get('p1')).toBe(3)
+  })
+
+  it('returns an empty map for no items', () => {
+    expect(sumQtyByPartId([]).size).toBe(0)
+  })
+})
+
+describe('line validation must precede aggregation', () => {
+  it('the schema rejects a fractional quantity on a raw line', () => {
+    expect(() =>
+      counterSaleSchema.parse({ items: [{ partId: 'p1', qty: 0.5 }] }),
+    ).toThrow()
+  })
+
+  it('rejects two fractional lines that a merge-first handler would accept as one', () => {
+    expect(() =>
+      counterSaleSchema.parse({
+        items: [
+          { partId: 'p1', qty: 0.5 },
+          { partId: 'p1', qty: 0.5 },
+        ],
+      }),
+    ).toThrow()
+  })
+
+  it('the schema rejects a negative quantity on a raw line', () => {
+    expect(() =>
+      warehouseTransferSchema.parse({
+        fromWarehouseId: 'w1',
+        toWarehouseId: 'w2',
+        items: [{ partId: 'p1', qty: -1 }],
+      }),
+    ).toThrow()
   })
 })
