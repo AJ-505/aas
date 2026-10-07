@@ -13,7 +13,16 @@ export const createPartSchema = z.object({
   category: z.string().trim().min(1).max(60).optional().or(z.literal('')),
 })
 
-export const updatePartSchema = createPartSchema.partial()
+export const updatePartSchema = z.object({
+  code: z.string().trim().min(1, 'Part Number is required').optional(),
+  description: z.string().trim().min(1, 'Description is required').optional(),
+  costPrice: moneyKobo.optional(),
+  sellingPrice: moneyKobo.optional(),
+  stockQty: z.number().int().min(0).optional(),
+  reorderLevel: z.number().int().min(0).optional(),
+  brand: z.string().trim().min(1).max(60).optional().or(z.literal('')),
+  category: z.string().trim().min(1).max(60).optional().or(z.literal('')),
+})
 
 export const stockMovementTypeSchema = z.enum(STOCK_MOVEMENT_TYPES)
 

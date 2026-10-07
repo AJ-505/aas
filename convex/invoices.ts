@@ -9,6 +9,8 @@ import {
   buildLineItemsForSalesOrder,
   nextInvoiceNumber,
   assertNotLocked,
+  pickFinalInvoice,
+  pickCurrentJobInvoice,
 } from './lib/invoiceHelpers'
 import { enforce, enforceDedup } from "./lib/rateLimit";
 
@@ -24,8 +26,7 @@ export const getByJob = query({
       .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
       .collect()
     if (all.length === 0) return null
-    const finalApproved = all.find((i) => (i as any).kind === 'final' && i.approved)
-    const picked = finalApproved ?? all.find((i) => (i as any).kind === 'final') ?? all[0] ?? null
+    const picked = pickCurrentJobInvoice(all)
     if (!picked) return null
     if (me.role !== 'admin' && (picked as any).generatedById) {
       const { generatedById: _omit, ...rest } = picked as any
@@ -136,7 +137,7 @@ export const generate = mutation({
       .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
       .collect()
     // pick existing final if any
-    const existingFinal = existing.find((e: any) => e.kind === 'final' || !e.kind)
+    const existingFinal = pickFinalInvoice(existing)
     if (existingFinal) {
       assertNotLocked(existingFinal)
       if (existingFinal.paid) throw new ConvexError('Cannot regenerate an invoice that is already paid.')
@@ -253,7 +254,7 @@ export const regenerate = mutation({
       .query('invoices')
       .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
       .collect()
-    const existing = existingList.find((e: any) => e.kind === 'final' || !e.kind)
+    const existing = pickFinalInvoice(existingList)
     if (existing) {
       assertNotLocked(existing)
       if (existing.paid) throw new ConvexError('Cannot regenerate an invoice that is already paid.')

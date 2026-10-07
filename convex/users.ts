@@ -226,8 +226,7 @@ export const changePassword = mutation({
       // best-effort: leave sessions intact if we cannot determine current session
     }
 
-    await ctx.db.patch(user._id, { mustChangePassword: false, lastActiveTs: Date.now() } as any);
-    try { await ctx.db.patch(user._id, { mustChangePassword: undefined } as any); } catch {}
+    await ctx.db.patch(user._id, { mustChangePassword: undefined, lastActiveTs: Date.now() } as any);
     await audit(ctx, "user.changePassword", "users", user._id);
     return null;
   },

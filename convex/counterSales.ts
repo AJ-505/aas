@@ -9,6 +9,7 @@ import {
   type InvoiceLineItem,
 } from '../src/lib/schemas/invoice'
 import { counterSaleSchema } from '../src/lib/schemas'
+import { sumQtyByPartId } from '../src/lib/line-items'
 import { nextDocumentNumber } from './lib/documentNumbers'
 import { enforce } from './lib/rateLimit'
 
@@ -69,6 +70,10 @@ export const create = mutation({
       items: args.items,
     })
 
+    // Duplicate lines for the same part must be checked against their sum, or
+    // each line passes a stock check that the total should fail.
+    const qtyByPart = sumQtyByPartId(parsed.items)
+
     const lineItems: InvoiceLineItem[] = []
     const storedItems: Array<{
       partId: Id<'parts'>
@@ -81,9 +86,9 @@ export const create = mutation({
     for (const item of parsed.items) {
       const part = await ctx.db.get(item.partId as Id<'parts'>)
       if (!part) throw new ConvexError('Part not found.')
-      if (part.stockQty < item.qty) {
+      if (part.stockQty < (qtyByPart.get(item.partId) ?? item.qty)) {
         throw new ConvexError(
-          `Insufficient stock for ${part.code}. Available: ${part.stockQty}, requested: ${item.qty}.`,
+          `Insufficient stock for ${part.code}. Available: ${part.stockQty}, requested: ${qtyByPart.get(item.partId)}.`,
         )
       }
       lineItems.push({
@@ -103,14 +108,14 @@ export const create = mutation({
       })
     }
 
-    // Deduct stock and record the outflow for every line, then snapshot the sale.
-    for (const item of parsed.items) {
-      const part = await ctx.db.get(item.partId as Id<'parts'>)
+    // Deduct the summed quantity once per part and record one outflow each.
+    for (const [partId, qty] of qtyByPart) {
+      const part = await ctx.db.get(partId as Id<'parts'>)
       if (!part) continue
-      await ctx.db.patch(part._id, { stockQty: part.stockQty - item.qty })
+      await ctx.db.patch(part._id, { stockQty: part.stockQty - qty })
       await ctx.db.insert('stockMovements', {
         partId: part._id,
-        qty: item.qty,
+        qty,
         type: 'out',
         ts: Date.now(),
         userId: user._id,

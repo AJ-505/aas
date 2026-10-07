@@ -162,54 +162,21 @@ export const updatePart = mutation({
   },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, PARTS_MUTATION_ROLES)
-    
-    await enforce(ctx, "standard");const { partId, ...patch } = args as Record<string, unknown> & { partId: any }
-    const normalized: Record<string, unknown> = { ...patch }
-    // alias: partNumber -> code
-    if (normalized.partNumber !== undefined && normalized.code === undefined) {
-      normalized.code = normalized.partNumber
-    }
-    delete normalized.partNumber
-    // normalize empty brand/category to undefined via zod then clean
+
+    await enforce(ctx, "standard");const { partId, partNumber, ...patch } = args
+    const normalized: Record<string, unknown> =
+      partNumber !== undefined && patch.code === undefined
+        ? { ...patch, code: partNumber }
+        : { ...patch }
     const parsed = updatePartSchema.parse(normalized)
     const clean: Record<string, unknown> = {}
     for (const [k, val] of Object.entries(parsed)) {
       if (val === undefined) continue
-      if ((k === 'brand' || k === 'category') && typeof val === 'string' && val.trim() === '') {
-        clean[k] = undefined
-        continue
-      }
-      if (k === 'category' && typeof val === 'string') {
-        clean[k] = normalizeStoredPartCategory(val)
-        continue
-      }
-      clean[k] = val
+      clean[k] = k === 'category' ? normalizeStoredPartCategory(val as string) : val
     }
-    // ensure brand/category empty string clears field
-    if ('brand' in normalized && (normalized.brand === '' || (typeof normalized.brand === 'string' && (normalized.brand as string).trim() === ''))) {
-      clean.brand = undefined
-    }
-    if ('category' in normalized && (normalized.category === '' || (typeof normalized.category === 'string' && (normalized.category as string).trim() === ''))) {
-      clean.category = undefined
-    }
-    if (Object.keys(clean).length > 0) {
-      // For brand/category clearing, need to patch with undefined to remove optional field
-      // Convex patch with undefined removes field if we use undefined value; but to clear we patch explicitly
-      const patchData: Record<string, unknown> = { ...clean }
-      // If caller sent empty, ensure we null out by patching undefined
-      await ctx.db.patch(partId, patchData)
-      // Manual clear for empty strings that zod turned to '' but we want remove
-      if (clean.brand === undefined && 'brand' in normalized) {
-        // Use patch to clear via delete semantics - set to undefined is not stored, so we patch to remove
-        // Convex doesn't delete field on undefined via patch, so we need to handle: patch with brand: undefined will keep? Actually optional fields: patch with undefined is ignored. So we do explicit check: to clear, we patch and then use db patch that sets to undefined via workaround - just leave as is and rely on UI fallback. But we can patch by setting to undefined via raw patch that deletes.
-        // Simpler: if brand is to be cleared, we patch again without brand field — Convex will keep old value, so we need to handle via brand removal by not including. Instead we treat empty as undefined and skip patch, old value remains. That's acceptable fallback; user must explicitly update to different value. To truly clear, we send brand as empty and we handle by patching brand to undefined via direct assignment — Convex JS handles undefined as deletion.
-        // We'll attempt direct:
-        try { await ctx.db.patch(partId, { brand: undefined } as any) } catch {}
-      }
-      if (clean.category === undefined && 'category' in normalized) {
-        try { await ctx.db.patch(partId, { category: undefined } as any) } catch {}
-      }
-    }
+    if ('brand' in normalized) clean.brand = normalizeBrandCategory(normalized.brand as string | undefined)
+    if ('category' in normalized) clean.category = normalizeStoredPartCategory(normalized.category as string | undefined)
+    if (Object.keys(clean).length > 0) await ctx.db.patch(partId, clean)
     await audit(ctx, 'parts.update', 'parts', partId)
     return null
   },
@@ -301,7 +268,7 @@ export const importParts = mutation({
         stockQty: parsed.stockQty,
         reorderLevel: parsed.reorderLevel,
         brand: normalizeBrandCategory(parsed.brand),
-        category: normalizeBrandCategory(parsed.category),
+        category: normalizeStoredPartCategory(parsed.category),
       })
       inserted.push(id)
     }

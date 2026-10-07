@@ -422,9 +422,14 @@ function CancelButton({
       variant="ghost"
       size="sm"
       onClick={async () => {
-        await cancel.mutateAsync({
-          appointmentId: appointmentId as Id<"appointments">,
-        });
+        try {
+          await cancel.mutateAsync({
+            appointmentId: appointmentId as Id<"appointments">,
+          });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Could not cancel the appointment.");
+          return;
+        }
         toast.success("Appointment cancelled.");
         onDone();
       }}

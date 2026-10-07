@@ -522,8 +522,8 @@ function PartForm({ partId, onDone }: { partId?: string; onDone: () => void }) {
       ? {
           partNumber: existing.code,
           description: existing.description,
-          costPrice: String(existing.costPrice),
-          sellingPrice: String(existing.sellingPrice),
+          costPrice: String(existing.costPrice / 100),
+          sellingPrice: String(existing.sellingPrice / 100),
           stockQty: String(existing.stockQty),
           reorderLevel: String(existing.reorderLevel),
           brand: (existing as any).brand ?? VEHICLE_BRAND_DEFAULTS[0],

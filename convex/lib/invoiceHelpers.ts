@@ -1,6 +1,9 @@
 import { ConvexError } from 'convex/values'
 import type { Id } from '../_generated/dataModel'
 import { computeInvoiceTotals, type InvoiceLineItem } from '../../src/lib/schemas/invoice'
+import { isFinalInvoice } from '../../src/lib/invoice-utils'
+
+export { isFinalInvoice }
 
 export async function buildLineItemsForJob(ctx: any, jobId: Id<'jobs'>): Promise<InvoiceLineItem[]> {
   const jobItems = await ctx.db
@@ -100,12 +103,34 @@ export async function computeAndInsertTotals(
   return computeInvoiceTotals(lineItems, vatRate)
 }
 
+export function pickFinalInvoice(invoices: any[]) {
+  return invoices.find(isFinalInvoice) ?? null
+}
+
+export function pickCurrentJobInvoice(invoices: any[]) {
+  const sorted = [...invoices].sort((a, b) => b._creationTime - a._creationTime)
+  return (
+    sorted.find((inv) => isFinalInvoice(inv) && inv.approved) ??
+    pickFinalInvoice(sorted) ??
+    sorted[0] ??
+    null
+  )
+}
+
 export async function findApprovedFinalForJob(ctx: any, jobId: Id<'jobs'>) {
   const invoices = await ctx.db
     .query('invoices')
     .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
     .collect()
-  return invoices.find((inv: any) => inv.kind === 'final' && inv.approved) ?? null
+  return invoices.find((inv: any) => isFinalInvoice(inv) && inv.approved) ?? null
+}
+
+export async function selectCurrentJobInvoice(ctx: any, jobId: Id<'jobs'>) {
+  const invoices = await ctx.db
+    .query('invoices')
+    .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
+    .collect()
+  return pickCurrentJobInvoice(invoices)
 }
 
 export async function findApprovedFinalForSalesOrder(ctx: any, salesOrderId: Id<'salesOrders'>) {
@@ -113,5 +138,5 @@ export async function findApprovedFinalForSalesOrder(ctx: any, salesOrderId: Id<
     .query('invoices')
     .withIndex('salesOrderId', (q: any) => q.eq('salesOrderId', salesOrderId))
     .collect()
-  return invoices.find((inv: any) => inv.kind === 'final' && inv.approved) ?? null
+  return invoices.find((inv: any) => isFinalInvoice(inv) && inv.approved) ?? null
 }
