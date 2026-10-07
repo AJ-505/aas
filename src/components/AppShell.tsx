@@ -222,6 +222,8 @@ function breadcrumb(pathname: string): string[] {
   return ["Workshop"];
 }
 
+const PROFILE_LOAD_TIMEOUT_MS = 15_000;
+
 export function AppShell({ children }: { children: ReactNode }) {
   // Auth gating uses the lightweight auth-provider state (single roundtrip) so
   // redirects for guests happen fast; the full user record loads in parallel.
@@ -357,6 +359,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     setTheme(nextTheme);
   }
 
+  useEffect(() => {
+    if (!isAuthenticated || user) return;
+    const timer = setTimeout(() => {
+      clearLoginSession();
+      toast.error("We could not load your profile. Please sign in again.");
+      void signOut().then(() => {
+        queryClient.clear();
+        void router.navigate({ to: "/auth/login" });
+      });
+    }, PROFILE_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, user, signOut, queryClient, router]);
+
   if (isLogin) {
     if (isAuthenticated) {
       return <Navigate to="/" />;
@@ -397,8 +412,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated) {
     return <Navigate to="/auth/login" />;
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader />
+      </div>
+    );
   }
 
   if (!user.role) {
