@@ -19,7 +19,28 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     await requireUser(ctx)
-    return await ctx.db.query('salesOrders').order('desc').take(100)
+    const orders = await ctx.db.query('salesOrders').order('desc').take(100)
+    return await Promise.all(
+      orders.map(async (order) => {
+        const vehicle = await ctx.db.get(order.vehicleId)
+        const lead = await ctx.db.get(order.leadId)
+        return {
+          ...order,
+          vehicle: vehicle
+            ? {
+                _id: vehicle._id,
+                make: vehicle.make,
+                model: vehicle.model,
+                year: vehicle.year,
+                plate: vehicle.plate ?? null,
+              }
+            : null,
+          lead: lead
+            ? { _id: lead._id, name: lead.name, phone: lead.phone }
+            : null,
+        }
+      }),
+    )
   },
 })
 
@@ -89,9 +110,12 @@ export const complete = mutation({
   args: { salesOrderId: v.id('salesOrders') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    
+
     await enforce(ctx, "financial");const order = await ctx.db.get(args.salesOrderId)
     if (!order) throw new ConvexError('Sales order not found.')
+    if (order.status !== 'pending') {
+      throw new ConvexError(`Cannot complete a sales order that is "${order.status}".`)
+    }
     if (order.balance > 0) {
       throw new ConvexError('Cannot complete order until the customer has fully paid the remaining balance.')
     }
@@ -105,9 +129,12 @@ export const cancel = mutation({
   args: { salesOrderId: v.id('salesOrders') },
   handler: async (ctx, args) => {
     await requireActiveSession(ctx, ['csr', 'salesRep', 'manager', 'admin'])
-    
+
     await enforce(ctx, "financial");const order = await ctx.db.get(args.salesOrderId)
     if (!order) throw new ConvexError('Sales order not found.')
+    if (order.status !== 'pending') {
+      throw new ConvexError(`Cannot cancel a sales order that is "${order.status}".`)
+    }
     const vehicle = await ctx.db.get(order.vehicleId)
     if (vehicle) {
       const newQty = (vehicle.stockQty ?? 0) + 1

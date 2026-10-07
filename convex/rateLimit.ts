@@ -15,6 +15,7 @@ export const listEvents = query({
 export const getStatus = query({
   args: {},
   handler: async (ctx) => {
+    await requireRole(ctx, ["admin", "manager", "audit"]);
     const settings = await ctx.db.query("settings").first();
     return {
       enabled: (settings as any)?.rateLimitEnabled !== false,

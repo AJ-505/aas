@@ -100,12 +100,40 @@ export async function computeAndInsertTotals(
   return computeInvoiceTotals(lineItems, vatRate)
 }
 
+// Invoices created before the `kind` field existed are final invoices.
+export function isFinalInvoice(inv: any): boolean {
+  if (!inv) return false
+  return inv.kind === 'final' || !inv.kind
+}
+
+export function pickFinalInvoice(invoices: any[]) {
+  return invoices.find(isFinalInvoice) ?? null
+}
+
+export function pickCurrentJobInvoice(invoices: any[]) {
+  const sorted = [...invoices].sort((a, b) => b._creationTime - a._creationTime)
+  return (
+    sorted.find((inv) => isFinalInvoice(inv) && inv.approved) ??
+    pickFinalInvoice(sorted) ??
+    sorted[0] ??
+    null
+  )
+}
+
 export async function findApprovedFinalForJob(ctx: any, jobId: Id<'jobs'>) {
   const invoices = await ctx.db
     .query('invoices')
     .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
     .collect()
-  return invoices.find((inv: any) => inv.kind === 'final' && inv.approved) ?? null
+  return invoices.find((inv: any) => isFinalInvoice(inv) && inv.approved) ?? null
+}
+
+export async function selectCurrentJobInvoice(ctx: any, jobId: Id<'jobs'>) {
+  const invoices = await ctx.db
+    .query('invoices')
+    .withIndex('jobId', (q: any) => q.eq('jobId', jobId))
+    .collect()
+  return pickCurrentJobInvoice(invoices)
 }
 
 export async function findApprovedFinalForSalesOrder(ctx: any, salesOrderId: Id<'salesOrders'>) {

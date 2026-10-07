@@ -9,6 +9,7 @@ import {
   type InvoiceLineItem,
 } from '../src/lib/schemas/invoice'
 import { counterSaleSchema } from '../src/lib/schemas'
+import { mergeDuplicatePartLines } from '../src/lib/line-items'
 import { nextDocumentNumber } from './lib/documentNumbers'
 import { enforce } from './lib/rateLimit'
 
@@ -66,7 +67,7 @@ export const create = mutation({
 
     const parsed = counterSaleSchema.parse({
       paymentMethod: args.paymentMethod,
-      items: args.items,
+      items: mergeDuplicatePartLines(args.items),
     })
 
     const lineItems: InvoiceLineItem[] = []

@@ -56,6 +56,7 @@ import {
 } from "~/lib/enums";
 import { JOB_STATUS_VARIANTS } from "~/lib/status-ui";
 import { nextStatuses } from "~/lib/job-utils";
+import { isFinalInvoice } from "~/lib/invoice-utils";
 import { formatNaira, formatDateTime, nairaToKobo } from "~/lib/format";
 import { useCurrentUser } from "~/lib/auth";
 import { cn } from "~/lib/utils";
@@ -848,7 +849,7 @@ function InvoiceSection({
 
   const invoices: any[] = invoiceList ?? (invoice ? [invoice] : []);
   const estimates = invoices.filter((i: any) => i.kind === "estimate");
-  const finals = invoices.filter((i: any) => i.kind === "final" || !i.kind);
+  const finals = invoices.filter(isFinalInvoice);
   const finalInvoice: any = finals[0] ?? null;
   const draftEstimate: any =
     estimates.find((e: any) => e.status === "draft") ?? null;

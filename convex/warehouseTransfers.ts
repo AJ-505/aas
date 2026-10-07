@@ -5,6 +5,7 @@ import { requireUser } from './lib/auth'
 import { requireActiveSession } from './lib/session'
 import { audit } from './lib/audit'
 import { warehouseTransferSchema } from '../src/lib/schemas'
+import { mergeDuplicatePartLines } from '../src/lib/line-items'
 import { nextDocumentNumber } from './lib/documentNumbers'
 import { enforce } from './lib/rateLimit'
 
@@ -71,7 +72,10 @@ export const create = mutation({
     const user = await requireActiveSession(ctx, [...TRANSFER_ROLES])
     await enforce(ctx, 'standard')
 
-    const parsed = warehouseTransferSchema.parse(args)
+    const parsed = warehouseTransferSchema.parse({
+      ...args,
+      items: mergeDuplicatePartLines(args.items),
+    })
     if (parsed.fromWarehouseId === parsed.toWarehouseId) {
       throw new ConvexError('Source and destination warehouses must be different.')
     }

@@ -7,7 +7,7 @@ import { audit } from './lib/audit'
 import { canTransition, resolveJobStatusAfterInvoicePayment } from '../src/lib/job-utils'
 import type { JobStatus } from '../src/lib/enums'
 import { addJobItemSchema, checkInJobSchema } from '../src/lib/schemas'
-import { findApprovedFinalForJob } from './lib/invoiceHelpers'
+import { findApprovedFinalForJob, selectCurrentJobInvoice } from './lib/invoiceHelpers'
 import { enforce, enforceDedup } from "./lib/rateLimit";
 
 export const getDetail = query({
@@ -25,10 +25,7 @@ export const getDetail = query({
       .query('jobItems')
       .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
       .collect()
-    const invoice = await ctx.db
-      .query('invoices')
-      .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
-      .first()
+    const invoice = await selectCurrentJobInvoice(ctx, args.jobId)
     const payments = invoice
       ? await ctx.db
           .query('payments')
@@ -314,10 +311,7 @@ export const complete = mutation({
       throw new ConvexError(`Cannot complete a job that is "${job.status}".`)
     }
 
-    const invoice = await ctx.db
-      .query('invoices')
-      .withIndex('jobId', (q: any) => q.eq('jobId', args.jobId))
-      .first()
+    const invoice = await selectCurrentJobInvoice(ctx, args.jobId)
 
     const nextStatus = invoice && invoice.paid ? 'paid' : 'completed'
     await ctx.db.patch(args.jobId, {
@@ -340,10 +334,7 @@ export const markPaid = mutation({
     if (!canTransition(job.status, 'paid')) {
       throw new ConvexError(`Cannot mark paid a job that is "${job.status}".`)
     }
-    const invoice = await ctx.db
-      .query('invoices')
-      .withIndex('jobId', (q) => q.eq('jobId', args.jobId))
-      .first()
+    const invoice = await selectCurrentJobInvoice(ctx, args.jobId)
     if (!invoice) throw new ConvexError('No invoice found for this job.')
     if (!invoice.approved) throw new ConvexError('Invoice must be approved first.')
     if (invoice.amountPaid < invoice.grandTotal) {

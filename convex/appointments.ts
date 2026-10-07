@@ -157,6 +157,9 @@ export const cancel = mutation({
     
     await enforce(ctx, "standard");const appointment = await ctx.db.get(args.appointmentId)
     if (!appointment) throw new ConvexError('Appointment not found.')
+    if (appointment.status !== 'scheduled') {
+      throw new ConvexError(`Cannot cancel an appointment that is "${appointment.status}".`)
+    }
     await ctx.db.patch(args.appointmentId, { status: 'cancelled' })
     await audit(ctx, 'appointment.cancel', 'appointments', args.appointmentId)
   },
